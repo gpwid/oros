@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-oros-950 text-slate-100 select-none;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Custom sleek scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(115, 145, 171, 0.2);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(115, 145, 171, 0.4);
+  }
+}
+
+/* Wikipedia-like Prose Typography for Wiki Articles */
+.oros-wiki-prose {
+  color: #cbd4df;
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.oros-wiki-prose h1 {
+  font-family: 'Cinzel', serif;
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #f4f6f8;
+  border-bottom: 1px solid rgba(115, 145, 171, 0.25);
+  padding-bottom: 0.4rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.oros-wiki-prose h2 {
+  font-family: 'Cinzel', serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #e5e9ee;
+  border-bottom: 1px solid rgba(115, 145, 171, 0.15);
+  padding-bottom: 0.25rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.oros-wiki-prose h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #cbd4df;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.oros-wiki-prose p {
+  margin-bottom: 1rem;
+}
+
+.oros-wiki-prose ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.oros-wiki-prose ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.oros-wiki-prose blockquote {
+  border-left: 3px solid #f5c542;
+  padding-left: 1rem;
+  font-style: italic;
+  color: #a3b5c7;
+  margin-bottom: 1rem;
+}
+
+/* TipTap Editor Styling */
+.ProseMirror:focus {
+  outline: none;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #517491;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-electron
+dist-ssr
+*.local
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+oros_vault.json

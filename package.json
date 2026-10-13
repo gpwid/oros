@@ -7,6 +7,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
+    "electron:dev": "node scripts/electron-dev.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },

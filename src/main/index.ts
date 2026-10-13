@@ -1,6 +1,10 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
 
@@ -34,6 +38,9 @@ function saveVaultData(jsonContent: string): boolean {
 }
 
 function createWindow(): void {
+  // Preload is built alongside main into dist-electron/
+  const preloadPath = join(__dirname, 'index.mjs')
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -50,7 +57,7 @@ function createWindow(): void {
       height: 36
     },
     webPreferences: {
-      preload: join(__dirname, '../dist-electron/index.js'),
+      preload: preloadPath,
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false
@@ -66,10 +73,9 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
+    mainWindow.webContents.openDevTools({ mode: 'detach' })
   } else {
     mainWindow.loadFile(join(__dirname, '../dist/index.html'))
   }
@@ -90,9 +96,7 @@ app.whenReady().then(() => {
       properties: ['openFile'],
       filters: [{ name: 'Images', extensions: ['jpg', 'png', 'webp', 'svg', 'gif'] }]
     })
-    if (result.canceled || result.filePaths.length === 0) {
-      return null
-    }
+    if (result.canceled || result.filePaths.length === 0) return null
     return result.filePaths[0]
   })
 

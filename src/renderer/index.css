@@ -121,3 +121,8 @@
   border-color: rgba(245, 197, 66, 0.7);
   box-shadow: 0 0 8px rgba(245, 197, 66, 0.2);
 }
+
+/* Hide React Flow attribution watermark */
+.react-flow__attribution {
+  display: none !important;
+}

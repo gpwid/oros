@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { 
-  ReactFlow, Controls, Background, MiniMap, Node, Edge, 
+  ReactFlow, Background, Node, Edge, 
   MarkerType, Handle, Position, useNodesState, useEdgesState,
-  useReactFlow, ReactFlowProvider, BaseEdge, EdgeProps, getStraightPath
+  useReactFlow, ReactFlowProvider, BaseEdge, EdgeProps, getStraightPath,
+  useViewport
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useWorldStore } from '../../store/useWorldStore'
@@ -158,6 +159,232 @@ const TYPE_OPTIONS: FilterOption[] = [
   { label: 'Items', value: 'item', icon: Gem }
 ]
 
+interface GraphMiniMapProps {
+  nodes: Node[]
+  worldPositionsRef: React.MutableRefObject<Map<string, { x: number; y: number }>>
+  selectedWikiId: string | null
+  containerRef: React.RefObject<HTMLDivElement>
+  drawerOpen?: boolean
+}
+
+// Stable, flicker-free custom minimap that does NOT re-rasterize or fluctuate on hover motion
+const GraphMiniMap: React.FC<GraphMiniMapProps> = React.memo(({
+  nodes,
+  worldPositionsRef,
+  selectedWikiId,
+  containerRef,
+  drawerOpen
+}) => {
+  const { x, y, zoom } = useViewport()
+  const { setCenter } = useReactFlow()
+  const svgRef = useRef<SVGSVGElement>(null)
+  const isDraggingRef = useRef(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [containerSize, setContainerSize] = useState({ width: 1200, height: 800 })
+
+  // Synchronize canvas container dimensions
+  useEffect(() => {
+    if (!containerRef.current) return
+    const el = containerRef.current
+    const updateSize = () => {
+      if (el.clientWidth > 0 && el.clientHeight > 0) {
+        setContainerSize({ width: el.clientWidth, height: el.clientHeight })
+      }
+    }
+    updateSize()
+    const ro = new ResizeObserver(updateSize)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [containerRef])
+
+  // Stable world bounds computed strictly from persistent master base coordinates
+  // Completely immune to 30 FPS hover oscillation!
+  const bounds = useMemo(() => {
+    if (nodes.length === 0) {
+      return { minX: -600, minY: -400, width: 1200, height: 800 }
+    }
+    let minX = Infinity
+    let maxX = -Infinity
+    let minY = Infinity
+    let maxY = -Infinity
+
+    for (const n of nodes) {
+      const pos = worldPositionsRef.current.get(n.id) || n.position
+      if (pos.x < minX) minX = pos.x
+      if (pos.x + 224 > maxX) maxX = pos.x + 224
+      if (pos.y < minY) minY = pos.y
+      if (pos.y + 68 > maxY) maxY = pos.y + 68
+    }
+
+    const padX = Math.max(300, (maxX - minX) * 0.18)
+    const padY = Math.max(220, (maxY - minY) * 0.18)
+    minX -= padX
+    maxX += padX
+    minY -= padY
+    maxY += padY
+
+    const width = Math.max(800, maxX - minX)
+    const height = Math.max(500, maxY - minY)
+
+    return { minX, minY, width, height }
+  }, [nodes, worldPositionsRef])
+
+  // Camera viewport in world coordinates
+  const safeZoom = Math.max(0.01, zoom)
+  const camX = -x / safeZoom
+  const camY = -y / safeZoom
+  const camWidth = containerSize.width / safeZoom
+  const camHeight = containerSize.height / safeZoom
+
+  // World coordinates translation on click/drag
+  const panToSvgPoint = (clientX: number, clientY: number, smooth = false) => {
+    const svg = svgRef.current
+    if (!svg) return
+    const pt = svg.createSVGPoint()
+    pt.x = clientX
+    pt.y = clientY
+    const ctm = svg.getScreenCTM()
+    if (ctm) {
+      const worldPoint = pt.matrixTransform(ctm.inverse())
+      setCenter(worldPoint.x, worldPoint.y, { duration: smooth ? 250 : 0 })
+    }
+  }
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    isDraggingRef.current = true
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {}
+    panToSvgPoint(e.clientX, e.clientY, true)
+  }
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current) return
+    panToSvgPoint(e.clientX, e.clientY, false)
+  }
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    isDraggingRef.current = false
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {}
+  }
+
+  // Shaded outer mask coordinates
+  const bigX = bounds.minX - 5000
+  const bigY = bounds.minY - 5000
+  const bigW = bounds.width + 10000
+  const bigH = bounds.height + 10000
+
+  if (isCollapsed) {
+    return (
+      <button
+        onClick={() => setIsCollapsed(false)}
+        className={`absolute bottom-4 ${drawerOpen ? 'right-90' : 'right-4'} z-20 px-3 py-1.5 bg-oros-900/95 backdrop-blur-md border border-oros-700/80 hover:border-gold-400/60 rounded-xl shadow-2xl flex items-center gap-1.5 text-xs text-oros-300 hover:text-gold-300 transition-all font-mono`}
+        title="Expand Navigator Minimap"
+      >
+        <Network className="w-3.5 h-3.5 text-gold-400" />
+        <span className="text-[11px] font-semibold uppercase tracking-wider">Navigator</span>
+      </button>
+    )
+  }
+
+  return (
+    <div
+      className={`absolute bottom-4 ${
+        drawerOpen ? 'right-90' : 'right-4'
+      } z-20 w-52 h-36 sm:w-60 sm:h-40 bg-oros-950/95 backdrop-blur-md border border-oros-800/90 hover:border-gold-400/40 rounded-2xl overflow-hidden shadow-2xl transition-all flex flex-col group select-none`}
+    >
+      {/* Sleek Minimap Header */}
+      <div className="px-3 py-1.5 bg-oros-900/70 border-b border-oros-800/70 flex items-center justify-between text-[10px] text-oros-400">
+        <span className="flex items-center gap-1.5 text-gold-400 font-semibold tracking-wider uppercase text-[9px] font-mono">
+          <Network className="w-3 h-3 text-gold-400" />
+          Navigator
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-oros-500 font-mono">
+            {nodes.length} cards
+          </span>
+          <button
+            onClick={() => setIsCollapsed(true)}
+            className="p-0.5 rounded text-oros-500 hover:text-slate-200 hover:bg-oros-800/60 transition-colors"
+            title="Minimize Navigator"
+          >
+            <ChevronDown className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+
+      {/* SVG Minimap Canvas */}
+      <div
+        className="flex-1 w-full h-full relative cursor-crosshair overflow-hidden bg-oros-950/80"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
+        <svg
+          ref={svgRef}
+          className="w-full h-full block"
+          viewBox={`${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`}
+          preserveAspectRatio="xMidYMid meet"
+        >
+          {/* Static Mini Cards at Master Coordinates (No Jitter) */}
+          {nodes.map((node) => {
+            const pos = worldPositionsRef.current.get(node.id) || node.position
+            const isSelected = node.id === selectedWikiId
+            return (
+              <rect
+                key={node.id}
+                x={pos.x}
+                y={pos.y}
+                width={224}
+                height={68}
+                rx={14}
+                fill={isSelected ? '#f59e0b' : '#1e293b'}
+                stroke={isSelected ? '#fbbf24' : '#334155'}
+                strokeWidth={isSelected ? 8 : 3}
+                opacity={isSelected ? 1 : 0.85}
+              />
+            )
+          })}
+
+          {/* Camera Viewport Indicator Box */}
+          <rect
+            x={camX}
+            y={camY}
+            width={camWidth}
+            height={camHeight}
+            rx={16}
+            fill="rgba(245, 197, 66, 0.08)"
+            stroke="#f59e0b"
+            strokeWidth={Math.max(6, bounds.width / 130)}
+            pointerEvents="none"
+          />
+
+          {/* Shaded Viewport Outer Mask */}
+          <path
+            d={`
+              M ${bigX} ${bigY}
+              h ${bigW}
+              v ${bigH}
+              h ${-bigW}
+              z
+              M ${camX} ${camY}
+              h ${camWidth}
+              v ${camHeight}
+              h ${-camWidth}
+              z
+            `}
+            fill="rgba(11, 17, 24, 0.65)"
+            fillRule="evenodd"
+            pointerEvents="none"
+          />
+        </svg>
+      </div>
+    </div>
+  )
+})
+
 const WikiNetworkGraphInner: React.FC = () => {
   const { 
     entities, relations, activeWorldId, setSelectedEntityId, setActiveTab 
@@ -173,6 +400,7 @@ const WikiNetworkGraphInner: React.FC = () => {
   const [hoverMotion, setHoverMotion] = useState(true)
 
   const filterDropdownRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   // Close filter dropdown on outside click
   useEffect(() => {
@@ -594,7 +822,7 @@ const WikiNetworkGraphInner: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-oros-950 relative select-none">
       {/* Main Graph Canvas (Full-bleed edge-to-edge canvas; top bar removed) */}
-      <div className="flex-1 h-full w-full relative">
+      <div ref={containerRef} className="flex-1 h-full w-full relative">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -609,16 +837,19 @@ const WikiNetworkGraphInner: React.FC = () => {
           panOnDrag={true}
           zoomOnScroll={true}
           fitView
-          attributionPosition="bottom-left"
+          proOptions={{ hideAttribution: true }}
         >
           <Background color="#16202c" gap={24} size={1} />
-          <Controls className="bg-oros-900 border border-oros-700 text-slate-200 fill-slate-200" />
-          <MiniMap 
-            nodeColor="#2b3b4f" 
-            maskColor="rgba(11, 17, 24, 0.88)"
-            className="bg-oros-950 border border-oros-800 rounded-xl overflow-hidden" 
-          />
         </ReactFlow>
+
+        {/* Stable, Zero-Flicker Custom Graph Navigator Minimap */}
+        <GraphMiniMap
+          nodes={displayedNodes}
+          worldPositionsRef={worldPositionsRef}
+          selectedWikiId={selectedWikiId}
+          containerRef={containerRef}
+          drawerOpen={Boolean(activeArticle)}
+        />
 
         {/* SLEEK FLOATING CANVAS TOOLBAR (Search, Custom Filter Dropdown, Hubs, Fit View) */}
         <div className="absolute top-4 left-4 z-20 flex items-center gap-2">

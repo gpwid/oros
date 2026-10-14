@@ -16,7 +16,9 @@ import {
   Edge,
   Connection,
   NodeProps,
-  NodeResizer
+  NodeResizer,
+  ConnectionMode,
+  ConnectionLineType
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useWorldStore } from '../../store/useWorldStore'
@@ -187,10 +189,10 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         selected ? 'border-gold-400 ring-2 ring-gold-400/40' : 'border-oros-800/80 hover:border-oros-700'
       }`}>
         {/* 4 Cardinal Handles - only visible on hover */}
-        <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
 
         {/* Card Portrait Banner (flex-1 fills available space cleanly) */}
         <div className="flex-1 w-full min-h-0 bg-oros-900 relative overflow-hidden rounded-t-2xl">
@@ -311,10 +313,10 @@ const StickyNoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         selected ? 'ring-2 ring-amber-500 shadow-amber-900/40' : 'hover:shadow-xl'
       }`}>
         {/* 4 Cardinal Handles - only visible on hover */}
-        <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-amber-500 !border-2 !border-white !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-amber-500 !border-2 !border-white !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-amber-500 !border-2 !border-white !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-amber-500 !border-2 !border-white !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-amber-500 !border-2 !border-white !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-amber-500 !border-2 !border-white !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-amber-500 !border-2 !border-white !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-amber-500 !border-2 !border-white !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
 
         {/* Notepad Pin & Title */}
         <div className="shrink-0 border-b border-amber-300/80 pb-1.5 mb-2 flex items-center justify-between">
@@ -465,24 +467,24 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         {/* Handles matching shape geometry, only visible on hover */}
         {type === 'parallelogram' ? (
           <>
-            <Handle type="target" position={Position.Top} style={{ left: '60.7%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Bottom} style={{ left: '39.3%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !bottom-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="target" position={Position.Left} style={{ left: '14.3%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Right} style={{ left: '85.7%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Top} id="top" style={{ left: '60.7%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Bottom} id="bottom" style={{ left: '39.3%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !bottom-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Left} id="left" style={{ left: '14.3%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Right} id="right" style={{ left: '85.7%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
           </>
         ) : type === 'diamond' ? (
           <>
-            <Handle type="target" position={Position.Top} style={{ left: '50%', top: '5%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Bottom} style={{ left: '50%', top: '95%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="target" position={Position.Left} style={{ left: '5%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Right} style={{ left: '95%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Top} id="top" style={{ left: '50%', top: '5%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Bottom} id="bottom" style={{ left: '50%', top: '95%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Left} id="left" style={{ left: '5%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Right} id="right" style={{ left: '95%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
           </>
         ) : (
           <>
-            <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
           </>
         )}
 
@@ -1163,6 +1165,9 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
         zoomOnScroll={true}
         minZoom={0.2}
         maxZoom={2.5}
+        connectionMode={ConnectionMode.Loose}
+        connectionLineType={ConnectionLineType.SmoothStep}
+        connectionLineStyle={{ stroke: '#f5c542', strokeWidth: 2 }}
         className={activeTool === 'pen' ? 'cursor-crosshair' : activeTool === 'pan' ? 'cursor-grab' : 'cursor-default'}
       >
         {/* Subtle dot grid like VVD */}

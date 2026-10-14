@@ -82,7 +82,7 @@ export const sampleEntities: LoreEntity[] = [
     content: `<p>Queen Katherine II reigned during the Great Consolidation. Her mysterious disappearance during a survey of the Radiant Abyss remains the kingdom's greatest unsolved enigma.</p>`,
     tags: ['Royalty', 'Ancestor', 'Monarch'],
     aliases: ['The Vanished Queen'],
-    avatar: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=400&q=80',
+    avatar: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=400&q=80',
     infobox: {
       subtitle: 'Dowager Queen',
       sections: []
@@ -284,6 +284,9 @@ export const sampleRelations: RelationEdge[] = [
     targetEntityId: 'char-ronald',
     relationType: 'family',
     label: 'Anak',
+    icon: 'baby',
+    color: '#f59e0b',
+    isDashed: false,
     notes: 'Queen Katherine II gave birth to Ronald during the Solar Eclipse'
   },
   {
@@ -293,6 +296,9 @@ export const sampleRelations: RelationEdge[] = [
     targetEntityId: 'char-vespera',
     relationType: 'family',
     label: 'Pasangan',
+    icon: 'heart',
+    color: '#f43f5e',
+    isDashed: false,
     notes: 'Bound by the Golden Concord of 830 AC'
   },
   {
@@ -302,6 +308,9 @@ export const sampleRelations: RelationEdge[] = [
     targetEntityId: 'char-marcus',
     relationType: 'rival',
     label: 'Saudara Kandung',
+    icon: 'users',
+    color: '#94a3b8',
+    isDashed: true,
     notes: 'dashed'
   },
   {
@@ -311,6 +320,9 @@ export const sampleRelations: RelationEdge[] = [
     targetEntityId: 'char-aurelius',
     relationType: 'family',
     label: 'Anak',
+    icon: 'baby',
+    color: '#f59e0b',
+    isDashed: false,
     notes: 'Crown Prince and biological heir'
   },
   {
@@ -320,6 +332,9 @@ export const sampleRelations: RelationEdge[] = [
     targetEntityId: 'char-lyra',
     relationType: 'family',
     label: 'Anak Angkat',
+    icon: 'handshake',
+    color: '#38bdf8',
+    isDashed: true,
     notes: 'dashed'
   },
   {
@@ -329,6 +344,9 @@ export const sampleRelations: RelationEdge[] = [
     targetEntityId: 'fac-solar',
     relationType: 'ruler',
     label: 'High Sovereign',
+    icon: 'crown',
+    color: '#f5c542',
+    isDashed: false,
     notes: 'Supreme Commander'
   },
   {
@@ -338,6 +356,9 @@ export const sampleRelations: RelationEdge[] = [
     targetEntityId: 'item-astral-crown',
     relationType: 'creator',
     label: 'Wields Artifact',
+    icon: 'gem',
+    color: '#c084fc',
+    isDashed: false,
     notes: 'Attuned during coronation ritual'
   }
 ]

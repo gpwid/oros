@@ -87,6 +87,9 @@ export interface RelationEdge {
   relationType: 'family' | 'ally' | 'rival' | 'vassal' | 'member' | 'creator' | 'ruler' | 'custom';
   label: string;
   notes?: string;
+  icon?: string;
+  color?: string;
+  isDashed?: boolean;
 }
 
 export interface TimelineEvent {

@@ -1,17 +1,30 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, lazy, Suspense } from 'react'
 import { useWorldStore } from './store/useWorldStore'
 import { WorkspaceTabs } from './components/layout/WorkspaceTabs'
 import { Sidebar } from './components/layout/Sidebar'
-import { WikiArticleView } from './components/wiki/WikiArticleView'
-import { CardGallery } from './components/cards/CardGallery'
-import { InteractiveMapViewer } from './components/maps/InteractiveMapViewer'
-import { RelationGraphCanvas } from './components/graph/RelationGraphCanvas'
-import { WikiNetworkGraph } from './components/graph/WikiNetworkGraph'
-import { TimelineView } from './components/timeline/TimelineView'
-import { StudioWriter } from './components/writer/StudioWriter'
-import { WhiteboardCanvas } from './components/canvas/WhiteboardCanvas'
 import { CommandPalette } from './components/common/CommandPalette'
 import { ToastContainer } from './components/common/ToastContainer'
+import { Sparkles } from 'lucide-react'
+
+// Code-split heavy views to accelerate launch time and memory footprint
+const WhiteboardCanvas = lazy(() => import('./components/canvas/WhiteboardCanvas').then(m => ({ default: m.WhiteboardCanvas })))
+const WikiArticleView = lazy(() => import('./components/wiki/WikiArticleView').then(m => ({ default: m.WikiArticleView })))
+const CardGallery = lazy(() => import('./components/cards/CardGallery').then(m => ({ default: m.CardGallery })))
+const InteractiveMapViewer = lazy(() => import('./components/maps/InteractiveMapViewer').then(m => ({ default: m.InteractiveMapViewer })))
+const RelationGraphCanvas = lazy(() => import('./components/graph/RelationGraphCanvas').then(m => ({ default: m.RelationGraphCanvas })))
+const WikiNetworkGraph = lazy(() => import('./components/graph/WikiNetworkGraph').then(m => ({ default: m.WikiNetworkGraph })))
+const TimelineView = lazy(() => import('./components/timeline/TimelineView').then(m => ({ default: m.TimelineView })))
+const StudioWriter = lazy(() => import('./components/writer/StudioWriter').then(m => ({ default: m.StudioWriter })))
+
+const ViewFallback = () => (
+  <div className="flex-1 h-full w-full flex flex-col items-center justify-center bg-oros-950 text-oros-400">
+    <div className="relative">
+      <div className="w-10 h-10 rounded-full border-2 border-oros-800 border-t-gold-400 animate-spin" />
+      <Sparkles className="w-4 h-4 text-gold-400 absolute inset-0 m-auto opacity-75" />
+    </div>
+    <span className="font-serif text-xs text-oros-400 mt-3 tracking-wider">Loading View...</span>
+  </div>
+)
 
 export const App: React.FC = () => {
   const { activeTab, openTabs, activeTabId, initStore } = useWorldStore()
@@ -67,7 +80,9 @@ export const App: React.FC = () => {
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
         <main className="flex-1 flex overflow-hidden bg-oros-950">
-          {renderActiveView()}
+          <Suspense fallback={<ViewFallback />}>
+            {renderActiveView()}
+          </Suspense>
         </main>
       </div>
 

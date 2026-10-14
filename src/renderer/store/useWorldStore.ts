@@ -124,6 +124,9 @@ interface WorldState {
   exportWorld: () => Promise<void>;
 }
 
+let persistDebounceTimer: any = null;
+let isSavingActive = false;
+
 export const useWorldStore = create<WorldState>((set, get) => ({
   activeTab: 'canvas',
   openTabs: sampleWorkspaceTabs,
@@ -179,31 +182,47 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   persistStore: async () => {
-    const s = get();
-    set({ isSaving: true });
-    const payload: StorageData = {
-      version: '1.0.0',
-      worlds: s.worlds,
-      activeWorldId: s.activeWorldId,
-      entities: s.entities,
-      maps: s.maps,
-      relations: s.relations,
-      timelines: s.timelines,
-      manuscripts: s.manuscripts,
-      folders: s.folders,
-      directoryItems: s.directoryItems,
-      canvases: s.canvases,
-      categories: s.categories
-    };
-    try {
-      if (window.oros) {
-        await window.oros.saveVault(JSON.stringify(payload, null, 2));
-      } else {
-        localStorage.setItem('oros_vault', JSON.stringify(payload));
-      }
-    } finally {
-      setTimeout(() => set({ isSaving: false }), 400);
+    if (persistDebounceTimer) {
+      clearTimeout(persistDebounceTimer);
     }
+
+    if (!isSavingActive) {
+      isSavingActive = true;
+      set({ isSaving: true });
+    }
+
+    return new Promise<void>((resolve) => {
+      persistDebounceTimer = setTimeout(async () => {
+        const s = get();
+        const payload: StorageData = {
+          version: '1.0.0',
+          worlds: s.worlds,
+          activeWorldId: s.activeWorldId,
+          entities: s.entities,
+          maps: s.maps,
+          relations: s.relations,
+          timelines: s.timelines,
+          manuscripts: s.manuscripts,
+          folders: s.folders,
+          directoryItems: s.directoryItems,
+          canvases: s.canvases,
+          categories: s.categories
+        };
+        try {
+          if (window.oros) {
+            await window.oros.saveVault(JSON.stringify(payload, null, 2));
+          } else {
+            localStorage.setItem('oros_vault', JSON.stringify(payload));
+          }
+        } catch (err) {
+          console.error('Failed to persist store:', err);
+        } finally {
+          isSavingActive = false;
+          set({ isSaving: false });
+          resolve();
+        }
+      }, 350);
+    });
   },
 
   setActiveTab: (tab) => {

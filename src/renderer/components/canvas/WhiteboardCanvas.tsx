@@ -957,14 +957,20 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     })
   }, [nodes, currentCanvas, saveCanvasNodesAndEdges])
 
-  // Save changes to store
+  // Node change debounce timer
+  const nodeChangeTimerRef = useRef<any>(null)
+
+  // Save changes to store with trailing debounce to avoid dragging lag
   const handleNodesChangeWrapped = useCallback((changes: any) => {
     onNodesChange(changes)
-    setTimeout(() => {
+    if (nodeChangeTimerRef.current) {
+      clearTimeout(nodeChangeTimerRef.current)
+    }
+    nodeChangeTimerRef.current = setTimeout(() => {
       if (currentCanvas) {
         saveCanvasNodesAndEdges(currentCanvas.id, reactFlowInstance.getNodes(), edges)
       }
-    }, 120)
+    }, 250)
   }, [currentCanvas, onNodesChange, edges, saveCanvasNodesAndEdges, reactFlowInstance])
 
   // Add a Sticky Note at center of viewport

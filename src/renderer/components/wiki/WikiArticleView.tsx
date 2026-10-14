@@ -92,20 +92,22 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
   }, [currentEntity?.content])
 
   // Compute hierarchical numbers (1, 2, 2.1, 2.2, 3...)
-  let h2Count = 0
-  let h3Count = 0
-  const numberedTocItems = tocItems.map((item) => {
-    let numberStr = ''
-    if (item.level <= 2) {
-      h2Count++
-      h3Count = 0
-      numberStr = `${h2Count}`
-    } else {
-      h3Count++
-      numberStr = `${h2Count}.${h3Count}`
-    }
-    return { ...item, numberStr }
-  })
+  const numberedTocItems = useMemo(() => {
+    let h2Count = 0
+    let h3Count = 0
+    return tocItems.map((item) => {
+      let numberStr = ''
+      if (item.level <= 2) {
+        h2Count++
+        h3Count = 0
+        numberStr = `${h2Count}`
+      } else {
+        h3Count++
+        numberStr = `${h2Count}.${h3Count}`
+      }
+      return { ...item, numberStr }
+    })
+  }, [tocItems])
 
   const scrollToHeading = (id: string) => {
     const el = document.getElementById(id)
@@ -117,14 +119,17 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
   }
 
   // Find backlinks (entities mentioning this entity in infobox or content)
-  const backlinks = worldEntities.filter((e) => {
-    if (!currentEntity || e.id === currentEntity.id) return false
-    const mentionsInInfobox = e.infobox.sections.some(s => 
-      s.fields.some(f => f.targetEntityId === currentEntity.id)
-    )
-    const mentionsInContent = e.content.includes(currentEntity.title)
-    return mentionsInInfobox || mentionsInContent
-  })
+  const backlinks = useMemo(() => {
+    if (!currentEntity) return []
+    return worldEntities.filter((e) => {
+      if (e.id === currentEntity.id) return false
+      const mentionsInInfobox = e.infobox.sections.some(s => 
+        s.fields.some(f => f.targetEntityId === currentEntity.id)
+      )
+      const mentionsInContent = e.content.includes(currentEntity.title)
+      return mentionsInInfobox || mentionsInContent
+    })
+  }, [currentEntity?.id, currentEntity?.title, worldEntities])
 
   const handleCreateSubmit = (title: string) => {
     const newEnt = createEntity(filterType === 'all' ? 'character' : filterType, title)

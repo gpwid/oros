@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useMemo } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
 import { 
@@ -61,15 +61,24 @@ export const Sidebar: React.FC = () => {
   const worldEntities = entities[worldId] || []
   const worldCategories = categories[worldId] || DEFAULT_PRESET_CATEGORIES
 
-  // Filter items based on search
-  const filteredItems = currentItems.filter((item) =>
-    item.name.toLowerCase().includes(searchFilter.toLowerCase())
-  )
+  // Filter items based on search with memoization
+  const filteredItems = useMemo(() => {
+    const q = searchFilter.toLowerCase().trim()
+    if (!q) return currentItems
+    return currentItems.filter((item) =>
+      item.name.toLowerCase().includes(q)
+    )
+  }, [currentItems, searchFilter])
+
+  // Quick lookup map for entities to avoid O(N) array search per directory item
+  const entityMap = useMemo(() => {
+    return new Map(worldEntities.map((e) => [e.id, e]))
+  }, [worldEntities])
 
   // Resolve icon for item based on type and entity subtype
   const getItemIcon = (item: DirectoryItem) => {
     if (item.type === 'card' || item.type === 'wiki') {
-      const entity = worldEntities.find((e) => e.id === item.targetId)
+      const entity = item.targetId ? entityMap.get(item.targetId) : undefined
       const subtype = entity?.type || 'character'
       const meta = getCategoryMeta(subtype, worldCategories)
       const IconComp = getCategoryIconComponent(meta.icon)

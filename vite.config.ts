@@ -40,5 +40,28 @@ export default defineConfig({
   },
   server: {
     port: 5173
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react-dom') || id.includes('node_modules/react/')) {
+              return 'vendor-react'
+            }
+            if (id.includes('@xyflow')) {
+              return 'vendor-xyflow'
+            }
+            if (id.includes('@tiptap') || id.includes('prosemirror')) {
+              return 'vendor-tiptap'
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-lucide'
+            }
+          }
+        }
+      }
+    },
+    chunkSizeWarningLimit: 650
   }
 })

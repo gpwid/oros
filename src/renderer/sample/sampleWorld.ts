@@ -108,6 +108,7 @@ export const sampleEntities: LoreEntity[] = [
     content: `<p>Established in the wake of the Great Rupture, the <strong>Solar Concord</strong> unites three principal kingdoms under a shared defensive treaty and currency standard.</p>`,
     tags: ['Government', 'Military', 'Alliance'],
     aliases: ['The Gilded League'],
+    avatar: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80',
     infobox: {
       subtitle: 'Continental Coalition',
       sections: [
@@ -133,6 +134,7 @@ export const sampleEntities: LoreEntity[] = [
     content: `<p>Crafted by the First Artificers during the Golden Era. When worn by a sovereign attuned to solar frequencies, it generates an impenetrable barrier across an entire fortress tier.</p>`,
     tags: ['Relic', 'Artifact', 'Royal Insignia'],
     aliases: ['The Prism Diadem'],
+    avatar: 'https://images.unsplash.com/photo-1535295972055-1c762f4483e5?auto=format&fit=crop&w=600&q=80',
     infobox: {
       subtitle: 'Sovereign Arcane Artifact',
       sections: [

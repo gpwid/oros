@@ -40,19 +40,19 @@ export const Sidebar: React.FC = () => {
   const getItemIcon = (type: DirectoryItemType) => {
     switch (type) {
       case 'canvas':
-        return <LayoutGrid className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+        return <LayoutGrid className="w-3.5 h-3.5 text-gold-400 shrink-0" />
       case 'wiki':
-        return <BookOpen className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+        return <BookOpen className="w-3.5 h-3.5 text-gold-400 shrink-0" />
       case 'card':
-        return <Layers className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+        return <Layers className="w-3.5 h-3.5 text-gold-400 shrink-0" />
       case 'relations':
-        return <Users className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+        return <Users className="w-3.5 h-3.5 text-gold-400 shrink-0" />
       case 'timeline':
-        return <Clock className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+        return <Clock className="w-3.5 h-3.5 text-gold-400 shrink-0" />
       case 'map':
-        return <MapIcon className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+        return <MapIcon className="w-3.5 h-3.5 text-gold-400 shrink-0" />
       case 'writer':
-        return <Feather className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+        return <Feather className="w-3.5 h-3.5 text-gold-400 shrink-0" />
       default:
         return <LayoutGrid className="w-3.5 h-3.5 text-gold-400 shrink-0" />
     }
@@ -358,7 +358,7 @@ export const Sidebar: React.FC = () => {
           <button
             onClick={() => handleQuickCreateDoc('wiki')}
             title="Wiki / Encyclopedia"
-            className="p-1.5 rounded-lg text-oros-400 hover:text-sky-400 hover:bg-oros-800/80 transition-all"
+            className="p-1.5 rounded-lg text-oros-400 hover:text-gold-400 hover:bg-oros-800/80 transition-all"
           >
             <BookOpen className="w-4 h-4" />
           </button>
@@ -367,7 +367,7 @@ export const Sidebar: React.FC = () => {
           <button
             onClick={() => handleQuickCreateDoc('card')}
             title="Lore Cards Gallery"
-            className="p-1.5 rounded-lg text-oros-400 hover:text-emerald-400 hover:bg-oros-800/80 transition-all"
+            className="p-1.5 rounded-lg text-oros-400 hover:text-gold-400 hover:bg-oros-800/80 transition-all"
           >
             <Layers className="w-4 h-4" />
           </button>
@@ -376,7 +376,7 @@ export const Sidebar: React.FC = () => {
           <button
             onClick={() => handleQuickCreateDoc('canvas')}
             title="Whiteboard Canvas"
-            className="p-1.5 rounded-lg text-oros-400 hover:text-amber-400 hover:bg-oros-800/80 transition-all"
+            className="p-1.5 rounded-lg text-oros-400 hover:text-gold-400 hover:bg-oros-800/80 transition-all"
           >
             <LayoutGrid className="w-4 h-4" />
           </button>
@@ -385,7 +385,7 @@ export const Sidebar: React.FC = () => {
           <button
             onClick={() => handleQuickCreateDoc('timeline')}
             title="Chronology / Timeline"
-            className="p-1.5 rounded-lg text-oros-400 hover:text-teal-400 hover:bg-oros-800/80 transition-all"
+            className="p-1.5 rounded-lg text-oros-400 hover:text-gold-400 hover:bg-oros-800/80 transition-all"
           >
             <Clock className="w-4 h-4" />
           </button>
@@ -394,7 +394,7 @@ export const Sidebar: React.FC = () => {
           <button
             onClick={() => handleQuickCreateDoc('relations')}
             title="Relations Tree"
-            className="p-1.5 rounded-lg text-oros-400 hover:text-rose-400 hover:bg-oros-800/80 transition-all"
+            className="p-1.5 rounded-lg text-oros-400 hover:text-gold-400 hover:bg-oros-800/80 transition-all"
           >
             <Users className="w-4 h-4" />
           </button>
@@ -403,7 +403,7 @@ export const Sidebar: React.FC = () => {
           <button
             onClick={() => handleQuickCreateDoc('map')}
             title="Cartography Maps"
-            className="p-1.5 rounded-lg text-oros-400 hover:text-cyan-400 hover:bg-oros-800/80 transition-all"
+            className="p-1.5 rounded-lg text-oros-400 hover:text-gold-400 hover:bg-oros-800/80 transition-all"
           >
             <MapIcon className="w-4 h-4" />
           </button>
@@ -412,7 +412,7 @@ export const Sidebar: React.FC = () => {
           <button
             onClick={() => handleQuickCreateDoc('writer')}
             title="Studio Writer"
-            className="p-1.5 rounded-lg text-oros-400 hover:text-purple-400 hover:bg-oros-800/80 transition-all"
+            className="p-1.5 rounded-lg text-oros-400 hover:text-gold-400 hover:bg-oros-800/80 transition-all"
           >
             <Feather className="w-4 h-4" />
           </button>

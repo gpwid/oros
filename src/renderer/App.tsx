@@ -24,6 +24,11 @@ export const App: React.FC = () => {
   const currentTabType = activeTabObj?.type || activeTab
 
   const renderActiveView = () => {
+    if (openTabs.length === 0) {
+      // When there are no tabs, display our card relation nodes (not lineage)
+      return <WikiNetworkGraph />
+    }
+
     switch (currentTabType) {
       case 'canvas':
         return <WhiteboardCanvas canvasId={activeTabObj?.targetId} />
@@ -45,7 +50,7 @@ export const App: React.FC = () => {
       case 'writer':
         return <StudioWriter />
       default:
-        return <WhiteboardCanvas canvasId={activeTabObj?.targetId} />
+        return <WikiNetworkGraph />
     }
   }
 

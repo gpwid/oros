@@ -53,6 +53,9 @@ interface WorldState {
   // Workspace Tabs Actions
   openTab: (tab: { title: string; type: DirectoryItemType; targetId?: string; id?: string }) => void;
   closeTab: (tabId: string) => void;
+  closeOtherTabs: (tabId: string) => void;
+  closeTabsToTheRight: (tabId: string) => void;
+  closeAllTabs: () => void;
   setActiveTabId: (tabId: string) => void;
 
   // Directory Folders CRUD
@@ -256,18 +259,11 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const newTabs = s.openTabs.filter((t) => t.id !== tabId);
 
     if (newTabs.length === 0) {
-      const fallbackTab: WorkspaceTab = {
-        id: `tab-canvas-default`,
-        title: 'Canvas',
-        type: 'canvas',
-        targetId: 'canvas-main',
-        isClosable: true
-      };
+      // When there are no tabs, display card relation nodes (wiki-network)
       set({
-        openTabs: [fallbackTab],
-        activeTabId: fallbackTab.id,
-        activeTab: 'canvas',
-        selectedCanvasId: 'canvas-main'
+        openTabs: [],
+        activeTabId: '',
+        activeTab: 'wiki-network'
       });
       return;
     }
@@ -285,6 +281,53 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       }
     }
     set({ openTabs: newTabs, activeTabId: nextActiveId });
+  },
+
+  closeOtherTabs: (tabId) => {
+    const s = get();
+    const keptTab = s.openTabs.find((t) => t.id === tabId);
+    if (!keptTab) return;
+    set({
+      openTabs: [keptTab],
+      activeTabId: keptTab.id,
+      activeTab: keptTab.type as ActiveNavTab
+    });
+    if (keptTab.targetId) {
+      if (keptTab.type === 'wiki' || keptTab.type === 'card') set({ selectedEntityId: keptTab.targetId });
+      if (keptTab.type === 'map') set({ selectedMapId: keptTab.targetId });
+      if (keptTab.type === 'writer') set({ selectedChapterId: keptTab.targetId });
+      if (keptTab.type === 'canvas') set({ selectedCanvasId: keptTab.targetId });
+    }
+  },
+
+  closeTabsToTheRight: (tabId) => {
+    const s = get();
+    const index = s.openTabs.findIndex((t) => t.id === tabId);
+    if (index === -1) return;
+    const newTabs = s.openTabs.slice(0, index + 1);
+    const stillHasActive = newTabs.some((t) => t.id === s.activeTabId);
+    const nextActiveId = stillHasActive ? s.activeTabId : tabId;
+    const activeTabObj = newTabs.find((t) => t.id === nextActiveId) || newTabs[0];
+    set({
+      openTabs: newTabs,
+      activeTabId: nextActiveId,
+      activeTab: activeTabObj.type as ActiveNavTab
+    });
+    if (activeTabObj.targetId) {
+      if (activeTabObj.type === 'wiki' || activeTabObj.type === 'card') set({ selectedEntityId: activeTabObj.targetId });
+      if (activeTabObj.type === 'map') set({ selectedMapId: activeTabObj.targetId });
+      if (activeTabObj.type === 'writer') set({ selectedChapterId: activeTabObj.targetId });
+      if (activeTabObj.type === 'canvas') set({ selectedCanvasId: activeTabObj.targetId });
+    }
+  },
+
+  closeAllTabs: () => {
+    // When there are no tabs, display card relation nodes (wiki-network)
+    set({
+      openTabs: [],
+      activeTabId: '',
+      activeTab: 'wiki-network'
+    });
   },
 
   setActiveTabId: (tabId) => {

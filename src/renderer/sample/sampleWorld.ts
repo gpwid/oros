@@ -430,7 +430,7 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
       {
         id: 'node-card-ronald',
         type: 'canvasCard',
-        position: { x: 420, y: 220 },
+        position: { x: 260, y: 180 },
         style: { width: 180, height: 250 },
         data: {
           entityId: 'char-ronald',
@@ -442,9 +442,24 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
         }
       },
       {
+        id: 'node-loop-drawing',
+        type: 'canvasDrawing',
+        position: { x: 220, y: 140 },
+        style: { width: 260, height: 330 },
+        data: {
+          path: 'M 35 55 C 75 15, 185 15, 225 55 C 255 105, 255 225, 225 275 C 185 315, 75 315, 35 275 C 5 225, 5 105, 35 55 Z',
+          color: '#f5c542',
+          width: 260,
+          height: 330,
+          initialWidth: 260,
+          initialHeight: 330,
+          strokeWidth: 3.5
+        }
+      },
+      {
         id: 'node-note-1',
         type: 'stickyNote',
-        position: { x: 630, y: 220 },
+        position: { x: 580, y: 180 },
         style: { width: 250, height: 200 },
         data: {
           title: 'Title',
@@ -456,7 +471,7 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
       {
         id: 'node-shape-1',
         type: 'shape',
-        position: { x: 880, y: 320 },
+        position: { x: 900, y: 220 },
         style: { width: 160, height: 120 },
         data: {
           shapeType: 'parallelogram',
@@ -470,27 +485,12 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
       {
         id: 'node-text-1',
         type: 'canvasText',
-        position: { x: 120, y: 500 },
+        position: { x: 260, y: 530 },
         style: { width: 240, height: 44 },
         data: {
           text: 'Can draw, add cards, texts, shapes, arrows',
           width: 240,
           height: 44
-        }
-      },
-      {
-        id: 'node-loop-drawing',
-        type: 'canvasDrawing',
-        position: { x: 330, y: 120 },
-        style: { width: 540, height: 420 },
-        data: {
-          path: 'M 40 60 C 100 10 340 0 470 30 C 530 80 520 250 490 330 C 400 410 130 420 30 280 C -15 180 0 90 40 60 Z',
-          color: '#ffffff',
-          width: 540,
-          height: 420,
-          initialWidth: 540,
-          initialHeight: 420,
-          strokeWidth: 3.5
         }
       }
     ],

@@ -10,7 +10,7 @@ import { useToastStore } from '../../store/useToastStore'
 import { 
   Network, Search, Filter, BookOpen, ExternalLink, ArrowRight, 
   Sparkles, Link2, User, MapPin, Shield, Gem, Scroll, 
-  X, AlertCircle, Maximize2, Orbit, ChevronDown, Check
+  X, AlertCircle, Maximize2, Orbit, ChevronDown, Check, Wind
 } from 'lucide-react'
 import { LoreEntity, EntityType } from '@shared/types'
 
@@ -170,6 +170,7 @@ const WikiNetworkGraphInner: React.FC = () => {
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false)
   const [selectedWikiId, setSelectedWikiId] = useState<string | null>(null)
   const [showOnlyHubs, setShowOnlyHubs] = useState(false)
+  const [hoverMotion, setHoverMotion] = useState(true)
 
   const filterDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -484,12 +485,74 @@ const WikiNetworkGraphInner: React.FC = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(displayedEdges)
 
   useEffect(() => {
-    setNodes(displayedNodes)
-  }, [displayedNodes, setNodes])
-
-  useEffect(() => {
     setEdges(displayedEdges)
   }, [displayedEdges, setEdges])
+
+  const displayedNodesRef = useRef(displayedNodes)
+  useEffect(() => {
+    displayedNodesRef.current = displayedNodes
+  }, [displayedNodes])
+
+  // Harmonic closed hovering motion around persistent base coordinates
+  // Subtle, calm zero-gravity drift (~4-5px amplitude) that keeps cardinal edge handles aligned
+  useEffect(() => {
+    if (!hoverMotion) {
+      setNodes(displayedNodes)
+      return
+    }
+
+    let rafId: number
+    let lastTime = 0
+    const frameInterval = 1000 / 30 // 30 FPS for silky-smooth motion and light CPU footprint
+
+    // Deterministic string hash
+    const strHash = (str: string) => {
+      let h = 0
+      for (let i = 0; i < str.length; i++) {
+        h = (h * 31 + str.charCodeAt(i)) & 0xffffffff
+      }
+      return Math.abs(h)
+    }
+
+    const animate = (timestamp: number) => {
+      rafId = requestAnimationFrame(animate)
+
+      if (timestamp - lastTime < frameInterval) {
+        return
+      }
+      lastTime = timestamp
+
+      const t = timestamp * 0.001
+      const currentList = displayedNodesRef.current
+
+      setNodes(() => {
+        return currentList.map((baseNode, idx) => {
+          const basePos = worldPositionsRef.current.get(baseNode.id) || baseNode.position
+          const h = strHash(baseNode.id) + idx * 43
+          const phaseX = (h % 100) * 0.06283
+          const phaseY = ((h >> 4) % 100) * 0.06283
+          const freqFactor = 0.85 + (h % 30) * 0.01
+
+          // Gentle Lissajous oscillation: ~4.5px amplitude, ~5s period
+          const hoverX = Math.sin(t * 0.65 * freqFactor + phaseX) * 4.0 
+                       + Math.cos(t * 0.28 * freqFactor + phaseX * 1.5) * 1.5
+          const hoverY = Math.cos(t * 0.55 * freqFactor + phaseY) * 5.0 
+                       + Math.sin(t * 0.22 * freqFactor + phaseY * 1.5) * 1.8
+
+          return {
+            ...baseNode,
+            position: {
+              x: Math.round((basePos.x + hoverX) * 10) / 10,
+              y: Math.round((basePos.y + hoverY) * 10) / 10
+            }
+          }
+        })
+      })
+    }
+
+    rafId = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(rafId)
+  }, [hoverMotion, displayedNodes, setNodes])
 
   const onNodeClick = (_: React.MouseEvent, node: Node) => {
     setSelectedWikiId(node.id)
@@ -629,6 +692,20 @@ const WikiNetworkGraphInner: React.FC = () => {
           >
             <Sparkles className="w-3.5 h-3.5 text-gold-400" />
             <span>Hubs Only</span>
+          </button>
+
+          {/* Hover Floating Motion Toggle */}
+          <button
+            onClick={() => setHoverMotion(!hoverMotion)}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-medium flex items-center gap-1.5 backdrop-blur-md shadow-2xl transition-all cursor-pointer ${
+              hoverMotion
+                ? 'bg-gold-500/20 border-gold-400 text-gold-300 shadow-[0_0_15px_rgba(245,197,66,0.2)]'
+                : 'bg-oros-900/95 border-oros-700/80 text-oros-400 hover:text-white hover:border-gold-400/60'
+            }`}
+            title={hoverMotion ? 'Hovering motion active (click to pause)' : 'Hovering paused (click to activate)'}
+          >
+            <Wind className={`w-3.5 h-3.5 ${hoverMotion ? 'text-gold-400 animate-pulse' : 'text-oros-400'}`} />
+            <span>{hoverMotion ? 'Hovering' : 'Hover: Off'}</span>
           </button>
 
           {/* Organize Layout Button */}

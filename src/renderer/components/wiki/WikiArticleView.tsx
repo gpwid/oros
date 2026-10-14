@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
 import { WikiInfobox } from './WikiInfobox'
@@ -23,6 +23,7 @@ export const WikiArticleView: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [hoveredEntity, setHoveredEntity] = useState<LoreEntity | null>(null)
+  const [isTocCollapsed, setIsTocCollapsed] = useState(false)
 
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
 
@@ -37,6 +38,59 @@ export const WikiArticleView: React.FC = () => {
   })
 
   const currentEntity = worldEntities.find((e) => e.id === selectedEntityId) || filteredEntities[0]
+
+  // Dynamically extract real headings from article HTML and inject unique IDs
+  const { processedHtml, tocItems } = useMemo(() => {
+    if (!currentEntity?.content) return { processedHtml: '', tocItems: [] }
+
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(currentEntity.content, 'text/html')
+    const headings = doc.querySelectorAll('h1, h2, h3, h4')
+    const items: { id: string; text: string; level: number }[] = []
+
+    headings.forEach((heading, idx) => {
+      const text = heading.textContent?.trim() || ''
+      if (!text) return
+      const slug = `sec-${idx}-${text.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+      heading.setAttribute('id', slug)
+      heading.classList.add('scroll-mt-6')
+      items.push({
+        id: slug,
+        text,
+        level: parseInt(heading.tagName.substring(1), 10)
+      })
+    })
+
+    return {
+      processedHtml: doc.body.innerHTML,
+      tocItems: items
+    }
+  }, [currentEntity?.content])
+
+  // Compute hierarchical numbers (1, 2, 2.1, 2.2, 3...)
+  let h2Count = 0
+  let h3Count = 0
+  const numberedTocItems = tocItems.map((item) => {
+    let numberStr = ''
+    if (item.level <= 2) {
+      h2Count++
+      h3Count = 0
+      numberStr = `${h2Count}`
+    } else {
+      h3Count++
+      numberStr = `${h2Count}.${h3Count}`
+    }
+    return { ...item, numberStr }
+  })
+
+  const scrollToHeading = (id: string) => {
+    const el = document.getElementById(id)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      el.classList.add('text-gold-400')
+      setTimeout(() => el.classList.remove('text-gold-400'), 1400)
+    }
+  }
 
   // Find backlinks (entities mentioning this entity in infobox or content)
   const backlinks = worldEntities.filter((e) => {
@@ -209,24 +263,46 @@ export const WikiArticleView: React.FC = () => {
                   </div>
                 ) : (
                   <div>
-                    {/* Wikipedia-Style Table of Contents (TOC) Box */}
-                    <div className="bg-oros-900/40 border border-oros-800/80 rounded-xl p-3.5 max-w-xs mb-6 text-xs shadow-inner">
-                      <div className="font-serif font-bold text-slate-200 uppercase tracking-wider text-[11px] mb-1.5 flex items-center gap-1.5">
-                        <Sparkles className="w-3 h-3 text-gold-400" />
-                        Contents
-                      </div>
-                      <ol className="list-decimal list-inside space-y-1 text-oros-300 font-sans">
-                        <li><span className="hover:text-gold-400 cursor-pointer">Overview & Foundations</span></li>
-                        <li><span className="hover:text-gold-400 cursor-pointer">Historical Arc</span></li>
-                        <li><span className="hover:text-gold-400 cursor-pointer">Political Affiliations</span></li>
-                        <li><span className="hover:text-gold-400 cursor-pointer">References & See Also</span></li>
-                      </ol>
-                    </div>
+                    {/* Dynamic Wikipedia Table of Contents (TOC) */}
+                    {tocItems.length >= 2 && (
+                      <div className="bg-oros-900/60 border border-oros-800 rounded-xl p-3.5 max-w-sm mb-6 text-xs shadow-md">
+                        <div className="flex items-center justify-between border-b border-oros-800/80 pb-2 mb-2">
+                          <div className="font-serif font-bold text-slate-200 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                            <Sparkles className="w-3 h-3 text-gold-400" />
+                            Contents
+                          </div>
+                          <button
+                            onClick={() => setIsTocCollapsed(!isTocCollapsed)}
+                            className="text-[10px] font-mono text-oros-400 hover:text-gold-400 transition-colors"
+                          >
+                            [{isTocCollapsed ? 'show' : 'hide'}]
+                          </button>
+                        </div>
 
-                    {/* Formatted HTML Wiki Article */}
+                        {!isTocCollapsed && (
+                          <nav className="space-y-1">
+                            {numberedTocItems.map((item) => (
+                              <button
+                                key={item.id}
+                                onClick={() => scrollToHeading(item.id)}
+                                style={{ paddingLeft: item.level > 2 ? '1rem' : '0rem' }}
+                                className="w-full text-left py-0.5 text-xs text-oros-300 hover:text-gold-400 hover:underline flex items-baseline gap-1.5 transition-colors group"
+                              >
+                                <span className="font-mono text-[10px] text-oros-500 group-hover:text-gold-400/80 shrink-0">
+                                  {item.numberStr}
+                                </span>
+                                <span className="truncate">{item.text}</span>
+                              </button>
+                            ))}
+                          </nav>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Formatted HTML Wiki Article with Injected Anchor IDs */}
                     <div 
                       className="oros-wiki-prose"
-                      dangerouslySetInnerHTML={{ __html: currentEntity.content }}
+                      dangerouslySetInnerHTML={{ __html: processedHtml }}
                     />
                   </div>
                 )}

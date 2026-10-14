@@ -102,13 +102,13 @@ export const Sidebar: React.FC = () => {
         break
       }
       case 'relations': {
-        const item = createDirectoryItem('Baru Pohon relasi', 'relations', folderId)
+        const item = createDirectoryItem('Lineage Tree', 'relations', folderId)
         openTab({ title: item.name, type: 'relations' })
         addToast('Created Relation Tree view', 'success')
         break
       }
       case 'timeline': {
-        const item = createDirectoryItem('Baru Linimasa', 'timeline', folderId)
+        const item = createDirectoryItem('Timeline', 'timeline', folderId)
         openTab({ title: item.name, type: 'timeline' })
         addToast('Created Chronology Timeline', 'success')
         break

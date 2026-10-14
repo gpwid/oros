@@ -124,10 +124,10 @@ export const WorkspaceTabs: React.FC = () => {
     const features = [
       { id: 'canvas', title: 'Whiteboard Canvas', type: 'canvas' as DirectoryItemType, desc: 'Infinite whiteboard with cards, notes, shapes & sketching' },
       { id: 'wiki-network', title: 'Card Relations Network', type: 'wiki-network' as any, desc: 'Dynamic knowledge graph of card connections with gravity' },
-      { id: 'relations', title: 'Baru Pohon Relasi (Lineage)', type: 'relations' as DirectoryItemType, desc: 'Napoleon familial & social ties graph' },
+      { id: 'relations', title: 'Lineage Tree', type: 'relations' as DirectoryItemType, desc: 'Familial and social ties tree' },
       { id: 'wiki', title: 'Encyclopedia (Wiki)', type: 'wiki' as DirectoryItemType, desc: 'Wikipedia-style lore articles & infoboxes' },
       { id: 'card', title: 'Lore Cards Gallery', type: 'card' as DirectoryItemType, desc: 'Filterable entity cards & schemas' },
-      { id: 'timeline', title: 'Baru Linimasa (Timeline)', type: 'timeline' as DirectoryItemType, desc: 'Chronological eras & event milestones' },
+      { id: 'timeline', title: 'Timeline', type: 'timeline' as DirectoryItemType, desc: 'Chronological eras & event milestones' },
       { id: 'map', title: 'Cartography Map', type: 'map' as DirectoryItemType, desc: 'Interactive deep-zoom map with pins' },
       { id: 'writer', title: 'Studio Writer', type: 'writer' as DirectoryItemType, desc: 'Manuscript chapter editor & codex' }
     ].filter(f => f.title.toLowerCase().includes(q) || f.desc.toLowerCase().includes(q))
@@ -174,11 +174,11 @@ export const WorkspaceTabs: React.FC = () => {
         break
       }
       case 'relations': {
-        openTab({ title: 'Baru Pohon Relasi', type: 'relations' })
+        openTab({ title: 'Lineage Tree', type: 'relations' })
         break
       }
       case 'timeline': {
-        openTab({ title: 'Baru Linimasa', type: 'timeline' })
+        openTab({ title: 'Timeline', type: 'timeline' })
         break
       }
       case 'map': {
@@ -626,8 +626,8 @@ export const WorkspaceTabs: React.FC = () => {
                         className="p-3 rounded-xl bg-oros-950/80 border border-oros-800 hover:border-gold-400 hover:bg-oros-800/60 transition-all flex flex-col items-center text-center group"
                       >
                         <Users className="w-5 h-5 text-gold-400 mb-1.5 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs font-semibold text-slate-200 group-hover:text-gold-300">Pohon Relasi</span>
-                        <span className="text-[10px] text-oros-400 mt-0.5">Lineage tree</span>
+                        <span className="text-xs font-semibold text-slate-200 group-hover:text-gold-300">Lineage Tree</span>
+                        <span className="text-[10px] text-oros-400 mt-0.5">Family & social ties</span>
                       </button>
 
                       <button
@@ -653,7 +653,7 @@ export const WorkspaceTabs: React.FC = () => {
                         className="p-3 rounded-xl bg-oros-950/80 border border-oros-800 hover:border-gold-400 hover:bg-oros-800/60 transition-all flex flex-col items-center text-center group"
                       >
                         <Clock className="w-5 h-5 text-gold-400 mb-1.5 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs font-semibold text-slate-200 group-hover:text-gold-300">Linimasa</span>
+                        <span className="text-xs font-semibold text-slate-200 group-hover:text-gold-300">Timeline</span>
                         <span className="text-[10px] text-oros-400 mt-0.5">Chronology eras</span>
                       </button>
 

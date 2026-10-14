@@ -50,16 +50,16 @@ const BOND_COLORS = [
 
 // Built-in relationship presets with rich icons & colors
 const BOND_PRESETS = [
-  { label: 'Pasangan', icon: 'heart', color: '#f43f5e', type: 'family', dashed: false },
-  { label: 'Mantan', icon: 'heart-crack', color: '#94a3b8', type: 'family', dashed: true },
-  { label: 'Anak', icon: 'baby', color: '#f59e0b', type: 'family', dashed: false },
-  { label: 'Anak Angkat', icon: 'handshake', color: '#38bdf8', type: 'family', dashed: true },
-  { label: 'Saudara Kandung', icon: 'users', color: '#10b981', type: 'family', dashed: false },
+  { label: 'Spouse', icon: 'heart', color: '#f43f5e', type: 'family', dashed: false },
+  { label: 'Ex-Partner', icon: 'heart-crack', color: '#94a3b8', type: 'family', dashed: true },
+  { label: 'Child', icon: 'baby', color: '#f59e0b', type: 'family', dashed: false },
+  { label: 'Adopted Child', icon: 'handshake', color: '#38bdf8', type: 'family', dashed: true },
+  { label: 'Sibling', icon: 'users', color: '#10b981', type: 'family', dashed: false },
   { label: 'High Sovereign', icon: 'crown', color: '#f5c542', type: 'ruler', dashed: false },
   { label: 'Vassal / Fealty', icon: 'shield', color: '#14b8a6', type: 'vassal', dashed: false },
-  { label: 'Sekutu', icon: 'sparkles', color: '#f5c542', type: 'ally', dashed: false },
-  { label: 'Musuh', icon: 'swords', color: '#ef4444', type: 'rival', dashed: true },
-  { label: 'Pusaka', icon: 'gem', color: '#c084fc', type: 'creator', dashed: false }
+  { label: 'Ally', icon: 'sparkles', color: '#f5c542', type: 'ally', dashed: false },
+  { label: 'Rival / Enemy', icon: 'swords', color: '#ef4444', type: 'rival', dashed: true },
+  { label: 'Heirloom / Artifact', icon: 'gem', color: '#c084fc', type: 'creator', dashed: false }
 ]
 
 const getIconComponent = (key?: string) => {
@@ -149,7 +149,7 @@ const GenealogyCardNode = ({ id, data }: {
         <Plus className="w-9 h-9 text-oros-500 group-hover:text-gold-400 transition-colors" />
         
         <div className="absolute bottom-2 inset-x-2 px-2 py-1 rounded-xl bg-oros-900/90 border border-oros-700/80 text-oros-400 group-hover:text-gold-300 text-xs font-serif italic whitespace-nowrap shadow-md text-center transition-colors">
-          Tambahkan nama
+          Add Name
         </div>
 
         {/* Drag handles for unassigned card */}
@@ -331,7 +331,7 @@ const RelationGraphCanvasContent: React.FC = () => {
   const [targetMode, setTargetMode] = useState<'existing' | 'new'>('existing')
   const [selectedExistingId, setSelectedExistingId] = useState('')
   const [newCharacterName, setNewCharacterName] = useState('')
-  const [relationLabel, setRelationLabel] = useState('Anak')
+  const [relationLabel, setRelationLabel] = useState('Child')
   const [relationType, setRelationType] = useState<RelationEdge['relationType']>('family')
   const [selectedIcon, setSelectedIcon] = useState('baby')
   const [selectedColor, setSelectedColor] = useState('#f59e0b')
@@ -398,8 +398,9 @@ const RelationGraphCanvasContent: React.FC = () => {
     return worldRelations.map((rel) => {
       const isDashed = rel.isDashed ?? (
         rel.notes?.includes('dashed') || 
-        rel.label.toLowerCase().includes('mantan') || 
-        rel.label.toLowerCase().includes('angkat') ||
+        rel.label.toLowerCase().includes('ex') || 
+        rel.label.toLowerCase().includes('adopted') ||
+        rel.label.toLowerCase().includes('rival') ||
         rel.relationType === 'rival'
       )
 
@@ -407,10 +408,10 @@ const RelationGraphCanvasContent: React.FC = () => {
       let targetHandle = 'top'
 
       if (
-        rel.label.toLowerCase().includes('pasangan') || 
-        rel.label.toLowerCase().includes('spouse') ||
-        rel.label.toLowerCase().includes('saudara') ||
-        rel.label.toLowerCase().includes('sibling')
+        rel.label.toLowerCase().includes('spouse') || 
+        rel.label.toLowerCase().includes('sibling') ||
+        rel.label.toLowerCase().includes('partner') ||
+        rel.label.toLowerCase().includes('pasangan')
       ) {
         sourceHandle = 'right'
         targetHandle = 'left'
@@ -457,11 +458,11 @@ const RelationGraphCanvasContent: React.FC = () => {
 
     // Automatically set preset based on handle direction
     if (connection.sourceHandle === 'bottom') {
-      applyPreset(BOND_PRESETS[2]) // Anak
+      applyPreset(BOND_PRESETS[2]) // Child
     } else if (connection.sourceHandle === 'top') {
-      applyPreset({ label: 'Orang Tua', icon: 'crown', color: '#f5c542', type: 'family', dashed: false })
+      applyPreset({ label: 'Parent', icon: 'crown', color: '#f5c542', type: 'family', dashed: false })
     } else {
-      applyPreset(BOND_PRESETS[0]) // Pasangan
+      applyPreset(BOND_PRESETS[0]) // Spouse
     }
 
     setShowAddModal(true)
@@ -490,13 +491,13 @@ const RelationGraphCanvasContent: React.FC = () => {
     setQuickAddDirection(direction)
 
     if (direction === 'bottom') {
-      applyPreset(BOND_PRESETS[2]) // Anak
+      applyPreset(BOND_PRESETS[2]) // Child
     } else if (direction === 'top') {
-      applyPreset({ label: 'Orang Tua', icon: 'crown', color: '#f5c542', type: 'family', dashed: false })
+      applyPreset({ label: 'Parent', icon: 'crown', color: '#f5c542', type: 'family', dashed: false })
     } else if (direction === 'right') {
-      applyPreset(BOND_PRESETS[0]) // Pasangan
+      applyPreset(BOND_PRESETS[0]) // Spouse
     } else {
-      applyPreset(BOND_PRESETS[4]) // Saudara Kandung
+      applyPreset(BOND_PRESETS[4]) // Sibling
     }
 
     setTargetMode('existing')
@@ -894,7 +895,7 @@ const RelationGraphCanvasContent: React.FC = () => {
                   required
                   value={relationLabel}
                   onChange={(e) => setRelationLabel(e.target.value)}
-                  placeholder="e.g. Pasangan, Anak, Sworn Liege..."
+                  placeholder="e.g. Spouse, Child, Sibling, Vassal, Sworn Liege..."
                   className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
                 />
               </div>

@@ -286,7 +286,7 @@ export const sampleRelations: RelationEdge[] = [
     sourceEntityId: 'char-katherine',
     targetEntityId: 'char-ronald',
     relationType: 'family',
-    label: 'Anak',
+    label: 'Child',
     icon: 'baby',
     color: '#f59e0b',
     isDashed: false,
@@ -298,7 +298,7 @@ export const sampleRelations: RelationEdge[] = [
     sourceEntityId: 'char-ronald',
     targetEntityId: 'char-vespera',
     relationType: 'family',
-    label: 'Pasangan',
+    label: 'Spouse',
     icon: 'heart',
     color: '#f43f5e',
     isDashed: false,
@@ -310,7 +310,7 @@ export const sampleRelations: RelationEdge[] = [
     sourceEntityId: 'char-ronald',
     targetEntityId: 'char-marcus',
     relationType: 'rival',
-    label: 'Saudara Kandung',
+    label: 'Sibling',
     icon: 'users',
     color: '#94a3b8',
     isDashed: true,
@@ -322,7 +322,7 @@ export const sampleRelations: RelationEdge[] = [
     sourceEntityId: 'char-vespera',
     targetEntityId: 'char-aurelius',
     relationType: 'family',
-    label: 'Anak',
+    label: 'Child',
     icon: 'baby',
     color: '#f59e0b',
     isDashed: false,
@@ -334,7 +334,7 @@ export const sampleRelations: RelationEdge[] = [
     sourceEntityId: 'char-vespera',
     targetEntityId: 'char-lyra',
     relationType: 'family',
-    label: 'Anak Angkat',
+    label: 'Adopted Child',
     icon: 'handshake',
     color: '#38bdf8',
     isDashed: true,
@@ -433,8 +433,8 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
         position: { x: 420, y: 220 },
         data: {
           entityId: 'char-ronald',
-          title: 'yrtrtrt',
-          subtitle: 'Karakter',
+          title: 'High King Ronald III',
+          subtitle: 'Character',
           avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
         }
       },
@@ -512,7 +512,7 @@ export const sampleDirectoryItems: DirectoryItem[] = [
   {
     id: 'doc-timeline-1',
     worldId: 'world-aethelgard',
-    name: 'Baru Linimasa',
+    name: 'Timeline',
     type: 'timeline',
     folderId: null,
     createdAt: new Date().toISOString(),
@@ -521,7 +521,7 @@ export const sampleDirectoryItems: DirectoryItem[] = [
   {
     id: 'doc-rel-1',
     worldId: 'world-aethelgard',
-    name: 'Baru Pohon relasi',
+    name: 'Lineage Tree',
     type: 'relations',
     folderId: 'folder-court',
     createdAt: new Date().toISOString(),
@@ -561,13 +561,13 @@ export const sampleDirectoryItems: DirectoryItem[] = [
 export const sampleWorkspaceTabs: WorkspaceTab[] = [
   {
     id: 'tab-relations',
-    title: 'Baru Pohon relasi & Canvas',
+    title: 'Lineage Tree',
     type: 'relations',
     isClosable: true
   },
   {
     id: 'tab-canvas',
-    title: 'Canvas',
+    title: 'Whiteboard Canvas',
     type: 'canvas',
     targetId: 'canvas-main',
     isClosable: true

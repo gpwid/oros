@@ -15,7 +15,8 @@ import {
   Node,
   Edge,
   Connection,
-  NodeProps
+  NodeProps,
+  NodeResizer
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useWorldStore } from '../../store/useWorldStore'
@@ -29,10 +30,64 @@ import {
 import { LoreEntity, CanvasStroke } from '@shared/types'
 
 // ==========================================
+// REUSABLE SCALING & MANAGEMENT TOOLBAR
+// ==========================================
+const NodeScalingToolbar: React.FC<{
+  scale: number
+  onScale: (factor: number, e: React.MouseEvent) => void
+  onResetScale?: (e: React.MouseEvent) => void
+  onDelete: (e: React.MouseEvent) => void
+  extraControls?: React.ReactNode
+}> = ({ scale, onScale, onResetScale, onDelete, extraControls }) => {
+  return (
+    <div 
+      className="absolute -top-11 left-0 flex items-center gap-1.5 bg-oros-900 border border-oros-700 rounded-lg px-2 py-1 shadow-2xl z-30 animate-in fade-in zoom-in-95 duration-100 nodrag nopan select-none"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        onClick={(e) => onScale(0.85, e)}
+        className="p-1 rounded hover:bg-oros-800 text-slate-300 hover:text-white transition-colors"
+        title="Scale Down (-15%)"
+      >
+        <ZoomOut className="w-3.5 h-3.5" />
+      </button>
+      
+      <span 
+        onClick={onResetScale}
+        title="Click to reset to 100%"
+        className="text-[10px] font-mono text-gold-400 min-w-8 text-center cursor-pointer hover:underline"
+      >
+        {Math.round(scale * 100)}%
+      </span>
+
+      <button
+        onClick={(e) => onScale(1.15, e)}
+        className="p-1 rounded hover:bg-oros-800 text-slate-300 hover:text-white transition-colors"
+        title="Scale Up (+15%)"
+      >
+        <ZoomIn className="w-3.5 h-3.5" />
+      </button>
+
+      {extraControls}
+
+      <div className="w-[1px] h-3 bg-oros-800 mx-0.5" />
+
+      <button
+        onClick={onDelete}
+        className="p-1 rounded hover:bg-rose-950/80 text-rose-400 hover:text-rose-300 transition-colors"
+        title="Delete Node (Del / Backspace)"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  )
+}
+
+// ==========================================
 // CUSTOM NODES
 // ==========================================
 
-// 1. Draggable Character / Lore Card Node (Inspired by VVD)
+// 1. Draggable Character / Lore Card Node (Dynamically Scalable)
 const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const [imgError, setImgError] = useState(false)
   const cardData = data as { 
@@ -40,200 +95,454 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     title?: string; 
     subtitle?: string; 
     avatar?: string;
+    scale?: number;
+  }
+  const reactFlow = useReactFlow()
+  const [scale, setScale] = useState(cardData.scale || 1)
+
+  const handleScale = (factor: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const next = Math.max(0.35, Math.min(3.5, Number((scale * factor).toFixed(2))))
+    setScale(next)
+    reactFlow.setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: next } } : n))
+    )
+  }
+
+  const handleReset = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setScale(1)
+    reactFlow.setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: 1 } } : n))
+    )
+  }
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    reactFlow.setNodes((nds) => nds.filter((n) => n.id !== id))
   }
 
   const fallbackAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
 
   return (
-    <div className={`relative w-44 rounded-2xl bg-oros-950/95 border transition-all duration-200 overflow-hidden shadow-2xl select-none group cursor-move ${
-      selected ? 'border-gold-400 ring-2 ring-gold-400/40' : 'border-oros-800/80 hover:border-oros-700'
-    }`}>
-      {/* 4 Cardinal Handles */}
-      <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-top-1.5" />
-      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-bottom-1.5" />
-      <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-left-1.5" />
-      <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-right-1.5" />
+    <div 
+      style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}
+      className="relative select-none"
+    >
+      <NodeResizer
+        isVisible={selected}
+        minWidth={120}
+        minHeight={150}
+        onResize={(_, { width }) => {
+          const next = Math.max(0.35, Math.min(3.5, Number((width / 176).toFixed(2))))
+          setScale(next)
+        }}
+        onResizeEnd={(_, { width }) => {
+          const next = Math.max(0.35, Math.min(3.5, Number((width / 176).toFixed(2))))
+          reactFlow.setNodes((nds) =>
+            nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: next } } : n))
+          )
+        }}
+        handleClassName="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !rounded-full shadow-md"
+        lineClassName="!border-gold-400/60"
+      />
 
-      {/* Card Portrait Banner */}
-      <div className="w-full h-40 bg-oros-900 relative overflow-hidden">
-        <img
-          src={imgError ? fallbackAvatar : (cardData.avatar || fallbackAvatar)}
-          alt={cardData.title || 'Card'}
-          onError={() => setImgError(true)}
-          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+      {selected && (
+        <NodeScalingToolbar
+          scale={scale}
+          onScale={handleScale}
+          onResetScale={handleReset}
+          onDelete={handleDelete}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-oros-950 via-transparent to-transparent opacity-80" />
-      </div>
+      )}
 
-      {/* Card Info Footer */}
-      <div className="p-3 bg-oros-950/95">
-        <div className="flex items-center gap-1.5 text-[10px] text-gold-400 font-semibold uppercase tracking-wider mb-0.5">
-          <User className="w-3 h-3 text-gold-400" />
-          <span>{cardData.subtitle || 'Karakter'}</span>
+      <div className={`relative w-44 rounded-2xl bg-oros-950/95 border transition-all duration-200 overflow-hidden shadow-2xl select-none group cursor-move ${
+        selected ? 'border-gold-400 ring-2 ring-gold-400/40' : 'border-oros-800/80 hover:border-oros-700'
+      }`}>
+        {/* 4 Cardinal Handles */}
+        <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-top-1.5" />
+        <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-bottom-1.5" />
+        <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-left-1.5" />
+        <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-right-1.5" />
+
+        {/* Card Portrait Banner */}
+        <div className="w-full h-40 bg-oros-900 relative overflow-hidden">
+          <img
+            src={imgError ? fallbackAvatar : (cardData.avatar || fallbackAvatar)}
+            alt={cardData.title || 'Card'}
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-oros-950 via-transparent to-transparent opacity-80" />
         </div>
-        <div className="font-serif font-bold text-sm text-slate-100 truncate">
-          {cardData.title || 'Untitled Card'}
+
+        {/* Card Info Footer */}
+        <div className="p-3 bg-oros-950/95">
+          <div className="flex items-center gap-1.5 text-[10px] text-gold-400 font-semibold uppercase tracking-wider mb-0.5">
+            <User className="w-3 h-3 text-gold-400" />
+            <span>{cardData.subtitle || 'Character'}</span>
+          </div>
+          <div className="font-serif font-bold text-sm text-slate-100 truncate">
+            {cardData.title || 'Untitled Card'}
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-// 2. Lined Sticky Note Node (Inspired by VVD lined paper notepad)
+// 2. Lined Sticky Note Node (Dynamically Scalable)
 const StickyNoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
-  const noteData = data as { title?: string; content?: string }
+  const noteData = data as { title?: string; content?: string; scale?: number }
   const [title, setTitle] = useState(noteData.title || 'Title')
   const [content, setContent] = useState(noteData.content || 'Write something...')
+  const reactFlow = useReactFlow()
+  const [scale, setScale] = useState(noteData.scale || 1)
+
+  const handleScale = (factor: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const next = Math.max(0.35, Math.min(3.5, Number((scale * factor).toFixed(2))))
+    setScale(next)
+    reactFlow.setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: next } } : n))
+    )
+  }
+
+  const handleReset = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setScale(1)
+    reactFlow.setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: 1 } } : n))
+    )
+  }
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    reactFlow.setNodes((nds) => nds.filter((n) => n.id !== id))
+  }
 
   return (
-    <div className={`relative w-64 rounded-xl bg-[#fefae0] text-amber-950 border border-amber-300/80 shadow-2xl transition-all duration-200 p-3 select-none cursor-move ${
-      selected ? 'ring-2 ring-amber-500 shadow-amber-900/40' : 'hover:shadow-xl'
-    }`}>
-      {/* 4 Cardinal Handles */}
-      <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-amber-600 !border-2 !border-white !-top-1.5" />
-      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-amber-600 !border-2 !border-white !-bottom-1.5" />
-      <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-amber-600 !border-2 !border-white !-left-1.5" />
-      <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-amber-600 !border-2 !border-white !-right-1.5" />
+    <div 
+      style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}
+      className="relative select-none"
+    >
+      <NodeResizer
+        isVisible={selected}
+        minWidth={160}
+        minHeight={120}
+        onResize={(_, { width }) => {
+          const next = Math.max(0.35, Math.min(3.5, Number((width / 256).toFixed(2))))
+          setScale(next)
+        }}
+        onResizeEnd={(_, { width }) => {
+          const next = Math.max(0.35, Math.min(3.5, Number((width / 256).toFixed(2))))
+          reactFlow.setNodes((nds) =>
+            nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: next } } : n))
+          )
+        }}
+        handleClassName="!w-2.5 !h-2.5 !bg-amber-500 !border-2 !border-white !rounded-full shadow-md"
+        lineClassName="!border-amber-400/60"
+      />
 
-      {/* Notepad Pin & Title */}
-      <div className="border-b border-amber-300/80 pb-1.5 mb-2 flex items-center justify-between">
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Title"
-          className="bg-transparent font-serif font-bold text-sm text-amber-950 placeholder-amber-700/50 outline-none w-full"
+      {selected && (
+        <NodeScalingToolbar
+          scale={scale}
+          onScale={handleScale}
+          onResetScale={handleReset}
+          onDelete={handleDelete}
         />
-        <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0 ml-1" />
-      </div>
+      )}
 
-      {/* Ruled / Lined Body Area */}
-      <div className="relative">
-        <textarea
-          rows={4}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Write something..."
-          style={{
-            lineHeight: '24px',
-            backgroundImage: 'repeating-linear-gradient(transparent, transparent 23px, #e9d8a6 24px)',
-            backgroundAttachment: 'local'
-          }}
-          className="w-full bg-transparent text-xs text-amber-900/90 placeholder-amber-700/50 outline-none resize-none cursor-text"
-        />
+      <div className={`relative w-64 rounded-xl bg-[#fefae0] text-amber-950 border border-amber-300/80 shadow-2xl transition-all duration-200 p-3 select-none cursor-move ${
+        selected ? 'ring-2 ring-amber-500 shadow-amber-900/40' : 'hover:shadow-xl'
+      }`}>
+        {/* 4 Cardinal Handles */}
+        <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-amber-600 !border-2 !border-white !-top-1.5" />
+        <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-amber-600 !border-2 !border-white !-bottom-1.5" />
+        <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-amber-600 !border-2 !border-white !-left-1.5" />
+        <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-amber-600 !border-2 !border-white !-right-1.5" />
+
+        {/* Notepad Pin & Title */}
+        <div className="border-b border-amber-300/80 pb-1.5 mb-2 flex items-center justify-between">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Title"
+            className="bg-transparent font-serif font-bold text-sm text-amber-950 placeholder-amber-700/50 outline-none w-full"
+          />
+          <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0 ml-1" />
+        </div>
+
+        {/* Ruled / Lined Body Area */}
+        <div className="relative">
+          <textarea
+            rows={4}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Write something..."
+            style={{
+              lineHeight: '24px',
+              backgroundImage: 'repeating-linear-gradient(transparent, transparent 23px, #e9d8a6 24px)',
+              backgroundAttachment: 'local'
+            }}
+            className="w-full bg-transparent text-xs text-amber-900/90 placeholder-amber-700/50 outline-none resize-none cursor-text"
+          />
+        </div>
       </div>
     </div>
   )
 }
 
-// 3. Geometric Shape Node (Parallelogram, Diamond, Rectangle, Circle)
+// 3. Geometric Shape Node (Dynamically Scalable)
 const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const shapeData = data as { 
     shapeType?: 'parallelogram' | 'diamond' | 'rectangle' | 'circle'; 
     color?: string; 
     text?: string;
+    scale?: number;
   }
   const [text, setText] = useState(shapeData.text || '')
   const type = shapeData.shapeType || 'parallelogram'
+  const reactFlow = useReactFlow()
+  const [scale, setScale] = useState(shapeData.scale || 1)
+  const [color, setColor] = useState(shapeData.color || '#ffffff')
+
+  const handleScale = (factor: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const next = Math.max(0.35, Math.min(3.5, Number((scale * factor).toFixed(2))))
+    setScale(next)
+    reactFlow.setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: next } } : n))
+    )
+  }
+
+  const handleReset = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setScale(1)
+    reactFlow.setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: 1 } } : n))
+    )
+  }
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    reactFlow.setNodes((nds) => nds.filter((n) => n.id !== id))
+  }
+
+  const handleColorCycle = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const palette = ['#ffffff', '#f5c542', '#38bdf8', '#f43f5e', '#34d399']
+    const next = palette[(palette.indexOf(color) + 1) % palette.length]
+    setColor(next)
+    reactFlow.setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, color: next } } : n))
+    )
+  }
 
   return (
-    <div className={`relative transition-all duration-200 select-none cursor-move ${
-      selected ? 'ring-2 ring-gold-400' : ''
-    }`}>
-      {/* 4 Cardinal Handles */}
-      <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-top-1.5" />
-      <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-bottom-1.5" />
-      <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-left-1.5" />
-      <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-right-1.5" />
+    <div 
+      style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}
+      className="relative select-none"
+    >
+      <NodeResizer
+        isVisible={selected}
+        minWidth={80}
+        minHeight={60}
+        onResize={(_, { width }) => {
+          const next = Math.max(0.35, Math.min(3.5, Number((width / 144).toFixed(2))))
+          setScale(next)
+        }}
+        onResizeEnd={(_, { width }) => {
+          const next = Math.max(0.35, Math.min(3.5, Number((width / 144).toFixed(2))))
+          reactFlow.setNodes((nds) =>
+            nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: next } } : n))
+          )
+        }}
+        handleClassName="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !rounded-full shadow-md"
+        lineClassName="!border-gold-400/60"
+      />
 
-      {type === 'parallelogram' && (
-        <div className="relative w-36 h-28 flex items-center justify-center">
-          <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 140 100">
-            <polygon 
-              points="35,5 135,5 105,95 5,95" 
-              fill={shapeData.color || '#ffffff'} 
-              stroke="#cbd5e1" 
-              strokeWidth="1.5"
+      {selected && (
+        <NodeScalingToolbar
+          scale={scale}
+          onScale={handleScale}
+          onResetScale={handleReset}
+          onDelete={handleDelete}
+          extraControls={
+            <>
+              <div className="w-[1px] h-3 bg-oros-800 mx-0.5" />
+              <button
+                onClick={handleColorCycle}
+                className="w-3.5 h-3.5 rounded-full border border-slate-400/80 shadow-sm"
+                style={{ backgroundColor: color }}
+                title="Change color"
+              />
+            </>
+          }
+        />
+      )}
+
+      <div className={`relative transition-all duration-200 select-none cursor-move ${
+        selected ? 'ring-2 ring-gold-400' : ''
+      }`}>
+        {/* 4 Cardinal Handles */}
+        <Handle type="target" position={Position.Top} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-top-1.5" />
+        <Handle type="source" position={Position.Bottom} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-bottom-1.5" />
+        <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-left-1.5" />
+        <Handle type="source" position={Position.Right} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-right-1.5" />
+
+        {type === 'parallelogram' && (
+          <div className="relative w-36 h-28 flex items-center justify-center">
+            <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 140 100">
+              <polygon 
+                points="35,5 135,5 105,95 5,95" 
+                fill={color} 
+                stroke="#cbd5e1" 
+                strokeWidth="1.5"
+              />
+            </svg>
+            <input
+              type="text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Shape text..."
+              className="absolute inset-0 bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none px-6 cursor-text"
             />
-          </svg>
-          <input
-            type="text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder=""
-            className="absolute inset-0 bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none px-6 cursor-text"
-          />
-        </div>
-      )}
+          </div>
+        )}
 
-      {type === 'diamond' && (
-        <div className="relative w-32 h-32 flex items-center justify-center">
-          <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 100 100">
-            <polygon 
-              points="50,5 95,50 50,95 5,50" 
-              fill={shapeData.color || '#ffffff'} 
-              stroke="#cbd5e1" 
-              strokeWidth="1.5"
+        {type === 'diamond' && (
+          <div className="relative w-32 h-32 flex items-center justify-center">
+            <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 100 100">
+              <polygon 
+                points="50,5 95,50 50,95 5,50" 
+                fill={color} 
+                stroke="#cbd5e1" 
+                strokeWidth="1.5"
+              />
+            </svg>
+            <input
+              type="text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Shape text..."
+              className="absolute inset-0 bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none px-4 cursor-text"
             />
-          </svg>
-          <input
-            type="text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder=""
-            className="absolute inset-0 bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none px-4 cursor-text"
-          />
-        </div>
-      )}
+          </div>
+        )}
 
-      {type === 'rectangle' && (
-        <div className="w-36 h-24 rounded-xl bg-white/95 border border-slate-300 shadow-xl flex items-center justify-center p-3">
-          <input
-            type="text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Text..."
-            className="w-full bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none cursor-text"
-          />
-        </div>
-      )}
+        {type === 'rectangle' && (
+          <div 
+            style={{ backgroundColor: color }}
+            className="w-36 h-24 rounded-xl border border-slate-300 shadow-xl flex items-center justify-center p-3"
+          >
+            <input
+              type="text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Text..."
+              className="w-full bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none cursor-text"
+            />
+          </div>
+        )}
 
-      {type === 'circle' && (
-        <div className="w-28 h-28 rounded-full bg-white/95 border border-slate-300 shadow-xl flex items-center justify-center p-3">
-          <input
-            type="text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Text..."
-            className="w-full bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none cursor-text"
-          />
-        </div>
-      )}
+        {type === 'circle' && (
+          <div 
+            style={{ backgroundColor: color }}
+            className="w-28 h-28 rounded-full border border-slate-300 shadow-xl flex items-center justify-center p-3"
+          >
+            <input
+              type="text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Text..."
+              className="w-full bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none cursor-text"
+            />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
-// 4. Freeform Canvas Text Node
+// 4. Freeform Canvas Text Node (Dynamically Scalable)
 const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
-  const textData = data as { text?: string }
+  const textData = data as { text?: string; scale?: number }
   const [text, setText] = useState(textData.text || 'Write annotation...')
+  const reactFlow = useReactFlow()
+  const [scale, setScale] = useState(textData.scale || 1)
+
+  const handleScale = (factor: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const next = Math.max(0.35, Math.min(3.5, Number((scale * factor).toFixed(2))))
+    setScale(next)
+    reactFlow.setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: next } } : n))
+    )
+  }
+
+  const handleReset = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setScale(1)
+    reactFlow.setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: 1 } } : n))
+    )
+  }
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    reactFlow.setNodes((nds) => nds.filter((n) => n.id !== id))
+  }
 
   return (
-    <div className={`relative px-3 py-1.5 rounded-lg select-none transition-all cursor-move ${
-      selected ? 'ring-1 ring-gold-400 bg-oros-900/40' : 'hover:bg-oros-900/20'
-    }`}>
-      {/* 4 Cardinal Handles */}
-      <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-gold-400/80 !border !border-oros-950 !-top-1" />
-      <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-gold-400/80 !border !border-oros-950 !-bottom-1" />
-      <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-gold-400/80 !border !border-oros-950 !-left-1" />
-      <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-gold-400/80 !border !border-oros-950 !-right-1" />
-
-      <input
-        type="text"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        className="bg-transparent font-serif text-slate-200 text-sm tracking-wide outline-none min-w-[200px] cursor-text"
+    <div 
+      style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}
+      className="relative select-none"
+    >
+      <NodeResizer
+        isVisible={selected}
+        minWidth={100}
+        minHeight={30}
+        onResize={(_, { width }) => {
+          const next = Math.max(0.35, Math.min(3.5, Number((width / 200).toFixed(2))))
+          setScale(next)
+        }}
+        onResizeEnd={(_, { width }) => {
+          const next = Math.max(0.35, Math.min(3.5, Number((width / 200).toFixed(2))))
+          reactFlow.setNodes((nds) =>
+            nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: next } } : n))
+          )
+        }}
+        handleClassName="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !rounded-full shadow-md"
+        lineClassName="!border-gold-400/60"
       />
+
+      {selected && (
+        <NodeScalingToolbar
+          scale={scale}
+          onScale={handleScale}
+          onResetScale={handleReset}
+          onDelete={handleDelete}
+        />
+      )}
+
+      <div className={`relative px-3 py-1.5 rounded-lg select-none transition-all cursor-move ${
+        selected ? 'ring-1 ring-gold-400 bg-oros-900/40' : 'hover:bg-oros-900/20'
+      }`}>
+        {/* 4 Cardinal Handles */}
+        <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-gold-400/80 !border !border-oros-950 !-top-1" />
+        <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-gold-400/80 !border !border-oros-950 !-bottom-1" />
+        <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-gold-400/80 !border !border-oros-950 !-left-1" />
+        <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-gold-400/80 !border !border-oros-950 !-right-1" />
+
+        <input
+          type="text"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className="bg-transparent font-serif text-slate-200 text-sm tracking-wide outline-none min-w-[200px] cursor-text"
+        />
+      </div>
     </div>
   )
 }
@@ -267,6 +576,14 @@ const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     )
   }
 
+  const handleReset = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setScale(1)
+    reactFlow.setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: 1 } } : n))
+    )
+  }
+
   const handleColorChange = (e: React.MouseEvent) => {
     e.stopPropagation()
     const palette = ['#ffffff', '#f5c542', '#38bdf8', '#f43f5e', '#34d399']
@@ -290,6 +607,26 @@ const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         selected ? 'ring-2 ring-gold-400 ring-dashed rounded-xl bg-gold-400/5' : ''
       }`}
     >
+      <NodeResizer
+        isVisible={selected}
+        minWidth={40}
+        minHeight={40}
+        onResize={(_, { width }) => {
+          const baseW = drawingData.width || 120
+          const next = Math.max(0.3, Math.min(3.5, Number((width / baseW).toFixed(2))))
+          setScale(next)
+        }}
+        onResizeEnd={(_, { width }) => {
+          const baseW = drawingData.width || 120
+          const next = Math.max(0.3, Math.min(3.5, Number((width / baseW).toFixed(2))))
+          reactFlow.setNodes((nds) =>
+            nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: next } } : n))
+          )
+        }}
+        handleClassName="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !rounded-full shadow-md"
+        lineClassName="!border-gold-400/60"
+      />
+
       {/* 4 Handles */}
       <Handle type="target" position={Position.Top} className="!opacity-0 !w-2 !h-2" />
       <Handle type="source" position={Position.Bottom} className="!opacity-0 !w-2 !h-2" />
@@ -298,53 +635,23 @@ const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
       {/* Floating Toolbar on Selection */}
       {selected && (
-        <div 
-          className="absolute -top-11 left-0 flex items-center gap-1.5 bg-oros-900 border border-oros-700 rounded-lg px-2 py-1 shadow-2xl z-30 animate-in fade-in zoom-in-95 duration-100"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Zoom Out / Scale Down */}
-          <button
-            onClick={(e) => handleScale(0.85, e)}
-            className="p-1 rounded hover:bg-oros-800 text-slate-300 hover:text-white"
-            title="Scale Down"
-          >
-            <ZoomOut className="w-3.5 h-3.5" />
-          </button>
-          
-          <span className="text-[10px] font-mono text-oros-400 min-w-8 text-center">
-            {Math.round(scale * 100)}%
-          </span>
-
-          {/* Zoom In / Scale Up */}
-          <button
-            onClick={(e) => handleScale(1.15, e)}
-            className="p-1 rounded hover:bg-oros-800 text-slate-300 hover:text-white"
-            title="Scale Up"
-          >
-            <ZoomIn className="w-3.5 h-3.5" />
-          </button>
-
-          <div className="w-[1px] h-3 bg-oros-800 mx-0.5" />
-
-          {/* Color Switcher */}
-          <button
-            onClick={handleColorChange}
-            className="w-4 h-4 rounded-full border border-slate-400/80 shadow-sm"
-            style={{ backgroundColor: color }}
-            title="Cycle stroke color"
-          />
-
-          <div className="w-[1px] h-3 bg-oros-800 mx-0.5" />
-
-          {/* Delete Drawing Button */}
-          <button
-            onClick={handleDelete}
-            className="p-1 rounded hover:bg-rose-950 text-oros-400 hover:text-rose-400"
-            title="Delete Drawing (Del / Backspace)"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <NodeScalingToolbar
+          scale={scale}
+          onScale={handleScale}
+          onResetScale={handleReset}
+          onDelete={handleDelete}
+          extraControls={
+            <>
+              <div className="w-[1px] h-3 bg-oros-800 mx-0.5" />
+              <button
+                onClick={handleColorChange}
+                className="w-4 h-4 rounded-full border border-slate-400/80 shadow-sm"
+                style={{ backgroundColor: color }}
+                title="Cycle stroke color"
+              />
+            </>
+          }
+        />
       )}
 
       {/* SVG Path */}

@@ -505,7 +505,31 @@ export const sampleFolders: DirectoryFolder[] = [
   {
     id: 'folder-court',
     worldId: 'world-aethelgard',
-    name: 'yrtrtrt',
+    name: 'Royal Court',
+    parentId: null,
+    isOpen: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'folder-nobility',
+    worldId: 'world-aethelgard',
+    name: 'Nobility & Sovereigns',
+    parentId: 'folder-court',
+    isOpen: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'folder-atlas',
+    worldId: 'world-aethelgard',
+    name: 'Atlas & Cartography',
+    parentId: null,
+    isOpen: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'folder-codex',
+    worldId: 'world-aethelgard',
+    name: 'World Codex',
     parentId: null,
     isOpen: true,
     createdAt: new Date().toISOString()
@@ -513,25 +537,29 @@ export const sampleFolders: DirectoryFolder[] = [
 ]
 
 export const sampleDirectoryItems: DirectoryItem[] = [
+  // Nobility Subfolder (inside Royal Court)
   {
-    id: 'doc-canvas-1',
+    id: 'doc-card-ronald',
     worldId: 'world-aethelgard',
-    name: 'New Canvas',
-    type: 'canvas',
-    targetId: 'canvas-main',
-    folderId: null,
+    name: 'High King Ronald III',
+    type: 'card',
+    targetId: 'char-ronald',
+    folderId: 'folder-nobility',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
   {
-    id: 'doc-timeline-1',
+    id: 'doc-card-vespera',
     worldId: 'world-aethelgard',
-    name: 'Timeline',
-    type: 'timeline',
-    folderId: null,
+    name: 'Lady Vespera of the Astral Loom',
+    type: 'card',
+    targetId: 'char-vespera',
+    folderId: 'folder-nobility',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
+
+  // Royal Court Folder
   {
     id: 'doc-rel-1',
     worldId: 'world-aethelgard',
@@ -542,31 +570,84 @@ export const sampleDirectoryItems: DirectoryItem[] = [
     updatedAt: new Date().toISOString()
   },
   {
-    id: 'doc-wiki-1',
-    worldId: 'world-aethelgard',
-    name: 'Encyclopedia',
-    type: 'wiki',
-    folderId: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'doc-map-1',
-    worldId: 'world-aethelgard',
-    name: 'Archipelago Map',
-    type: 'map',
-    targetId: 'map-aethelgard-main',
-    folderId: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
     id: 'doc-manuscript-1',
     worldId: 'world-aethelgard',
     name: 'Chains of Dawn',
     type: 'writer',
     targetId: 'ch-1',
-    folderId: null,
+    folderId: 'folder-court',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+
+  // Atlas & Cartography Folder
+  {
+    id: 'doc-map-1',
+    worldId: 'world-aethelgard',
+    name: 'Continent of Aethelgard & The Archipelagos',
+    type: 'map',
+    targetId: 'map-aethelgard-main',
+    folderId: 'folder-atlas',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'doc-canvas-1',
+    worldId: 'world-aethelgard',
+    name: 'New Canvas',
+    type: 'canvas',
+    targetId: 'canvas-main',
+    folderId: 'folder-atlas',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+
+  // World Codex Folder
+  {
+    id: 'doc-card-bastion',
+    worldId: 'world-aethelgard',
+    name: 'Citadel of Sunken Gold',
+    type: 'card',
+    targetId: 'loc-sunken-bastion',
+    folderId: 'folder-codex',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'doc-card-solar',
+    worldId: 'world-aethelgard',
+    name: 'The Solar Concord',
+    type: 'card',
+    targetId: 'fac-solar',
+    folderId: 'folder-codex',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'doc-card-crown',
+    worldId: 'world-aethelgard',
+    name: 'The Crown of Astral Glass',
+    type: 'card',
+    targetId: 'item-astral-crown',
+    folderId: 'folder-codex',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'doc-timeline-1',
+    worldId: 'world-aethelgard',
+    name: 'Timeline',
+    type: 'timeline',
+    folderId: 'folder-codex',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'doc-wiki-1',
+    worldId: 'world-aethelgard',
+    name: 'Encyclopedia',
+    type: 'wiki',
+    folderId: 'folder-codex',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }

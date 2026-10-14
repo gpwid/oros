@@ -7,7 +7,7 @@ import {
 
 export const TimelineView: React.FC = () => {
   const { 
-    timelines, entities, activeWorldId, setSelectedEntityId, setActiveTab,
+    timelines, entities, activeWorldId, setSelectedEntityId, setActiveTab, openTab,
     createTimelineEvent, deleteTimelineEvent 
   } = useWorldStore()
 
@@ -149,7 +149,11 @@ export const TimelineView: React.FC = () => {
                                   key={entId}
                                   onClick={() => {
                                     setSelectedEntityId(entId)
-                                    setActiveTab('wiki')
+                                    openTab({
+                                      title: ent.title,
+                                      type: 'wiki',
+                                      targetId: entId
+                                    })
                                   }}
                                   className="text-[11px] px-2 py-0.5 rounded bg-oros-800/80 hover:bg-gold-500/20 text-slate-200 hover:text-gold-300 border border-oros-700/60 flex items-center gap-1 transition-colors"
                                 >

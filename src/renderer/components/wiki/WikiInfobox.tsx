@@ -10,7 +10,7 @@ interface WikiInfoboxProps {
 }
 
 export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, onUpdate }) => {
-  const { entities, activeWorldId, setSelectedEntityId } = useWorldStore()
+  const { entities, activeWorldId, setSelectedEntityId, openTab } = useWorldStore()
   const { addToast } = useToastStore()
   const [isEditing, setIsEditing] = useState(false)
   const [newFieldLabel, setNewFieldLabel] = useState('')
@@ -144,7 +144,14 @@ export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, onUpdate }) =>
                       <td className="py-1.5 pl-2 text-slate-200 align-top">
                         {targetEntity ? (
                           <button
-                            onClick={() => setSelectedEntityId(targetEntity.id)}
+                            onClick={() => {
+                              setSelectedEntityId(targetEntity.id)
+                              openTab({
+                                title: targetEntity.title,
+                                type: 'wiki',
+                                targetId: targetEntity.id
+                              })
+                            }}
                             className="text-gold-400 hover:underline flex items-center gap-1 font-medium inline-flex text-left"
                           >
                             <span>{targetEntity.title}</span>

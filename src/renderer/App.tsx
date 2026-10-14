@@ -33,9 +33,13 @@ export const App: React.FC = () => {
       case 'canvas':
         return <WhiteboardCanvas canvasId={activeTabObj?.targetId} />
       case 'wiki':
-        return <WikiArticleView />
+        return <WikiArticleView entityId={activeTabObj?.targetId} />
       case 'card':
       case 'cards':
+        // If a card tab has a specific targetId, render that card's wiki article directly!
+        if (activeTabObj?.targetId) {
+          return <WikiArticleView entityId={activeTabObj.targetId} />
+        }
         return <CardGallery />
       case 'relations':
       case 'graph':

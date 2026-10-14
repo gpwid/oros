@@ -24,7 +24,7 @@ export const CommandPalette: React.FC = () => {
   const { 
     entities, maps, manuscripts, activeWorldId, 
     setActiveTab, setSelectedEntityId, setSelectedMapId, setSelectedChapterId,
-    toggleGmMode, gmMode, exportWorld, createEntity 
+    toggleGmMode, gmMode, exportWorld, createEntity, openTab 
   } = useWorldStore()
 
   const { addToast } = useToastStore()
@@ -89,7 +89,11 @@ export const CommandPalette: React.FC = () => {
     onSelect: () => {
       const ent = createEntity('character', 'Untitled Character')
       setSelectedEntityId(ent.id)
-      setActiveTab('wiki')
+      openTab({
+        title: ent.title,
+        type: 'wiki',
+        targetId: ent.id
+      })
       addToast('Created new character article', 'success')
     }
   })
@@ -102,7 +106,11 @@ export const CommandPalette: React.FC = () => {
     onSelect: () => {
       const ent = createEntity('location', 'Untitled Location')
       setSelectedEntityId(ent.id)
-      setActiveTab('wiki')
+      openTab({
+        title: ent.title,
+        type: 'wiki',
+        targetId: ent.id
+      })
       addToast('Created new location article', 'success')
     }
   })
@@ -154,7 +162,11 @@ export const CommandPalette: React.FC = () => {
       icon: BookOpen,
       onSelect: () => {
         setSelectedEntityId(ent.id)
-        setActiveTab('wiki')
+        openTab({
+          title: ent.title,
+          type: 'wiki',
+          targetId: ent.id
+        })
       }
     })
   })

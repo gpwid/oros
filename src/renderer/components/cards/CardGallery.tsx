@@ -7,7 +7,7 @@ import {
 
 export const CardGallery: React.FC = () => {
   const { 
-    entities, activeWorldId, setSelectedEntityId, setActiveTab, 
+    entities, activeWorldId, setSelectedEntityId, openTab, 
     createEntity, searchQuery, setSearchQuery 
   } = useWorldStore()
 
@@ -36,18 +36,22 @@ export const CardGallery: React.FC = () => {
     return matchesCat && matchesSearch
   })
 
+  const navigateToWiki = (entity: LoreEntity) => {
+    setSelectedEntityId(entity.id)
+    openTab({
+      title: entity.title,
+      type: 'wiki',
+      targetId: entity.id
+    })
+  }
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTitle.trim()) return
     const newEnt = createEntity(newType, newTitle.trim())
-    setSelectedEntityId(newEnt.id)
+    navigateToWiki(newEnt)
     setShowCreateModal(false)
     setNewTitle('')
-  }
-
-  const navigateToWiki = (entityId: string) => {
-    setSelectedEntityId(entityId)
-    setActiveTab('wiki')
   }
 
   return (
@@ -108,7 +112,8 @@ export const CardGallery: React.FC = () => {
           {filteredEntities.map((ent) => (
             <div
               key={ent.id}
-              className="bg-oros-900/70 border border-oros-800 hover:border-gold-400/60 rounded-xl overflow-hidden shadow-lg transition-all hover:-translate-y-0.5 group flex flex-col justify-between"
+              onClick={() => navigateToWiki(ent)}
+              className="bg-oros-900/70 border border-oros-800 hover:border-gold-400/60 rounded-xl overflow-hidden shadow-lg transition-all hover:-translate-y-0.5 group flex flex-col justify-between cursor-pointer"
             >
               <div>
                 {/* Card Banner / Portrait */}
@@ -165,7 +170,10 @@ export const CardGallery: React.FC = () => {
               {/* Card Footer Actions */}
               <div className="p-3 bg-oros-950/60 border-t border-oros-800/60 flex items-center justify-between">
                 <button
-                  onClick={() => navigateToWiki(ent.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigateToWiki(ent)
+                  }}
                   className="text-xs text-gold-400 hover:text-gold-300 font-medium flex items-center gap-1"
                 >
                   <span>Open in Wiki</span>

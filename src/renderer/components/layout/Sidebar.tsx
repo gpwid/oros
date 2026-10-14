@@ -12,7 +12,7 @@ import { DirectoryItem, DirectoryFolder, DirectoryItemType, LoreEntity } from '@
 
 export const Sidebar: React.FC = () => {
   const { 
-    activeWorldId, folders, directoryItems, openTab,
+    activeWorldId, folders, directoryItems, openTab, setSelectedEntityId,
     createFolder, renameFolder, deleteFolder, toggleFolderOpen, moveFolderToFolder,
     createDirectoryItem, deleteDirectoryItem, moveItemToFolder,
     createCanvas, createEntity, createMap, createChapter,
@@ -103,6 +103,19 @@ export const Sidebar: React.FC = () => {
   }
 
   const handleItemClick = (item: DirectoryItem) => {
+    // If it's a card or wiki article in the directory, open it in wiki view
+    if (item.type === 'card' || item.type === 'wiki') {
+      if (item.targetId) {
+        setSelectedEntityId(item.targetId)
+      }
+      openTab({
+        title: item.name,
+        type: 'wiki',
+        targetId: item.targetId
+      })
+      return
+    }
+
     openTab({
       title: item.name,
       type: item.type,
@@ -142,6 +155,7 @@ export const Sidebar: React.FC = () => {
     switch (newElementType) {
       case 'card': {
         const ent = createEntity(newCardSubtype, name, targetFolder)
+        openTab({ title: ent.title, type: 'wiki', targetId: ent.id })
         addToast(`Created Card: ${ent.title}`, 'success')
         break
       }
@@ -174,6 +188,7 @@ export const Sidebar: React.FC = () => {
       }
       case 'wiki': {
         const ent = createEntity('document', name || 'New Encyclopedia Article', targetFolder)
+        openTab({ title: ent.title, type: 'wiki', targetId: ent.id })
         addToast(`Created Wiki Entry: ${ent.title}`, 'success')
         break
       }

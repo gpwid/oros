@@ -10,11 +10,15 @@ interface QuickPeekCardProps {
 }
 
 export const QuickPeekCard: React.FC<QuickPeekCardProps> = ({ entity, onClose, onOpenWiki }) => {
-  const { setSelectedEntityId, setActiveTab } = useWorldStore()
+  const { setSelectedEntityId, openTab } = useWorldStore()
 
   const handleOpen = () => {
     setSelectedEntityId(entity.id)
-    setActiveTab('wiki')
+    openTab({
+      title: entity.title,
+      type: 'wiki',
+      targetId: entity.id
+    })
     if (onOpenWiki) onOpenWiki()
     if (onClose) onClose()
   }

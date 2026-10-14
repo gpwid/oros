@@ -12,7 +12,7 @@ import { LoreEntity } from '@shared/types'
 export const StudioWriter: React.FC = () => {
   const { 
     manuscripts, entities, activeWorldId, selectedChapterId, setSelectedChapterId,
-    createChapter, updateChapter, deleteChapter, setSelectedEntityId, setActiveTab 
+    createChapter, updateChapter, deleteChapter, setSelectedEntityId, setActiveTab, openTab 
   } = useWorldStore()
 
   const { addToast } = useToastStore()
@@ -199,7 +199,11 @@ export const StudioWriter: React.FC = () => {
                   <button
                     onClick={() => {
                       setSelectedEntityId(ent.id)
-                      setActiveTab('wiki')
+                      openTab({
+                        title: ent.title,
+                        type: 'wiki',
+                        targetId: ent.id
+                      })
                     }}
                     className="text-gold-400 hover:underline"
                   >

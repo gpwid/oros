@@ -195,7 +195,32 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     }
   },
 
-  setActiveTab: (tab) => set({ activeTab: tab }),
+  setActiveTab: (tab) => {
+    const s = get();
+    // If setting to wiki and an entity is selected, open or focus that entity's wiki tab
+    if (tab === 'wiki' && s.selectedEntityId) {
+      const worldId = s.activeWorldId || '';
+      const entity = (s.entities[worldId] || []).find((e) => e.id === s.selectedEntityId);
+      if (entity) {
+        get().openTab({
+          title: entity.title,
+          type: 'wiki',
+          targetId: entity.id
+        });
+        return;
+      }
+    }
+    
+    // Check if an existing open tab matches
+    const existing = s.openTabs.find((t) => t.type === tab && !t.targetId);
+    if (existing) {
+      get().setActiveTabId(existing.id);
+      return;
+    }
+
+    set({ activeTab: tab });
+  },
+
   setActiveWorldId: (id) => {
     const entities = get().entities[id] || [];
     const maps = get().maps[id] || [];
@@ -221,17 +246,31 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   // Workspace Tabs Actions
   openTab: (tab) => {
     const s = get();
-    // Check if an identical tab is already open
-    const existing = s.openTabs.find((t) => 
-      tab.id ? t.id === tab.id : (t.type === tab.type && (tab.targetId ? t.targetId === tab.targetId : true))
-    );
+    // Check if an identical tab is already open (matching targetId if present)
+    const existing = s.openTabs.find((t) => {
+      if (tab.id) return t.id === tab.id;
+      if (tab.targetId) return t.targetId === tab.targetId;
+      return t.type === tab.type && !t.targetId;
+    });
+
     if (existing) {
+      // If existing tab was of type 'card' but now opened as 'wiki', upgrade tab to 'wiki'
+      const updatedType: DirectoryItemType = (tab.type === 'wiki' || existing.type === 'wiki') ? 'wiki' : existing.type;
+      const updatedTitle = tab.title || existing.title;
+      const updatedTabs: WorkspaceTab[] = s.openTabs.map((t) => 
+        t.id === existing.id ? { ...t, type: updatedType, title: updatedTitle } : t
+      );
+
       set({ 
+        openTabs: updatedTabs,
         activeTabId: existing.id, 
-        activeTab: existing.type as ActiveNavTab 
+        activeTab: updatedType as ActiveNavTab 
       });
+
       if (existing.targetId) {
-        if (existing.type === 'wiki' || existing.type === 'card') set({ selectedEntityId: existing.targetId });
+        if (existing.type === 'wiki' || existing.type === 'card' || tab.type === 'wiki' || tab.type === 'card') {
+          set({ selectedEntityId: existing.targetId });
+        }
         if (existing.type === 'map') set({ selectedMapId: existing.targetId });
         if (existing.type === 'writer') set({ selectedChapterId: existing.targetId });
         if (existing.type === 'canvas') set({ selectedCanvasId: existing.targetId });

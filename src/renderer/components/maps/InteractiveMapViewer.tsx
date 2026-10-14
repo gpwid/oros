@@ -52,7 +52,7 @@ export const InteractiveMapViewer: React.FC = () => {
     maps, entities, activeWorldId, selectedMapId, setSelectedMapId, 
     addPinToMap, updatePinOnMap, removePinFromMap,
     addRegionToMap, updateRegionOnMap, removeRegionFromMap,
-    createEntity, setSelectedEntityId, setActiveTab,
+    createEntity, setSelectedEntityId, setActiveTab, openTab,
     createMap 
   } = useWorldStore()
 
@@ -1078,7 +1078,11 @@ export const InteractiveMapViewer: React.FC = () => {
                 <button
                   onClick={() => {
                     setSelectedEntityId(selectedPinEntity.id)
-                    setActiveTab('wiki')
+                    openTab({
+                      title: selectedPinEntity.title,
+                      type: 'wiki',
+                      targetId: selectedPinEntity.id
+                    })
                   }}
                   className="px-2.5 py-1 rounded-lg bg-gold-500/20 hover:bg-gold-500/30 text-gold-400 text-xs font-semibold flex items-center gap-1 transition-colors"
                 >
@@ -1190,7 +1194,11 @@ export const InteractiveMapViewer: React.FC = () => {
                 <button
                   onClick={() => {
                     setSelectedEntityId(selectedRegionEntity.id)
-                    setActiveTab('wiki')
+                    openTab({
+                      title: selectedRegionEntity.title,
+                      type: 'wiki',
+                      targetId: selectedRegionEntity.id
+                    })
                   }}
                   className="px-2.5 py-1 rounded-lg bg-gold-500/20 hover:bg-gold-500/30 text-gold-400 text-xs font-semibold flex items-center gap-1 transition-colors"
                 >

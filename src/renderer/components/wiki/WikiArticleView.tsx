@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
 import { WikiInfobox } from './WikiInfobox'
@@ -10,9 +10,13 @@ import {
 } from 'lucide-react'
 import { EntityType, LoreEntity } from '@shared/types'
 
-export const WikiArticleView: React.FC = () => {
+interface WikiArticleViewProps {
+  entityId?: string
+}
+
+export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) => {
   const { 
-    entities, activeWorldId, selectedEntityId, setSelectedEntityId, 
+    entities, activeWorldId, selectedEntityId, setSelectedEntityId, openTab,
     updateEntity, createEntity, deleteEntity, searchQuery 
   } = useWorldStore()
 
@@ -27,6 +31,16 @@ export const WikiArticleView: React.FC = () => {
 
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
 
+  // Prioritize entityId prop if passed from active workspace tab
+  const effectiveId = entityId || selectedEntityId
+
+  // Synchronize store selectedEntityId when entityId prop changes
+  useEffect(() => {
+    if (entityId && entityId !== selectedEntityId) {
+      setSelectedEntityId(entityId)
+    }
+  }, [entityId, selectedEntityId, setSelectedEntityId])
+
   // Filter entities by search and type
   const filteredEntities = worldEntities.filter((e) => {
     const matchesSearch = searchQuery === '' || 
@@ -37,7 +51,7 @@ export const WikiArticleView: React.FC = () => {
     return matchesSearch && matchesType
   })
 
-  const currentEntity = worldEntities.find((e) => e.id === selectedEntityId) || filteredEntities[0]
+  const currentEntity = worldEntities.find((e) => e.id === effectiveId) || worldEntities.find((e) => e.id === selectedEntityId) || filteredEntities[0]
 
   // Dynamically extract real headings from article HTML and inject unique IDs
   const { processedHtml, tocItems } = useMemo(() => {
@@ -163,6 +177,7 @@ export const WikiArticleView: React.FC = () => {
                   key={ent.id}
                   onClick={() => {
                     setSelectedEntityId(ent.id)
+                    openTab({ title: ent.title, type: 'wiki', targetId: ent.id })
                     setIsEditing(false)
                   }}
                   className={`w-full text-left p-2.5 rounded-lg text-xs transition-all flex items-start justify-between group ${
@@ -323,7 +338,10 @@ export const WikiArticleView: React.FC = () => {
                           className="relative"
                         >
                           <button
-                            onClick={() => setSelectedEntityId(bl.id)}
+                            onClick={() => {
+                              setSelectedEntityId(bl.id)
+                              openTab({ title: bl.title, type: 'wiki', targetId: bl.id })
+                            }}
                             className="w-full text-left p-2.5 rounded-xl bg-oros-900/60 border border-oros-800/60 hover:border-gold-400/50 hover:bg-oros-900 transition-all flex items-center justify-between group"
                           >
                             <div>

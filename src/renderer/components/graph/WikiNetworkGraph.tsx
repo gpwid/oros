@@ -387,7 +387,7 @@ const GraphMiniMap: React.FC<GraphMiniMapProps> = React.memo(({
 
 const WikiNetworkGraphInner: React.FC = () => {
   const { 
-    entities, relations, activeWorldId, setSelectedEntityId, setActiveTab 
+    entities, relations, activeWorldId, setSelectedEntityId, setActiveTab, openTab 
   } = useWorldStore()
   const { addToast } = useToastStore()
   const { fitView } = useReactFlow()
@@ -812,8 +812,13 @@ const WikiNetworkGraphInner: React.FC = () => {
   }, [selectedWikiId, allLinks, worldEntities])
 
   const handleOpenInWiki = (entityId: string) => {
+    const ent = worldEntities.find(e => e.id === entityId)
     setSelectedEntityId(entityId)
-    setActiveTab('wiki')
+    openTab({
+      title: ent ? ent.title : 'Encyclopedia',
+      type: 'wiki',
+      targetId: entityId
+    })
     addToast('Opened article in Encyclopedia', 'info')
   }
 

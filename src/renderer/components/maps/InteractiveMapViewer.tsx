@@ -533,10 +533,10 @@ export const InteractiveMapViewer: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-oros-950 relative select-none">
       {/* MINIMAL TOP BAR: Map Selector & Stats */}
-      <div className="h-11 bg-oros-900/90 border-b border-oros-800/60 px-4 flex items-center justify-between z-20 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
+      <div className="h-10 bg-oros-950 border-b border-oros-800 px-3.5 flex items-center justify-between z-20">
+        <div className="flex items-center gap-2.5">
           <div className="flex items-center gap-2">
-            <MapIcon className="w-4 h-4 text-gold-400" />
+            <MapIcon className="w-3.5 h-3.5 text-oros-400" />
             <select
               value={currentMap?.id || ''}
               onChange={(e) => {
@@ -545,7 +545,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 setSelectedRegion(null)
                 setDrawingPoints([])
               }}
-              className="bg-oros-950 border border-oros-700/80 rounded-lg px-2.5 py-1 text-xs text-slate-100 font-semibold focus:outline-none focus:border-gold-400"
+              className="bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 font-medium focus:outline-none focus:border-oros-500 font-sans"
             >
               {worldMaps.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -557,14 +557,14 @@ export const InteractiveMapViewer: React.FC = () => {
 
           <button
             onClick={() => setShowNewMapModal(true)}
-            className="p-1 px-2 rounded-md bg-oros-800 hover:bg-oros-700 text-oros-300 text-xs flex items-center gap-1 transition-colors"
+            className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-oros-100 border border-oros-750 text-xs font-medium flex items-center gap-1 transition-colors"
           >
-            <Plus className="w-3 h-3" />
+            <Plus className="w-3 h-3 text-oros-400" />
             <span>New Map</span>
           </button>
 
           {currentMap && (
-            <div className="text-[11px] text-oros-400 hidden sm:flex items-center gap-2 border-l border-oros-800 pl-3">
+            <div className="text-[11px] text-oros-500 font-mono hidden sm:flex items-center gap-2 border-l border-oros-800 pl-2.5">
               <span>{currentMap.regions?.length || 0} Territories</span>
               <span>•</span>
               <span>{currentMap.pins?.length || 0} Landmarks</span>
@@ -573,8 +573,8 @@ export const InteractiveMapViewer: React.FC = () => {
         </div>
 
         {/* Map Scale Legend Indicator */}
-        <div className="flex items-center gap-2 text-xs font-mono text-oros-400 bg-oros-950/70 border border-oros-800/80 px-2.5 py-1 rounded-lg">
-          <div className="w-8 h-1 bg-gold-400 rounded-full"></div>
+        <div className="flex items-center gap-2 text-xs font-mono text-oros-400 bg-oros-900 border border-oros-800 px-2 py-0.5 rounded-[2px]">
+          <div className="w-6 h-0.5 bg-oros-300"></div>
           <span className="text-[11px]">50 {currentMap?.scaleUnit || 'Leagues'}</span>
         </div>
       </div>
@@ -595,7 +595,7 @@ export const InteractiveMapViewer: React.FC = () => {
             ? 'cursor-cell'
             : 'cursor-default'
         }`}
-        style={{ backgroundColor: '#070b10' }}
+        style={{ backgroundColor: '#090a0d' }}
       >
         {currentMap ? (
           <div
@@ -614,7 +614,7 @@ export const InteractiveMapViewer: React.FC = () => {
             <img
               src={currentMap.imageUrl}
               alt={currentMap.name}
-              className="w-full h-full object-cover rounded-2xl border border-oros-700 pointer-events-none select-none"
+              className="w-full h-full object-cover rounded-[3px] border border-oros-750 pointer-events-none select-none"
             />
 
             {/* SVG OVERLAY: Territories & In-Progress Polygon */}
@@ -829,31 +829,31 @@ export const InteractiveMapViewer: React.FC = () => {
           </div>
         )}
 
-        {/* DRAWING MODE HELPER BANNER (Placed right above the bottom dock) */}
+        {/* DRAWING MODE HELPER BANNER */}
         {activeTool === 'territory' && (
-          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
-            <div className="flex items-center gap-3 px-4 py-2 rounded-2xl bg-oros-900/95 border border-gold-500/40 text-xs shadow-2xl backdrop-blur-md">
-              <div className="flex items-center gap-2 text-gold-300 font-semibold">
-                <span className="w-2 h-2 rounded-full bg-gold-400 animate-ping" />
-                <span>Territory Tool ({drawingPoints.length} points)</span>
+          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+            <div className="flex items-center gap-3 px-3 py-1.5 rounded-[3px] bg-oros-900 border border-oros-750 text-xs shadow-2xl text-oros-200">
+              <div className="flex items-center gap-2 text-oros-100 font-medium font-sans">
+                <span className="w-1.5 h-1.5 rounded-full bg-oros-300" />
+                <span>Territory Polygon ({drawingPoints.length} vertices)</span>
               </div>
-              <span className="text-oros-400 text-[11px] hidden sm:inline">
+              <span className="text-oros-400 text-[11px] font-sans hidden sm:inline">
                 Click map to add points • Hover start to close • Esc to cancel
               </span>
               {drawingPoints.length >= 3 && (
                 <button
                   onClick={handleFinishPolygon}
-                  className="px-3 py-1 rounded-lg bg-gold-500 hover:bg-gold-400 text-oros-950 font-bold text-xs transition-colors shadow"
+                  className="px-2.5 py-1 rounded-[2px] bg-oros-200 hover:bg-white text-oros-950 font-semibold text-xs transition-colors shadow-sm"
                 >
                   Close & Save
                 </button>
               )}
               <button
                 onClick={handleCancelDrawing}
-                className="p-1 rounded text-oros-400 hover:text-rose-400 hover:bg-oros-800"
+                className="p-1 rounded-[2px] text-oros-400 hover:text-rose-400 hover:bg-oros-850 transition-colors"
                 title="Cancel Drawing"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -861,13 +861,13 @@ export const InteractiveMapViewer: React.FC = () => {
 
         {/* PIN PLACEMENT HELPER BANNER */}
         {activeTool === 'pin' && (
-          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
-            <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-oros-900/95 border border-amber-500/40 text-xs shadow-2xl backdrop-blur-md text-amber-300">
-              <PinIcon className="w-4 h-4 animate-bounce text-amber-400" />
+          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-[3px] bg-oros-900 border border-oros-750 text-xs shadow-2xl text-oros-200 font-sans">
+              <PinIcon className="w-3.5 h-3.5 text-oros-300" />
               <span>Click anywhere on the map to place a landmark pin</span>
               <button
                 onClick={() => setActiveTool('pan')}
-                className="p-1 rounded text-oros-400 hover:text-slate-200 ml-1"
+                className="p-1 rounded-[2px] text-oros-400 hover:text-oros-200 hover:bg-oros-850 ml-1 transition-colors"
                 title="Cancel"
               >
                 <X className="w-3.5 h-3.5" />
@@ -876,9 +876,9 @@ export const InteractiveMapViewer: React.FC = () => {
           </div>
         )}
 
-        {/* FLOATING BOTTOM TOOLBAR / PILL DOCK (Matching Whiteboard Canvas) */}
-        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 select-none">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-oros-950/90 backdrop-blur-md border border-oros-700/60 shadow-2xl">
+        {/* FLOATING BOTTOM CONSOLE DOCK */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 select-none">
+          <div className="flex items-center gap-1 px-1.5 py-1 rounded-[4px] bg-oros-900 border border-oros-750 shadow-2xl">
             {/* 1. Pan / Select Tool */}
             <button
               onClick={() => {
@@ -886,13 +886,13 @@ export const InteractiveMapViewer: React.FC = () => {
                 setDrawingPoints([])
               }}
               title="Pan & Select (H or V)"
-              className={`p-2 rounded-full transition-all ${
+              className={`p-1.5 rounded-[3px] transition-colors ${
                 activeTool === 'pan'
-                  ? 'bg-gold-500/20 text-gold-400 border border-gold-400/40 shadow-sm'
-                  : 'text-oros-400 hover:text-slate-100 hover:bg-oros-800/60'
+                  ? 'bg-oros-800 text-oros-100 border border-oros-600 shadow-sm'
+                  : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
               }`}
             >
-              <Hand className="w-4 h-4" />
+              <Hand className="w-3.5 h-3.5" />
             </button>
 
             {/* 2. Draw Territory Polygon Tool */}
@@ -903,15 +903,15 @@ export const InteractiveMapViewer: React.FC = () => {
                 setSelectedRegion(null)
               }}
               title="Draw Territory Polygon (T)"
-              className={`p-2 rounded-full relative transition-all ${
+              className={`p-1.5 rounded-[3px] relative transition-colors ${
                 activeTool === 'territory'
-                  ? 'bg-gold-500/20 text-gold-400 border border-gold-400/40 shadow-sm'
-                  : 'text-oros-400 hover:text-slate-100 hover:bg-oros-800/60'
+                  ? 'bg-oros-800 text-oros-100 border border-oros-600 shadow-sm'
+                  : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
               }`}
             >
-              <Hexagon className="w-4 h-4" />
+              <Hexagon className="w-3.5 h-3.5" />
               {drawingPoints.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gold-500 text-oros-950 text-[10px] font-bold flex items-center justify-center animate-pulse">
+                <span className="absolute -top-1 -right-1 px-1 rounded-[2px] bg-oros-200 text-oros-950 text-[9px] font-mono font-bold leading-none py-0.5 shadow">
                   {drawingPoints.length}
                 </span>
               )}
@@ -926,16 +926,16 @@ export const InteractiveMapViewer: React.FC = () => {
                 setSelectedRegion(null)
               }}
               title="Drop Landmark Pin (P)"
-              className={`p-2 rounded-full transition-all ${
+              className={`p-1.5 rounded-[3px] transition-colors ${
                 activeTool === 'pin'
-                  ? 'bg-amber-500/20 text-amber-400 border border-amber-400/40 shadow-sm'
-                  : 'text-oros-400 hover:text-slate-100 hover:bg-oros-800/60'
+                  ? 'bg-oros-800 text-oros-100 border border-oros-600 shadow-sm'
+                  : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
               }`}
             >
-              <PinIcon className="w-4 h-4" />
+              <PinIcon className="w-3.5 h-3.5" />
             </button>
 
-            <div className="w-[1px] h-5 bg-oros-800 mx-1" />
+            <div className="w-[1px] h-4 bg-oros-800 mx-0.5" />
 
             {/* 4. Snapping Toggle */}
             <button
@@ -944,60 +944,60 @@ export const InteractiveMapViewer: React.FC = () => {
                 addToast(`Snapping ${!snappingEnabled ? 'Enabled' : 'Disabled'}`, 'info')
               }}
               title={snappingEnabled ? 'Snapping is ON (Click to disable)' : 'Snapping is OFF (Click to enable)'}
-              className={`p-2 rounded-full transition-all ${
+              className={`p-1.5 rounded-[3px] transition-colors ${
                 snappingEnabled
-                  ? 'text-cyan-400 hover:bg-cyan-950/40'
-                  : 'text-oros-600 hover:text-oros-400 hover:bg-oros-800/60'
+                  ? 'bg-oros-850 text-cyan-400 border border-cyan-800/60'
+                  : 'text-oros-500 hover:text-oros-300 hover:bg-oros-850'
               }`}
             >
-              <Magnet className="w-4 h-4" />
+              <Magnet className="w-3.5 h-3.5" />
             </button>
 
             {/* 5. Territories Layer Toggle */}
             <button
               onClick={() => setShowTerritories(!showTerritories)}
               title={showTerritories ? 'Hide Territories Layer' : 'Show Territories Layer'}
-              className={`p-2 rounded-full transition-all ${
+              className={`p-1.5 rounded-[3px] transition-colors ${
                 showTerritories
-                  ? 'text-emerald-400 hover:bg-emerald-950/40'
-                  : 'text-oros-600 line-through hover:text-oros-400 hover:bg-oros-800/60'
+                  ? 'text-oros-200 hover:bg-oros-850'
+                  : 'text-oros-600 hover:text-oros-400 hover:bg-oros-850 opacity-60'
               }`}
             >
-              <Layers className="w-4 h-4" />
+              <Layers className="w-3.5 h-3.5" />
             </button>
 
             {/* 6. Pins Layer Toggle */}
             <button
               onClick={() => setShowPins(!showPins)}
               title={showPins ? 'Hide Landmark Pins' : 'Show Landmark Pins'}
-              className={`p-2 rounded-full transition-all ${
+              className={`p-1.5 rounded-[3px] transition-colors ${
                 showPins
-                  ? 'text-amber-400 hover:bg-amber-950/40'
-                  : 'text-oros-600 line-through hover:text-oros-400 hover:bg-oros-800/60'
+                  ? 'text-oros-200 hover:bg-oros-850'
+                  : 'text-oros-600 hover:text-oros-400 hover:bg-oros-850 opacity-60'
               }`}
             >
-              <Eye className="w-4 h-4" />
+              <Eye className="w-3.5 h-3.5" />
             </button>
 
-            <div className="w-[1px] h-5 bg-oros-800 mx-1" />
+            <div className="w-[1px] h-4 bg-oros-800 mx-0.5" />
 
             {/* 7. Zoom Controls */}
             <button
               onClick={() => setZoom((z) => Math.max(0.35, Number((z - 0.2).toFixed(2))))}
               title="Zoom Out"
-              className="p-1.5 rounded-full text-oros-400 hover:text-slate-100 hover:bg-oros-800/60"
+              className="p-1 rounded-[2px] text-oros-400 hover:text-oros-200 hover:bg-oros-850"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
 
-            <span className="text-[11px] font-mono text-oros-300 px-1 min-w-[38px] text-center">
+            <span className="text-[11px] font-mono text-oros-400 px-1 min-w-[36px] text-center">
               {Math.round(zoom * 100)}%
             </span>
 
             <button
               onClick={() => setZoom((z) => Math.min(3.5, Number((z + 0.2).toFixed(2))))}
               title="Zoom In"
-              className="p-1.5 rounded-full text-oros-400 hover:text-slate-100 hover:bg-oros-800/60"
+              className="p-1 rounded-[2px] text-oros-400 hover:text-oros-200 hover:bg-oros-850"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
@@ -1008,7 +1008,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 setPan({ x: 0, y: 0 })
               }}
               title="Reset View"
-              className="p-1.5 rounded-full text-oros-400 hover:text-slate-100 hover:bg-oros-800/60 border-l border-oros-800 pl-2"
+              className="p-1 rounded-[2px] text-oros-400 hover:text-oros-200 hover:bg-oros-850 border-l border-oros-800 pl-1.5 ml-0.5"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
@@ -1018,47 +1018,47 @@ export const InteractiveMapViewer: React.FC = () => {
 
       {/* SELECTED PIN DETAILS DRAWER */}
       {selectedPin && (
-        <div className="absolute right-4 top-16 w-84 bg-oros-900/95 border border-oros-700/80 rounded-2xl shadow-2xl p-5 z-30 backdrop-blur-md animate-in slide-in-from-right-4 duration-150">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2.5">
+        <div className="absolute right-4 top-14 w-80 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-4 z-30">
+          <div className="flex items-start justify-between mb-2.5">
+            <div className="flex items-center gap-2">
               <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center text-oros-950 font-bold shadow border-2 border-white/80"
-                style={{ backgroundColor: selectedPin.color || '#f5c542' }}
+                className="w-7 h-7 rounded-[2px] flex items-center justify-center text-oros-950 font-bold border border-white/60 shadow-sm"
+                style={{ backgroundColor: selectedPin.color || '#94a3b8' }}
               >
-                {renderPinIcon(selectedPin.icon, 'w-4 h-4')}
+                {renderPinIcon(selectedPin.icon, 'w-3.5 h-3.5')}
               </div>
               <div>
-                <span className="text-[10px] uppercase font-mono text-gold-400 font-semibold tracking-wider">
+                <span className="text-[10px] uppercase font-mono text-oros-400 tracking-wider">
                   Landmark Pin
                 </span>
-                <h4 className="font-serif font-bold text-base text-slate-100 leading-snug">{selectedPin.title}</h4>
+                <h4 className="font-sans font-semibold text-sm text-oros-100 leading-snug">{selectedPin.title}</h4>
               </div>
             </div>
             <button
               onClick={() => setSelectedPin(null)}
-              className="text-oros-400 hover:text-slate-200 text-xs p-1"
+              className="text-oros-400 hover:text-oros-200 text-xs p-0.5 rounded-[2px]"
             >
               ✕
             </button>
           </div>
 
           {selectedPin.description && (
-            <p className="text-xs text-oros-300 mb-4 leading-relaxed">{selectedPin.description}</p>
+            <p className="text-xs text-oros-400 mb-3.5 leading-relaxed font-sans">{selectedPin.description}</p>
           )}
 
           {/* Sub-map Drill Down Action */}
           {selectedPin.subMapId && (
-            <div className="mb-4 p-3 rounded-xl bg-teal-950/60 border border-teal-800/60 flex items-center justify-between">
+            <div className="mb-3.5 p-2.5 rounded-[3px] bg-oros-950 border border-oros-800 flex items-center justify-between">
               <div>
-                <div className="text-xs font-semibold text-teal-200">Nested Child Map</div>
-                <div className="text-[10px] text-teal-400">Zoom into district or floorplan</div>
+                <div className="text-xs font-medium text-oros-200 font-sans">Nested Child Map</div>
+                <div className="text-[10px] text-oros-500 font-mono">Zoom into sub-district</div>
               </div>
               <button
                 onClick={() => {
                   setSelectedMapId(selectedPin.subMapId!)
                   setSelectedPin(null)
                 }}
-                className="px-2.5 py-1 rounded-lg bg-teal-500 hover:bg-teal-400 text-oros-950 text-xs font-bold flex items-center gap-1 shadow"
+                className="px-2 py-1 rounded-[2px] bg-oros-800 hover:bg-oros-750 text-oros-200 text-xs font-medium flex items-center gap-1 transition-colors border border-oros-700"
               >
                 <span>Enter Map</span>
                 <ChevronRight className="w-3 h-3" />
@@ -1067,13 +1067,13 @@ export const InteractiveMapViewer: React.FC = () => {
           )}
 
           {/* Connected Lore Card */}
-          <div className="mb-4">
-            <span className="text-[10px] text-oros-400 uppercase font-mono mb-1.5 block">Connected Lore Card:</span>
+          <div className="mb-3.5">
+            <span className="text-[10px] text-oros-500 uppercase font-mono mb-1 block">Connected Lore Card:</span>
             {selectedPinEntity ? (
-              <div className="p-3 rounded-xl bg-oros-950/80 border border-oros-800 flex items-center justify-between">
+              <div className="p-2.5 rounded-[3px] bg-oros-950 border border-oros-800 flex items-center justify-between">
                 <div className="truncate mr-2">
-                  <div className="text-xs font-semibold text-slate-200 truncate">{selectedPinEntity.title}</div>
-                  <div className="text-[10px] text-gold-400 uppercase font-mono">{selectedPinEntity.type}</div>
+                  <div className="text-xs font-medium text-oros-200 truncate">{selectedPinEntity.title}</div>
+                  <div className="text-[10px] text-oros-500 uppercase font-mono">{selectedPinEntity.type}</div>
                 </div>
                 <button
                   onClick={() => {
@@ -1084,15 +1084,15 @@ export const InteractiveMapViewer: React.FC = () => {
                       targetId: selectedPinEntity.id
                     })
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-gold-500/20 hover:bg-gold-500/30 text-gold-400 text-xs font-semibold flex items-center gap-1 transition-colors"
+                  className="px-2 py-1 rounded-[2px] bg-oros-850 hover:bg-oros-800 text-oros-300 text-xs font-medium flex items-center gap-1 transition-colors border border-oros-750"
                 >
                   <span>Open</span>
-                  <ExternalLink className="w-3 h-3" />
+                  <ExternalLink className="w-2.5 h-2.5" />
                 </button>
               </div>
             ) : (
-              <div className="p-3 rounded-xl bg-oros-950/40 border border-dashed border-oros-800 flex items-center justify-between">
-                <span className="text-xs text-oros-500 italic">No card linked</span>
+              <div className="p-2.5 rounded-[3px] bg-oros-950 border border-dashed border-oros-800 flex items-center justify-between">
+                <span className="text-xs text-oros-500 italic font-sans">No card linked</span>
                 <button
                   onClick={() => {
                     const newEntity = createEntity('location', selectedPin.title)
@@ -1102,7 +1102,7 @@ export const InteractiveMapViewer: React.FC = () => {
                     setSelectedPin({ ...selectedPin, entityId: newEntity.id })
                     addToast(`Created & Linked Location Card: "${newEntity.title}"`, 'success')
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-gold-500/15 hover:bg-gold-500/25 text-gold-400 text-[11px] font-semibold flex items-center gap-1"
+                  className="px-2 py-1 rounded-[2px] bg-oros-850 hover:bg-oros-800 text-oros-300 text-[11px] font-medium flex items-center gap-1 transition-colors border border-oros-750"
                 >
                   <Plus className="w-3 h-3" />
                   <span>Create Card</span>
@@ -1111,11 +1111,11 @@ export const InteractiveMapViewer: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center justify-between pt-3 border-t border-oros-800">
+          <div className="flex items-center justify-between pt-2.5 border-t border-oros-800">
             <span className="text-[10px] font-mono text-oros-500">
               Pos: {selectedPin.x}%, {selectedPin.y}%
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => {
                   setEditingPinId(selectedPin.id)
@@ -1131,7 +1131,7 @@ export const InteractiveMapViewer: React.FC = () => {
                   })
                   setIsPinModalOpen(true)
                 }}
-                className="p-1.5 rounded-lg bg-oros-800 hover:bg-oros-700 text-oros-300 hover:text-slate-100 transition-colors"
+                className="p-1 rounded-[2px] bg-oros-850 hover:bg-oros-800 text-oros-300 hover:text-oros-100 transition-colors border border-oros-750"
                 title="Edit Landmark"
               >
                 <Edit3 className="w-3.5 h-3.5" />
@@ -1142,7 +1142,7 @@ export const InteractiveMapViewer: React.FC = () => {
                   setSelectedPin(null)
                   addToast('Removed landmark pin', 'info')
                 }}
-                className="p-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-800/40 transition-colors"
+                className="p-1 rounded-[2px] bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-900/50 transition-colors"
                 title="Delete Pin"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -1154,42 +1154,42 @@ export const InteractiveMapViewer: React.FC = () => {
 
       {/* SELECTED TERRITORY DETAILS DRAWER */}
       {selectedRegion && (
-        <div className="absolute right-4 top-16 w-84 bg-oros-900/95 border border-oros-700/80 rounded-2xl shadow-2xl p-5 z-30 backdrop-blur-md animate-in slide-in-from-right-4 duration-150">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2.5">
+        <div className="absolute right-4 top-14 w-80 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-4 z-30">
+          <div className="flex items-start justify-between mb-2.5">
+            <div className="flex items-center gap-2">
               <div 
-                className="w-6 h-6 rounded-lg shadow border border-white/40"
+                className="w-5 h-5 rounded-[2px] shadow-sm border border-white/40"
                 style={{ backgroundColor: selectedRegion.color }}
               />
               <div>
-                <span className="text-[10px] uppercase font-mono text-gold-400 font-semibold tracking-wider">
+                <span className="text-[10px] uppercase font-mono text-oros-400 tracking-wider">
                   Territory
                 </span>
-                <h4 className="font-serif font-bold text-base text-slate-100 leading-snug">{selectedRegion.name}</h4>
+                <h4 className="font-sans font-semibold text-sm text-oros-100 leading-snug">{selectedRegion.name}</h4>
               </div>
             </div>
             <button
               onClick={() => setSelectedRegion(null)}
-              className="text-oros-400 hover:text-slate-200 text-xs p-1"
+              className="text-oros-400 hover:text-oros-200 text-xs p-0.5 rounded-[2px]"
             >
               ✕
             </button>
           </div>
 
-          <div className="text-xs text-oros-300 mb-4 flex items-center gap-3">
+          <div className="text-xs font-mono text-oros-400 mb-3.5 flex items-center gap-2">
             <span>Vertices: {selectedRegion.points.length}</span>
             <span>•</span>
             <span>Opacity: {Math.round(selectedRegion.fillOpacity * 100)}%</span>
           </div>
 
           {/* Connected Lore Card */}
-          <div className="mb-4">
-            <span className="text-[10px] text-oros-400 uppercase font-mono mb-1.5 block">Connected Lore Card:</span>
+          <div className="mb-3.5">
+            <span className="text-[10px] text-oros-500 uppercase font-mono mb-1 block">Connected Lore Card:</span>
             {selectedRegionEntity ? (
-              <div className="p-3 rounded-xl bg-oros-950/80 border border-oros-800 flex items-center justify-between">
+              <div className="p-2.5 rounded-[3px] bg-oros-950 border border-oros-800 flex items-center justify-between">
                 <div className="truncate mr-2">
-                  <div className="text-xs font-semibold text-slate-200 truncate">{selectedRegionEntity.title}</div>
-                  <div className="text-[10px] text-gold-400 uppercase font-mono">{selectedRegionEntity.type}</div>
+                  <div className="text-xs font-medium text-oros-200 truncate">{selectedRegionEntity.title}</div>
+                  <div className="text-[10px] text-oros-500 uppercase font-mono">{selectedRegionEntity.type}</div>
                 </div>
                 <button
                   onClick={() => {
@@ -1200,15 +1200,15 @@ export const InteractiveMapViewer: React.FC = () => {
                       targetId: selectedRegionEntity.id
                     })
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-gold-500/20 hover:bg-gold-500/30 text-gold-400 text-xs font-semibold flex items-center gap-1 transition-colors"
+                  className="px-2 py-1 rounded-[2px] bg-oros-850 hover:bg-oros-800 text-oros-300 text-xs font-medium flex items-center gap-1 transition-colors border border-oros-750"
                 >
                   <span>Open</span>
-                  <ExternalLink className="w-3 h-3" />
+                  <ExternalLink className="w-2.5 h-2.5" />
                 </button>
               </div>
             ) : (
-              <div className="p-3 rounded-xl bg-oros-950/40 border border-dashed border-oros-800 flex items-center justify-between">
-                <span className="text-xs text-oros-500 italic">No card linked</span>
+              <div className="p-2.5 rounded-[3px] bg-oros-950 border border-dashed border-oros-800 flex items-center justify-between">
+                <span className="text-xs text-oros-500 italic font-sans">No card linked</span>
                 <button
                   onClick={() => {
                     const newEntity = createEntity('location', selectedRegion.name)
@@ -1218,7 +1218,7 @@ export const InteractiveMapViewer: React.FC = () => {
                     setSelectedRegion({ ...selectedRegion, entityId: newEntity.id })
                     addToast(`Created & Linked Location Card: "${newEntity.title}"`, 'success')
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-gold-500/15 hover:bg-gold-500/25 text-gold-400 text-[11px] font-semibold flex items-center gap-1"
+                  className="px-2 py-1 rounded-[2px] bg-oros-850 hover:bg-oros-800 text-oros-300 text-[11px] font-medium flex items-center gap-1 transition-colors border border-oros-750"
                 >
                   <Plus className="w-3 h-3" />
                   <span>Create Card</span>
@@ -1227,7 +1227,7 @@ export const InteractiveMapViewer: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-oros-800">
+          <div className="flex items-center justify-end gap-1.5 pt-2.5 border-t border-oros-800">
             <button
               onClick={() => {
                 setEditingRegionId(selectedRegion.id)
@@ -1239,7 +1239,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 })
                 setIsRegionModalOpen(true)
               }}
-              className="p-1.5 rounded-lg bg-oros-800 hover:bg-oros-700 text-oros-300 hover:text-slate-100 transition-colors"
+              className="p-1 rounded-[2px] bg-oros-850 hover:bg-oros-800 text-oros-300 hover:text-oros-100 transition-colors border border-oros-750"
               title="Edit Territory"
             >
               <Edit3 className="w-3.5 h-3.5" />
@@ -1250,7 +1250,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 setSelectedRegion(null)
                 addToast('Removed territory region', 'info')
               }}
-              className="p-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-800/40 transition-colors"
+              className="p-1 rounded-[2px] bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-900/50 transition-colors"
               title="Delete Territory"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -1261,20 +1261,20 @@ export const InteractiveMapViewer: React.FC = () => {
 
       {/* TERRITORY POLYGON CREATION / EDIT MODAL */}
       {isRegionModalOpen && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-700/80 rounded-2xl p-6 shadow-2xl max-w-md w-full animate-in fade-in zoom-in-95 duration-150">
-            <h3 className="font-serif text-lg font-bold text-slate-100 mb-1">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-oros-900 border border-oros-750 rounded-[4px] p-5 shadow-2xl max-w-md w-full">
+            <h3 className="font-sans text-sm font-semibold text-oros-100 mb-1 tracking-tight">
               {editingRegionId ? 'Edit Territory' : 'Save Territory Region'}
             </h3>
-            <p className="text-xs text-oros-300 mb-4">
+            <p className="text-xs text-oros-400 mb-3.5 font-sans">
               {editingRegionId 
                 ? 'Update boundary properties and card connections' 
                 : `Polygon closed with ${drawingPoints.length} vertices on ${currentMap?.name}`}
             </p>
 
-            <form onSubmit={handleSaveRegion} className="space-y-4">
+            <form onSubmit={handleSaveRegion} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">Territory Name</label>
+                <label className="block text-xs font-medium text-oros-300 mb-1 font-sans">Territory Name</label>
                 <input
                   type="text"
                   required
@@ -1282,23 +1282,23 @@ export const InteractiveMapViewer: React.FC = () => {
                   value={regionForm.name}
                   onChange={(e) => setRegionForm({ ...regionForm, name: e.target.value })}
                   placeholder="e.g. Kingdom of the Sunken Reaches"
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 />
               </div>
 
               {/* Color Palette Picker */}
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1.5">Territory Color</label>
-                <div className="flex flex-wrap gap-2 mb-2">
+                <label className="block text-xs font-medium text-oros-300 mb-1.5 font-sans">Territory Color</label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
                   {PALETTE_COLORS.map((c) => (
                     <button
                       key={c.name}
                       type="button"
                       onClick={() => setRegionForm({ ...regionForm, color: c.hex })}
-                      className={`w-7 h-7 rounded-lg border-2 transition-transform ${
+                      className={`w-6 h-6 rounded-[2px] transition-all ${
                         regionForm.color === c.hex 
-                          ? 'border-white scale-110 shadow-lg' 
-                          : 'border-transparent hover:scale-105'
+                          ? 'ring-2 ring-oros-100 ring-offset-1 ring-offset-oros-950' 
+                          : 'opacity-80 hover:opacity-100'
                       }`}
                       style={{ backgroundColor: c.hex }}
                       title={c.name}
@@ -1306,18 +1306,18 @@ export const InteractiveMapViewer: React.FC = () => {
                   ))}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-oros-400">Custom Hex:</span>
+                  <span className="text-[11px] text-oros-400 font-mono">Custom Hex:</span>
                   <input
                     type="color"
                     value={regionForm.color}
                     onChange={(e) => setRegionForm({ ...regionForm, color: e.target.value })}
-                    className="w-7 h-7 rounded cursor-pointer bg-transparent border-0"
+                    className="w-6 h-6 rounded-[2px] cursor-pointer bg-transparent border-0"
                   />
                   <input
                     type="text"
                     value={regionForm.color}
                     onChange={(e) => setRegionForm({ ...regionForm, color: e.target.value })}
-                    className="w-24 bg-oros-950 border border-oros-700 rounded px-2 py-1 text-xs text-slate-100 font-mono"
+                    className="w-24 bg-oros-950 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 font-mono"
                   />
                 </div>
               </div>
@@ -1325,8 +1325,8 @@ export const InteractiveMapViewer: React.FC = () => {
               {/* Opacity Slider */}
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-semibold text-oros-300">Fill Opacity</label>
-                  <span className="text-xs font-mono text-gold-400">{Math.round(regionForm.fillOpacity * 100)}%</span>
+                  <label className="text-xs font-medium text-oros-300 font-sans">Fill Opacity</label>
+                  <span className="text-xs font-mono text-oros-300">{Math.round(regionForm.fillOpacity * 100)}%</span>
                 </div>
                 <input
                   type="range"
@@ -1335,18 +1335,18 @@ export const InteractiveMapViewer: React.FC = () => {
                   step="0.05"
                   value={regionForm.fillOpacity}
                   onChange={(e) => setRegionForm({ ...regionForm, fillOpacity: parseFloat(e.target.value) })}
-                  className="w-full accent-gold-400 cursor-pointer"
+                  className="w-full cursor-pointer accent-oros-400"
                 />
               </div>
 
               {/* Card Linkage */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-oros-300">Link to Codex Card</label>
+                  <label className="text-xs font-medium text-oros-300 font-sans">Link to Codex Card</label>
                   <button
                     type="button"
                     onClick={handleCreateLocationCardForRegion}
-                    className="text-[11px] text-gold-400 hover:text-gold-300 flex items-center gap-1 font-medium"
+                    className="text-[11px] text-oros-400 hover:text-oros-200 flex items-center gap-1 font-medium"
                   >
                     <Plus className="w-3 h-3" />
                     <span>Create Location Card</span>
@@ -1355,7 +1355,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 <select
                   value={regionForm.entityId}
                   onChange={(e) => setRegionForm({ ...regionForm, entityId: e.target.value })}
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 >
                   <option value="">No entity linked</option>
                   {worldEntities.map((ent) => (
@@ -1366,17 +1366,17 @@ export const InteractiveMapViewer: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-oros-800">
+              <div className="flex justify-end gap-2 pt-2.5 border-t border-oros-800">
                 <button
                   type="button"
                   onClick={() => setIsRegionModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-lg text-xs text-oros-300 hover:bg-oros-800"
+                  className="px-3 py-1.5 rounded-[3px] text-xs text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gold-500 hover:bg-gold-400 text-oros-950 shadow-md transition-colors"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
                 >
                   {editingRegionId ? 'Save Changes' : 'Save Territory'}
                 </button>
@@ -1388,18 +1388,18 @@ export const InteractiveMapViewer: React.FC = () => {
 
       {/* PIN CREATION / EDIT MODAL */}
       {isPinModalOpen && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-700/80 rounded-2xl p-6 shadow-2xl max-w-md w-full animate-in fade-in zoom-in-95 duration-150">
-            <h3 className="font-serif text-lg font-bold text-slate-100 mb-1">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-oros-900 border border-oros-750 rounded-[4px] p-5 shadow-2xl max-w-md w-full">
+            <h3 className="font-sans text-sm font-semibold text-oros-100 mb-1 tracking-tight">
               {editingPinId ? 'Edit Landmark Pin' : 'Place Cartographic Landmark'}
             </h3>
-            <p className="text-xs text-oros-300 mb-4">
+            <p className="text-xs text-oros-400 mb-3.5 font-sans">
               Coordinates: {pinForm.x}%, {pinForm.y}% on {currentMap?.name}
             </p>
 
-            <form onSubmit={handleSavePin} className="space-y-4">
+            <form onSubmit={handleSavePin} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">Landmark Title</label>
+                <label className="block text-xs font-medium text-oros-300 mb-1 font-sans">Landmark Title</label>
                 <input
                   type="text"
                   required
@@ -1407,25 +1407,25 @@ export const InteractiveMapViewer: React.FC = () => {
                   value={pinForm.title}
                   onChange={(e) => setPinForm({ ...pinForm, title: e.target.value })}
                   placeholder="e.g. Ruins of the Sunken Bastion"
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">Description / Lore Notes</label>
+                <label className="block text-xs font-medium text-oros-300 mb-1 font-sans">Description / Lore Notes</label>
                 <textarea
                   rows={2}
                   value={pinForm.description}
                   onChange={(e) => setPinForm({ ...pinForm, description: e.target.value })}
                   placeholder="Brief notes or history of this location..."
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 />
               </div>
 
               {/* Icon Selection Grid */}
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1.5">Pin Icon</label>
-                <div className="grid grid-cols-8 gap-1.5 p-2 bg-oros-950 rounded-xl border border-oros-800">
+                <label className="block text-xs font-medium text-oros-300 mb-1.5 font-sans">Pin Icon</label>
+                <div className="grid grid-cols-8 gap-1 p-2 bg-oros-950 rounded-[3px] border border-oros-800">
                   {PIN_ICONS.map((item) => {
                     const IconComp = item.icon
                     const isSelected = pinForm.icon === item.id
@@ -1435,13 +1435,13 @@ export const InteractiveMapViewer: React.FC = () => {
                         type="button"
                         onClick={() => setPinForm({ ...pinForm, icon: item.id })}
                         title={item.label}
-                        className={`p-2 rounded-lg flex items-center justify-center transition-all ${
+                        className={`p-1.5 rounded-[2px] flex items-center justify-center transition-colors ${
                           isSelected
-                            ? 'bg-gold-500 text-oros-950 font-bold shadow-md'
-                            : 'text-oros-400 hover:text-slate-100 hover:bg-oros-800'
+                            ? 'bg-oros-800 text-oros-100 border border-oros-600'
+                            : 'text-oros-400 hover:text-oros-200 hover:bg-oros-900'
                         }`}
                       >
-                        <IconComp className="w-4 h-4" />
+                        <IconComp className="w-3.5 h-3.5" />
                       </button>
                     )
                   })}
@@ -1450,17 +1450,17 @@ export const InteractiveMapViewer: React.FC = () => {
 
               {/* Color Palette Picker */}
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1.5">Pin Color</label>
-                <div className="flex flex-wrap gap-2">
+                <label className="block text-xs font-medium text-oros-300 mb-1.5 font-sans">Pin Color</label>
+                <div className="flex flex-wrap gap-1.5">
                   {PALETTE_COLORS.map((c) => (
                     <button
                       key={c.name}
                       type="button"
                       onClick={() => setPinForm({ ...pinForm, color: c.hex })}
-                      className={`w-7 h-7 rounded-lg border-2 transition-transform ${
+                      className={`w-6 h-6 rounded-[2px] transition-all ${
                         pinForm.color === c.hex 
-                          ? 'border-white scale-110 shadow-lg' 
-                          : 'border-transparent hover:scale-105'
+                          ? 'ring-2 ring-oros-100 ring-offset-1 ring-offset-oros-950' 
+                          : 'opacity-80 hover:opacity-100'
                       }`}
                       style={{ backgroundColor: c.hex }}
                       title={c.name}
@@ -1472,11 +1472,11 @@ export const InteractiveMapViewer: React.FC = () => {
               {/* Card Linkage */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-oros-300">Link to Codex Card</label>
+                  <label className="text-xs font-medium text-oros-300 font-sans">Link to Codex Card</label>
                   <button
                     type="button"
                     onClick={handleCreateLocationCardForPin}
-                    className="text-[11px] text-gold-400 hover:text-gold-300 flex items-center gap-1 font-medium"
+                    className="text-[11px] text-oros-400 hover:text-oros-200 flex items-center gap-1 font-medium"
                   >
                     <Plus className="w-3 h-3" />
                     <span>Create Location Card</span>
@@ -1485,7 +1485,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 <select
                   value={pinForm.entityId}
                   onChange={(e) => setPinForm({ ...pinForm, entityId: e.target.value })}
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 >
                   <option value="">No entity linked</option>
                   {worldEntities.map((ent) => (
@@ -1498,13 +1498,13 @@ export const InteractiveMapViewer: React.FC = () => {
 
               {/* Sub-map Drilldown */}
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">
+                <label className="block text-xs font-medium text-oros-300 mb-1 font-sans">
                   Connect Sub-Map for Drilldown (Optional)
                 </label>
                 <select
                   value={pinForm.subMapId}
                   onChange={(e) => setPinForm({ ...pinForm, subMapId: e.target.value })}
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 >
                   <option value="">No nested sub-map</option>
                   {worldMaps.filter((m) => m.id !== currentMap?.id).map((m) => (
@@ -1515,17 +1515,17 @@ export const InteractiveMapViewer: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-oros-800">
+              <div className="flex justify-end gap-2 pt-2.5 border-t border-oros-800">
                 <button
                   type="button"
                   onClick={() => setIsPinModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-lg text-xs text-oros-300 hover:bg-oros-800"
+                  className="px-3 py-1.5 rounded-[3px] text-xs text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gold-500 hover:bg-gold-400 text-oros-950 shadow-md transition-colors"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
                 >
                   {editingPinId ? 'Save Changes' : 'Drop Landmark Pin'}
                 </button>
@@ -1537,31 +1537,31 @@ export const InteractiveMapViewer: React.FC = () => {
 
       {/* CREATE MAP MODAL */}
       {showNewMapModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-700 w-full max-w-md rounded-2xl p-6 shadow-2xl">
-            <h3 className="font-serif text-lg font-bold text-slate-100 mb-2">Import or Create Map</h3>
-            <form onSubmit={handleCreateMap} className="space-y-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] p-5 shadow-2xl">
+            <h3 className="font-sans text-sm font-semibold text-oros-100 mb-2 tracking-tight">Import or Create Map</h3>
+            <form onSubmit={handleCreateMap} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">Map Title</label>
+                <label className="block text-xs font-medium text-oros-300 mb-1 font-sans">Map Title</label>
                 <input
                   type="text"
                   required
                   value={newMapName}
                   onChange={(e) => setNewMapName(e.target.value)}
                   placeholder="e.g. Kingdom of the Western Reaches"
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">Artwork Source</label>
+                <label className="block text-xs font-medium text-oros-300 mb-1 font-sans">Artwork Source</label>
                 <div className="flex gap-2 mb-2">
                   <button
                     type="button"
                     onClick={handleImportMapArtwork}
-                    className="flex-1 py-2 px-3 rounded-lg bg-oros-800 hover:bg-oros-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 border border-oros-700 transition-colors"
+                    className="flex-1 py-1.5 px-3 rounded-[3px] bg-oros-850 hover:bg-oros-800 text-oros-200 text-xs font-medium flex items-center justify-center gap-1.5 border border-oros-750 transition-colors"
                   >
-                    <Upload className="w-3.5 h-3.5 text-gold-400" />
+                    <Upload className="w-3.5 h-3.5 text-oros-400" />
                     <span>Choose File from Computer</span>
                   </button>
                 </div>
@@ -1570,21 +1570,21 @@ export const InteractiveMapViewer: React.FC = () => {
                   value={newMapUrl}
                   onChange={(e) => setNewMapUrl(e.target.value)}
                   placeholder="oros-asset://... or https://..."
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-oros-800">
+              <div className="flex justify-end gap-2 pt-2.5 border-t border-oros-800">
                 <button
                   type="button"
                   onClick={() => setShowNewMapModal(false)}
-                  className="px-3 py-1.5 rounded-lg text-xs text-oros-300 hover:bg-oros-800"
+                  className="px-3 py-1.5 rounded-[3px] text-xs text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-gold-500 hover:bg-gold-400 text-oros-950 shadow-md"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
                 >
                   Create Map
                 </button>

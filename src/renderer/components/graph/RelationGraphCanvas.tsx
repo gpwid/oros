@@ -11,7 +11,7 @@ import { useToastStore } from '../../store/useToastStore'
 import { 
   Plus, Trash2, Edit3, ArrowRightLeft, X, Filter, Search, 
   Heart, HeartCrack, Baby, HeartHandshake, Users, Crown, Shield, 
-  Sparkles, Swords, Gem, Flame, Skull, Anchor, BookOpen,
+  Orbit, Swords, Gem, Flame, Skull, Anchor, BookOpen, GitFork, Info,
   ZoomIn, ZoomOut, Maximize2, Check, SlidersHorizontal
 } from 'lucide-react'
 import { RelationEdge, LoreEntity } from '@shared/types'
@@ -27,7 +27,7 @@ const RELATION_ICONS: Record<string, React.ComponentType<{ className?: string }>
   crown: Crown,
   shield: Shield,
   swords: Swords,
-  sparkles: Sparkles,
+  orbit: Orbit,
   gem: Gem,
   flame: Flame,
   skull: Skull,
@@ -57,13 +57,13 @@ const BOND_PRESETS = [
   { label: 'Sibling', icon: 'users', color: '#10b981', type: 'family', dashed: false },
   { label: 'High Sovereign', icon: 'crown', color: '#f5c542', type: 'ruler', dashed: false },
   { label: 'Vassal / Fealty', icon: 'shield', color: '#14b8a6', type: 'vassal', dashed: false },
-  { label: 'Ally', icon: 'sparkles', color: '#f5c542', type: 'ally', dashed: false },
+  { label: 'Ally', icon: 'orbit', color: '#f5c542', type: 'ally', dashed: false },
   { label: 'Rival / Enemy', icon: 'swords', color: '#ef4444', type: 'rival', dashed: true },
   { label: 'Heirloom / Artifact', icon: 'gem', color: '#c084fc', type: 'creator', dashed: false }
 ]
 
 const getIconComponent = (key?: string) => {
-  return RELATION_ICONS[key || 'sparkles'] || Sparkles
+  return RELATION_ICONS[key || 'orbit'] || Orbit
 }
 
 // Custom SmoothStep Edge with custom icon & color pill
@@ -78,11 +78,11 @@ const GenealogyEdge = ({
     targetX,
     targetY,
     targetPosition,
-    borderRadius: 18
+    borderRadius: 8
   })
 
   const onEdit = (data as any)?.onEdit
-  const iconKey = (data as any)?.icon || 'sparkles'
+  const iconKey = (data as any)?.icon || 'orbit'
   const bondColor = (data as any)?.color || '#f5c542'
   const isDashed = (data as any)?.isDashed || false
   const IconComp = getIconComponent(iconKey)
@@ -94,9 +94,9 @@ const GenealogyEdge = ({
         d={edgePath}
         fill="none"
         stroke={bondColor}
-        strokeWidth={2}
-        strokeDasharray={isDashed ? '5 5' : undefined}
-        className="transition-all opacity-80 hover:opacity-100"
+        strokeWidth={1.5}
+        strokeDasharray={isDashed ? '4 4' : undefined}
+        className="transition-all opacity-70 hover:opacity-100"
       />
       {label && (
         <EdgeLabelRenderer>
@@ -112,13 +112,13 @@ const GenealogyEdge = ({
               if (onEdit) onEdit(id)
             }}
             title="Click to edit relational bond"
-            className="nodrag nopan group px-2.5 py-0.5 rounded-full bg-oros-950/95 border hover:scale-105 text-[11px] font-sans font-semibold text-slate-100 shadow-xl backdrop-blur-md whitespace-nowrap cursor-pointer transition-all flex items-center gap-1.5"
+            className="nodrag nopan group px-2 py-0.5 rounded-[2px] bg-oros-950 border border-oros-750 hover:border-oros-500 text-[10px] font-mono font-medium text-oros-200 shadow-sm whitespace-nowrap cursor-pointer transition-colors flex items-center gap-1.5"
           >
             <span style={{ color: bondColor }}>
               <IconComp className="w-3 h-3" />
             </span>
             <span>{label}</span>
-            <Edit3 className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 text-gold-400 transition-opacity ml-0.5" />
+            <Edit3 className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 text-oros-400 transition-opacity ml-0.5" />
           </div>
         </EdgeLabelRenderer>
       )}
@@ -144,26 +144,26 @@ const GenealogyCardNode = ({ id, data }: {
     return (
       <div 
         onClick={() => onAssign(id)}
-        className="w-36 h-48 rounded-2xl border-2 border-dashed border-oros-700/80 hover:border-gold-400 bg-oros-950/90 flex flex-col items-center justify-center transition-all cursor-pointer group shadow-2xl relative select-none"
+        className="w-36 h-48 rounded-[3px] border border-dashed border-oros-750 hover:border-oros-500 bg-oros-950 flex flex-col items-center justify-center transition-colors cursor-pointer group shadow-sm relative select-none"
       >
-        <Plus className="w-9 h-9 text-oros-500 group-hover:text-gold-400 transition-colors" />
+        <Plus className="w-8 h-8 text-oros-500 group-hover:text-oros-300 transition-colors" />
         
-        <div className="absolute bottom-2 inset-x-2 px-2 py-1 rounded-xl bg-oros-900/90 border border-oros-700/80 text-oros-400 group-hover:text-gold-300 text-xs font-serif italic whitespace-nowrap shadow-md text-center transition-colors">
-          Add Name
+        <div className="absolute bottom-2 inset-x-2 px-2 py-1 rounded-[2px] bg-oros-900 border border-oros-750 text-oros-400 group-hover:text-oros-200 text-[10px] font-mono uppercase tracking-wider text-center transition-colors">
+          Add Entity
         </div>
 
         {/* Drag handles for unassigned card */}
-        <Handle type="target" position={Position.Top} id="top" className="!w-6 !h-6 !-top-3 !rounded-full !bg-oros-900 !border-2 !border-oros-700 hover:!border-gold-400 !text-oros-300 flex items-center justify-center cursor-crosshair z-30 shadow-md">
-          <Plus className="w-3.5 h-3.5 pointer-events-none" />
+        <Handle type="target" position={Position.Top} id="top" className="!w-5 !h-5 !-top-2.5 !rounded-[2px] !bg-oros-900 !border !border-oros-700 hover:!border-oros-400 !text-oros-300 flex items-center justify-center cursor-crosshair z-30 shadow-sm">
+          <Plus className="w-3 h-3 pointer-events-none" />
         </Handle>
-        <Handle type="source" position={Position.Bottom} id="bottom" className="!w-6 !h-6 !-bottom-3.5 !rounded-full !bg-oros-900 !border-2 !border-oros-700 hover:!border-gold-400 !text-oros-300 flex items-center justify-center cursor-crosshair z-30 shadow-md">
-          <Plus className="w-3.5 h-3.5 pointer-events-none" />
+        <Handle type="source" position={Position.Bottom} id="bottom" className="!w-5 !h-5 !-bottom-2.5 !rounded-[2px] !bg-oros-900 !border !border-oros-700 hover:!border-oros-400 !text-oros-300 flex items-center justify-center cursor-crosshair z-30 shadow-sm">
+          <Plus className="w-3 h-3 pointer-events-none" />
         </Handle>
-        <Handle type="target" position={Position.Left} id="left" className="!w-6 !h-6 !-left-3 !rounded-full !bg-oros-900 !border-2 !border-oros-700 hover:!border-gold-400 !text-oros-300 flex items-center justify-center cursor-crosshair z-30 shadow-md">
-          <Plus className="w-3.5 h-3.5 pointer-events-none" />
+        <Handle type="target" position={Position.Left} id="left" className="!w-5 !h-5 !-left-2.5 !rounded-[2px] !bg-oros-900 !border !border-oros-700 hover:!border-oros-400 !text-oros-300 flex items-center justify-center cursor-crosshair z-30 shadow-sm">
+          <Plus className="w-3 h-3 pointer-events-none" />
         </Handle>
-        <Handle type="source" position={Position.Right} id="right" className="!w-6 !h-6 !-right-3 !rounded-full !bg-oros-900 !border-2 !border-oros-700 hover:!border-gold-400 !text-oros-300 flex items-center justify-center cursor-crosshair z-30 shadow-md">
-          <Plus className="w-3.5 h-3.5 pointer-events-none" />
+        <Handle type="source" position={Position.Right} id="right" className="!w-5 !h-5 !-right-2.5 !rounded-[2px] !bg-oros-900 !border !border-oros-700 hover:!border-oros-400 !text-oros-300 flex items-center justify-center cursor-crosshair z-30 shadow-sm">
+          <Plus className="w-3 h-3 pointer-events-none" />
         </Handle>
       </div>
     )
@@ -172,88 +172,84 @@ const GenealogyCardNode = ({ id, data }: {
   return (
     <div 
       onClick={() => onSelect(entity.id)}
-      className="w-36 h-48 rounded-2xl border-2 border-oros-800/90 bg-oros-900 hover:border-gold-400 shadow-2xl group transition-all cursor-pointer relative select-none"
+      className="w-36 h-48 rounded-[3px] border border-oros-750 bg-oros-900 hover:border-oros-500 shadow-sm group transition-colors cursor-pointer relative select-none"
     >
-      {/* 4 Interactive Drag/Click Handles with Plus icon */}
-      {/* Top Handle */}
+      {/* 4 Interactive Drag/Click Handles */}
       <Handle
         type="target"
         position={Position.Top}
         id="top"
-        title="Drag line to connect, or click to spawn parent above"
+        title="Drag line to connect, or click to spawn entity above"
         onClick={(e) => {
           e.stopPropagation()
           onQuickAdd(id, 'top')
         }}
-        className="!w-6 !h-6 !-top-3 !rounded-full !bg-oros-900 !border-2 !border-oros-700 hover:!border-gold-400 !text-oros-300 hover:!text-gold-300 hover:scale-110 flex items-center justify-center cursor-crosshair z-30 transition-all shadow-md"
+        className="!w-5 !h-5 !-top-2.5 !rounded-[2px] !bg-oros-900 !border !border-oros-700 hover:!border-oros-400 !text-oros-300 hover:!text-oros-100 flex items-center justify-center cursor-crosshair z-30 transition-colors shadow-sm"
       >
-        <Plus className="w-3.5 h-3.5 pointer-events-none" />
+        <Plus className="w-3 h-3 pointer-events-none" />
       </Handle>
 
-      {/* Bottom Handle */}
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom"
-        title="Drag line to connect, or click to spawn child below"
+        title="Drag line to connect, or click to spawn entity below"
         onClick={(e) => {
           e.stopPropagation()
           onQuickAdd(id, 'bottom')
         }}
-        className="!w-6 !h-6 !-bottom-3.5 !rounded-full !bg-oros-900 !border-2 !border-oros-700 hover:!border-gold-400 !text-oros-300 hover:!text-gold-300 hover:scale-110 flex items-center justify-center cursor-crosshair z-30 transition-all shadow-md"
+        className="!w-5 !h-5 !-bottom-2.5 !rounded-[2px] !bg-oros-900 !border !border-oros-700 hover:!border-oros-400 !text-oros-300 hover:!text-oros-100 flex items-center justify-center cursor-crosshair z-30 transition-colors shadow-sm"
       >
-        <Plus className="w-3.5 h-3.5 pointer-events-none" />
+        <Plus className="w-3 h-3 pointer-events-none" />
       </Handle>
 
-      {/* Left Handle */}
       <Handle
         type="target"
         position={Position.Left}
         id="left"
-        title="Drag line to connect, or click to spawn spouse/peer left"
+        title="Drag line to connect, or click to spawn peer left"
         onClick={(e) => {
           e.stopPropagation()
           onQuickAdd(id, 'left')
         }}
-        className="!w-6 !h-6 !-left-3 !rounded-full !bg-oros-900 !border-2 !border-oros-700 hover:!border-gold-400 !text-oros-300 hover:!text-gold-300 hover:scale-110 flex items-center justify-center cursor-crosshair z-30 transition-all shadow-md"
+        className="!w-5 !h-5 !-left-2.5 !rounded-[2px] !bg-oros-900 !border !border-oros-700 hover:!border-oros-400 !text-oros-300 hover:!text-oros-100 flex items-center justify-center cursor-crosshair z-30 transition-colors shadow-sm"
       >
-        <Plus className="w-3.5 h-3.5 pointer-events-none" />
+        <Plus className="w-3 h-3 pointer-events-none" />
       </Handle>
 
-      {/* Right Handle */}
       <Handle
         type="source"
         position={Position.Right}
         id="right"
-        title="Drag line to connect, or click to spawn spouse/peer right"
+        title="Drag line to connect, or click to spawn peer right"
         onClick={(e) => {
           e.stopPropagation()
           onQuickAdd(id, 'right')
         }}
-        className="!w-6 !h-6 !-right-3 !rounded-full !bg-oros-900 !border-2 !border-oros-700 hover:!border-gold-400 !text-oros-300 hover:!text-gold-300 hover:scale-110 flex items-center justify-center cursor-crosshair z-30 transition-all shadow-md"
+        className="!w-5 !h-5 !-right-2.5 !rounded-[2px] !bg-oros-900 !border !border-oros-700 hover:!border-oros-400 !text-oros-300 hover:!text-oros-100 flex items-center justify-center cursor-crosshair z-30 transition-colors shadow-sm"
       >
-        <Plus className="w-3.5 h-3.5 pointer-events-none" />
+        <Plus className="w-3 h-3 pointer-events-none" />
       </Handle>
 
-      {/* Full Portrait Artwork */}
-      <div className="w-full h-full rounded-2xl overflow-hidden bg-oros-950 relative">
+      {/* Portrait Artwork Frame */}
+      <div className="w-full h-full rounded-[2px] overflow-hidden bg-oros-950 relative">
         {entity.avatar && !imgError ? (
           <img
             src={entity.avatar}
             alt={entity.title}
             onError={() => setImgError(true)}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
+            className="w-full h-full object-cover pointer-events-none select-none"
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-oros-800 to-oros-950 text-gold-400/60 font-serif text-3xl font-bold">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-oros-900 text-oros-400 font-serif text-3xl font-semibold">
             <span>{entity.title.charAt(0)}</span>
           </div>
         )}
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-oros-950 via-oros-950/70 to-transparent pointer-events-none rounded-b-2xl" />
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-oros-950 via-oros-950/70 to-transparent pointer-events-none rounded-b-[2px]" />
       </div>
 
-      {/* Unclipped Name Plate inside bottom */}
-      <div className="absolute bottom-2 inset-x-2 px-2 py-1 rounded-xl bg-oros-950/90 border border-oros-700/70 group-hover:border-gold-400 text-slate-100 group-hover:text-gold-300 font-serif font-bold text-xs tracking-tight shadow-md backdrop-blur-md text-center truncate transition-all z-20">
+      {/* Name Plate */}
+      <div className="absolute bottom-2 inset-x-2 px-2 py-1 rounded-[2px] bg-oros-950/95 border border-oros-750 group-hover:border-oros-500 text-oros-100 font-sans font-medium text-xs tracking-tight shadow-sm text-center truncate transition-colors z-20">
         {entity.title}
       </div>
     </div>
@@ -268,32 +264,32 @@ const edgeTypes = {
   genealogyEdge: GenealogyEdge
 }
 
-// Bottom-Right Floating Zoom Controls Widget matching Oros UI
+// Floating Zoom Controls
 const FloatingZoomControls = () => {
   const { zoomIn, zoomOut, fitView } = useReactFlow()
 
   return (
-    <div className="absolute bottom-6 right-6 z-20 flex flex-col items-center gap-1.5 p-1.5 rounded-2xl bg-oros-900/95 border border-oros-700/80 shadow-2xl backdrop-blur-md">
+    <div className="absolute bottom-5 right-5 z-20 flex flex-col items-center gap-1 p-1 rounded-[3px] bg-oros-900 border border-oros-750 shadow-md">
       <button
         onClick={() => zoomIn({ duration: 300 })}
-        className="p-1.5 rounded-xl text-oros-300 hover:text-gold-400 hover:bg-oros-800 transition-colors"
+        className="p-1.5 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
         title="Zoom In"
       >
-        <ZoomIn className="w-4 h-4" />
+        <ZoomIn className="w-3.5 h-3.5" />
       </button>
       <button
         onClick={() => zoomOut({ duration: 300 })}
-        className="p-1.5 rounded-xl text-oros-300 hover:text-gold-400 hover:bg-oros-800 transition-colors"
+        className="p-1.5 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
         title="Zoom Out"
       >
-        <ZoomOut className="w-4 h-4" />
+        <ZoomOut className="w-3.5 h-3.5" />
       </button>
       <button
         onClick={() => fitView({ padding: 0.2, duration: 400 })}
-        className="p-1.5 rounded-xl text-oros-300 hover:text-gold-400 hover:bg-oros-800 transition-colors"
+        className="p-1.5 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
         title="Fit Full Tree"
       >
-        <Maximize2 className="w-4 h-4" />
+        <Maximize2 className="w-3.5 h-3.5" />
       </button>
     </div>
   )
@@ -604,17 +600,17 @@ const RelationGraphCanvasContent: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-oros-950 relative select-none">
-      {/* Top Bar with Oros Design System */}
-      <div className="h-12 bg-oros-900/90 border-b border-oros-800/80 px-4 flex items-center justify-between z-20 backdrop-blur-sm">
+      {/* Top Bar with Sovereign Instrument Design System */}
+      <div className="h-11 bg-oros-950 border-b border-oros-800 px-4 flex items-center justify-between z-20">
         <div className="flex items-center gap-3">
-          <div className="p-1.5 rounded-lg bg-gold-500/10 text-gold-400 border border-gold-500/20">
+          <div className="p-1.5 rounded-[3px] bg-oros-900 text-oros-300 border border-oros-750">
             <Users className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="font-serif text-sm font-bold text-slate-100 flex items-center gap-2">
+            <h2 className="font-sans text-xs font-semibold tracking-wide uppercase text-oros-100 flex items-center gap-2">
               Character & Familial Relations
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-oros-800 text-gold-400 font-normal border border-oros-700/60">
-                Genealogy Tree
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-[2px] bg-oros-900 text-oros-400 font-normal border border-oros-750 tracking-wider">
+                Genealogy Ledger
               </span>
             </h2>
           </div>
@@ -624,10 +620,10 @@ const RelationGraphCanvasContent: React.FC = () => {
           {/* Manage All Bonds Drawer */}
           <button
             onClick={() => setShowBondsDrawer(!showBondsDrawer)}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+            className={`px-2.5 py-1.5 rounded-[3px] border text-xs font-medium flex items-center gap-1.5 transition-colors ${
               showBondsDrawer 
-                ? 'bg-oros-800 border-gold-400 text-gold-300' 
-                : 'bg-oros-900/80 border-oros-700/80 text-slate-300 hover:bg-oros-800 hover:text-slate-100'
+                ? 'bg-oros-800 border-oros-500 text-oros-100' 
+                : 'bg-oros-900 border-oros-750 text-oros-300 hover:bg-oros-850 hover:text-oros-100'
             }`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -641,7 +637,7 @@ const RelationGraphCanvasContent: React.FC = () => {
               setQuickAddDirection('right')
               setShowAddModal(true)
             }}
-            className="px-3.5 py-1.5 rounded-lg bg-gold-500 hover:bg-gold-400 text-oros-950 font-bold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+            className="px-3 py-1.5 rounded-[3px] bg-oros-200 hover:bg-white text-oros-950 font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Relation</span>
@@ -649,7 +645,7 @@ const RelationGraphCanvasContent: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Canvas Viewport with Cool Slate Dot Grid matching Oros */}
+      {/* Main Canvas Viewport */}
       <div className="flex-1 h-full w-full relative">
         <ReactFlow
           nodes={nodes}
@@ -676,19 +672,19 @@ const RelationGraphCanvasContent: React.FC = () => {
         </ReactFlow>
 
         {/* Minimalist Floating Guide */}
-        <div className="absolute bottom-4 left-6 z-10 px-3.5 py-1.5 rounded-full bg-oros-900/90 border border-oros-700/80 text-[11px] text-oros-300 shadow-xl backdrop-blur-md pointer-events-none flex items-center gap-2">
-          <Sparkles className="w-3 h-3 text-gold-400" />
-          <span><strong>Drag</strong> from any (+) handle to connect cards, or <strong>click</strong> to spawn a new character</span>
+        <div className="absolute bottom-4 left-6 z-10 px-3 py-1.5 rounded-[3px] bg-oros-900/95 border border-oros-750 text-[11px] text-oros-300 shadow-md flex items-center gap-2">
+          <Info className="w-3.5 h-3.5 text-oros-400" />
+          <span><strong className="text-oros-200 font-medium">Drag</strong> from any handle to connect, or <strong className="text-oros-200 font-medium">click</strong> to spawn a new entity</span>
         </div>
       </div>
 
       {/* QuickPeek Drawer when entity clicked */}
       {activeEntityForPeek && !showBondsDrawer && (
-        <div className="absolute top-14 right-5 z-30 animate-in fade-in slide-in-from-right-3 duration-200">
+        <div className="absolute top-13 right-5 z-30 animate-in fade-in slide-in-from-right-3 duration-150">
           <div className="relative">
             <button
               onClick={() => setActiveEntityForPeek(null)}
-              className="absolute top-2 right-2 z-50 p-1 rounded-full bg-oros-950/80 text-oros-400 hover:text-slate-100"
+              className="absolute top-2 right-2 z-50 p-1 rounded-[2px] bg-oros-950/80 text-oros-400 hover:text-oros-100 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -702,15 +698,15 @@ const RelationGraphCanvasContent: React.FC = () => {
 
       {/* Slide-out Drawer: All Active Bonds */}
       {showBondsDrawer && (
-        <aside className="absolute top-12 right-0 bottom-0 w-80 bg-oros-900/98 border-l border-oros-800 shadow-2xl z-30 flex flex-col backdrop-blur-md animate-in slide-in-from-right duration-200">
-          <div className="p-3.5 border-b border-oros-800 flex items-center justify-between">
-            <h3 className="font-serif font-bold text-xs text-slate-100 flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-gold-400" />
+        <aside className="absolute top-11 right-0 bottom-0 w-80 bg-oros-950 border-l border-oros-800 shadow-xl z-30 flex flex-col">
+          <div className="p-3 border-b border-oros-800 flex items-center justify-between">
+            <h3 className="font-sans font-semibold text-xs text-oros-100 flex items-center gap-2 uppercase tracking-wide">
+              <SlidersHorizontal className="w-3.5 h-3.5 text-oros-400" />
               <span>Active Relational Bonds ({worldRelations.length})</span>
             </h3>
             <button 
               onClick={() => setShowBondsDrawer(false)}
-              className="p-1 rounded-md text-oros-400 hover:text-slate-100 hover:bg-oros-800"
+              className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -723,27 +719,27 @@ const RelationGraphCanvasContent: React.FC = () => {
               return (
                 <div
                   key={rel.id}
-                  className="p-2.5 rounded-xl bg-oros-950/90 border border-oros-800 hover:border-gold-400/50 transition-colors group"
+                  className="p-2.5 rounded-[3px] bg-oros-900 border border-oros-750 hover:border-oros-600 transition-colors group"
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span 
-                      className="text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full border flex items-center gap-1.5"
+                      className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-[2px] border flex items-center gap-1"
                       style={{ borderColor: bondColor, color: bondColor }}
                     >
                       <IconComponent className="w-3 h-3" />
                       <span>{rel.label}</span>
                     </span>
-                    <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
+                    <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100">
                       <button
                         onClick={() => handleOpenEdit(rel.id)}
-                        className="p-1 rounded text-oros-400 hover:text-gold-300 hover:bg-oros-800"
+                        className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
                         title="Edit Bond"
                       >
                         <Edit3 className="w-3 h-3" />
                       </button>
                       <button
                         onClick={() => handleDeleteRelation(rel.id)}
-                        className="p-1 rounded text-oros-400 hover:text-rose-400 hover:bg-oros-800"
+                        className="p-1 rounded-[2px] text-oros-400 hover:text-rose-400 hover:bg-oros-800 transition-colors"
                         title="Delete Bond"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -751,9 +747,9 @@ const RelationGraphCanvasContent: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="text-xs font-serif font-bold text-slate-200 flex items-center gap-1.5 mt-1">
+                  <div className="text-xs font-sans font-medium text-oros-200 flex items-center gap-1.5 mt-1">
                     <span className="truncate max-w-[100px]">{getEntityTitle(rel.sourceEntityId)}</span>
-                    <span className="text-gold-400">→</span>
+                    <span className="text-oros-500 font-mono">→</span>
                     <span className="truncate max-w-[100px]">{getEntityTitle(rel.targetEntityId)}</span>
                   </div>
                 </div>
@@ -766,15 +762,15 @@ const RelationGraphCanvasContent: React.FC = () => {
       {/* Add / Connect Relation Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-lg rounded-[4px] p-5 shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-serif text-base font-bold text-slate-100 flex items-center gap-2">
-                <Plus className="w-4 h-4 text-gold-400" />
+              <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 flex items-center gap-2">
+                <Plus className="w-3.5 h-3.5 text-oros-400" />
                 <span>Add Relational Bond</span>
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="p-1 rounded-lg text-oros-400 hover:text-slate-100 hover:bg-oros-800"
+                className="p-1 rounded-[3px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -782,19 +778,19 @@ const RelationGraphCanvasContent: React.FC = () => {
 
             {/* Connecting Origin Header */}
             {sourceEntity && (
-              <div className="p-2.5 rounded-xl bg-oros-950 border border-oros-800 mb-4 flex items-center gap-3">
-                <div className="w-10 h-12 rounded-lg overflow-hidden bg-oros-900 flex-shrink-0">
+              <div className="p-2 rounded-[3px] bg-oros-950 border border-oros-750 mb-4 flex items-center gap-3">
+                <div className="w-9 h-11 rounded-[2px] overflow-hidden bg-oros-900 flex-shrink-0">
                   {sourceEntity.avatar ? (
                     <img src={sourceEntity.avatar} alt={sourceEntity.title} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xs font-serif font-bold text-gold-400">
+                    <div className="w-full h-full flex items-center justify-center text-xs font-serif font-bold text-oros-400">
                       {sourceEntity.title.charAt(0)}
                     </div>
                   )}
                 </div>
                 <div>
-                  <div className="text-[10px] text-oros-400 uppercase font-mono">Origin Character</div>
-                  <div className="text-xs font-serif font-bold text-slate-100">{sourceEntity.title}</div>
+                  <div className="text-[10px] text-oros-400 uppercase font-mono tracking-wider">Origin Entity</div>
+                  <div className="text-xs font-sans font-medium text-oros-100">{sourceEntity.title}</div>
                 </div>
               </div>
             )}
@@ -802,17 +798,17 @@ const RelationGraphCanvasContent: React.FC = () => {
             <form onSubmit={handleConfirmAddRelation} className="space-y-4">
               {/* Target Character Selector */}
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1.5">
-                  1. Target Character
+                <label className="block text-xs font-medium text-oros-300 mb-1.5">
+                  1. Target Entity
                 </label>
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <button
                     type="button"
                     onClick={() => setTargetMode('existing')}
-                    className={`py-1.5 px-3 rounded-lg text-xs font-semibold border transition-all ${
+                    className={`py-1.5 px-3 rounded-[3px] text-xs font-medium border transition-colors ${
                       targetMode === 'existing'
-                        ? 'bg-gold-500/20 border-gold-400 text-gold-300'
-                        : 'bg-oros-950 border-oros-800 text-oros-400'
+                        ? 'bg-oros-800 border-oros-500 text-oros-100'
+                        : 'bg-oros-950 border-oros-750 text-oros-400 hover:text-oros-200'
                     }`}
                   >
                     Select Existing
@@ -820,10 +816,10 @@ const RelationGraphCanvasContent: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setTargetMode('new')}
-                    className={`py-1.5 px-3 rounded-lg text-xs font-semibold border transition-all ${
+                    className={`py-1.5 px-3 rounded-[3px] text-xs font-medium border transition-colors ${
                       targetMode === 'new'
-                        ? 'bg-gold-500/20 border-gold-400 text-gold-300'
-                        : 'bg-oros-950 border-oros-800 text-oros-400'
+                        ? 'bg-oros-800 border-oros-500 text-oros-100'
+                        : 'bg-oros-950 border-oros-750 text-oros-400 hover:text-oros-200'
                     }`}
                   >
                     Create New
@@ -835,9 +831,9 @@ const RelationGraphCanvasContent: React.FC = () => {
                     required
                     value={selectedExistingId}
                     onChange={(e) => setSelectedExistingId(e.target.value)}
-                    className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                    className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                   >
-                    <option value="">Choose character from codex...</option>
+                    <option value="">Choose entity from codex...</option>
                     {worldEntities.filter(e => e.id !== quickAddSourceNodeId).map((e) => (
                       <option key={e.id} value={e.id}>
                         {e.title} ({e.type})
@@ -850,15 +846,15 @@ const RelationGraphCanvasContent: React.FC = () => {
                     required
                     value={newCharacterName}
                     onChange={(e) => setNewCharacterName(e.target.value)}
-                    placeholder="Enter character name (e.g. Prince Aurelius, Hortense)..."
-                    className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                    placeholder="Enter character or entity name..."
+                    className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                   />
                 )}
               </div>
 
               {/* Relationship Presets with Icons & Colors */}
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1.5">
+                <label className="block text-xs font-medium text-oros-300 mb-1.5">
                   2. Choose Preset
                 </label>
                 <div className="flex flex-wrap gap-1.5">
@@ -870,10 +866,10 @@ const RelationGraphCanvasContent: React.FC = () => {
                         key={preset.label}
                         type="button"
                         onClick={() => applyPreset(preset)}
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-sans border transition-all flex items-center gap-1.5 ${
+                        className={`px-2 py-1 rounded-[2px] text-[10px] font-mono border transition-colors flex items-center gap-1.5 ${
                           isSelected
-                            ? 'bg-oros-950 border-2 font-bold shadow-md'
-                            : 'bg-oros-950/60 border-oros-800 text-slate-300 hover:border-gold-400/60'
+                            ? 'bg-oros-950 border font-semibold shadow-sm'
+                            : 'bg-oros-950/60 border-oros-750 text-oros-300 hover:border-oros-600'
                         }`}
                         style={{ borderColor: isSelected ? preset.color : undefined }}
                       >
@@ -889,34 +885,34 @@ const RelationGraphCanvasContent: React.FC = () => {
 
               {/* Relationship Label */}
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">3. Relationship Label</label>
+                <label className="block text-xs font-medium text-oros-300 mb-1">3. Relationship Label</label>
                 <input
                   type="text"
                   required
                   value={relationLabel}
                   onChange={(e) => setRelationLabel(e.target.value)}
                   placeholder="e.g. Spouse, Child, Sibling, Vassal, Sworn Liege..."
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 />
               </div>
 
               {/* Custom Icon Picker */}
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1.5">4. Pick Icon</label>
-                <div className="grid grid-cols-7 gap-1.5 p-2 bg-oros-950 rounded-xl border border-oros-800">
+                <label className="block text-xs font-medium text-oros-300 mb-1.5">4. Pick Icon</label>
+                <div className="grid grid-cols-7 gap-1.5 p-1.5 bg-oros-950 rounded-[3px] border border-oros-750">
                   {Object.entries(RELATION_ICONS).map(([key, IconComp]) => (
                     <button
                       key={key}
                       type="button"
                       onClick={() => setSelectedIcon(key)}
                       title={key}
-                      className={`p-2 rounded-lg flex items-center justify-center transition-all ${
+                      className={`p-1.5 rounded-[2px] flex items-center justify-center transition-colors ${
                         selectedIcon === key
-                          ? 'bg-oros-800 border-2 border-gold-400 text-gold-300 shadow-md scale-110'
-                          : 'text-oros-400 hover:text-slate-100 hover:bg-oros-900'
+                          ? 'bg-oros-800 border border-oros-500 text-oros-100 shadow-sm'
+                          : 'text-oros-400 hover:text-oros-100 hover:bg-oros-900'
                       }`}
                     >
-                      <IconComp className="w-4 h-4" />
+                      <IconComp className="w-3.5 h-3.5" />
                     </button>
                   ))}
                 </div>
@@ -925,16 +921,16 @@ const RelationGraphCanvasContent: React.FC = () => {
               {/* Custom Color Picker & Line Style */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-oros-300 mb-1.5">5. Pick Color</label>
-                  <div className="flex flex-wrap gap-1.5 p-1.5 bg-oros-950 rounded-xl border border-oros-800">
+                  <label className="block text-xs font-medium text-oros-300 mb-1.5">5. Pick Color</label>
+                  <div className="flex flex-wrap gap-1.5 p-1.5 bg-oros-950 rounded-[3px] border border-oros-750">
                     {BOND_COLORS.map((c) => (
                       <button
                         key={c.hex}
                         type="button"
                         onClick={() => setSelectedColor(c.hex)}
                         title={c.label}
-                        className={`w-6 h-6 rounded-full transition-transform flex items-center justify-center ${
-                          selectedColor === c.hex ? 'scale-125 ring-2 ring-white shadow-md' : 'hover:scale-110'
+                        className={`w-5 h-5 rounded-[2px] transition-colors flex items-center justify-center ${
+                          selectedColor === c.hex ? 'ring-1 ring-white shadow-sm' : 'hover:opacity-90'
                         }`}
                         style={{ backgroundColor: c.hex }}
                       >
@@ -945,11 +941,11 @@ const RelationGraphCanvasContent: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-oros-300 mb-1.5">6. Line Style</label>
+                  <label className="block text-xs font-medium text-oros-300 mb-1.5">6. Line Style</label>
                   <button
                     type="button"
                     onClick={() => setIsDashedLine(!isDashedLine)}
-                    className="w-full h-10 bg-oros-950 border border-oros-700 rounded-xl px-3 text-xs text-slate-200 flex items-center justify-between hover:border-gold-400 transition-colors"
+                    className="w-full h-8 bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 text-xs text-oros-200 flex items-center justify-between hover:border-oros-600 transition-colors"
                   >
                     <span>{isDashedLine ? 'Dashed Line' : 'Solid Line'}</span>
                     <span className="font-mono text-oros-400 font-bold">{isDashedLine ? '- - -' : '───'}</span>
@@ -961,13 +957,13 @@ const RelationGraphCanvasContent: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-lg text-xs text-oros-300 hover:bg-oros-800"
+                  className="px-3 py-1.5 rounded-[3px] text-xs text-oros-300 hover:bg-oros-800 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-lg text-xs font-bold bg-gold-500 hover:bg-gold-400 text-oros-950 shadow-md"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
                 >
                   Create Relation
                 </button>
@@ -980,34 +976,34 @@ const RelationGraphCanvasContent: React.FC = () => {
       {/* Edit Relation Modal */}
       {editingRelation && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-lg rounded-[4px] p-5 shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-serif text-base font-bold text-slate-100 flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-gold-400" />
+              <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 flex items-center gap-2">
+                <Edit3 className="w-3.5 h-3.5 text-oros-400" />
                 <span>Edit Relational Bond</span>
               </h3>
               <button
                 onClick={() => setEditingRelation(null)}
-                className="p-1 rounded-lg text-oros-400 hover:text-slate-100 hover:bg-oros-800"
+                className="p-1 rounded-[3px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Source & Target Header with Reverse Button */}
-            <div className="p-3 bg-oros-950 rounded-xl border border-oros-800 mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-serif font-bold text-slate-200">
+            <div className="p-2 rounded-[3px] bg-oros-950 border border-oros-750 mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-sans font-medium text-oros-200">
                 <span>{getEntityTitle(editingRelation.sourceEntityId)}</span>
-                <span className="text-gold-400 font-mono">→</span>
+                <span className="text-oros-500 font-mono">→</span>
                 <span>{getEntityTitle(editingRelation.targetEntityId)}</span>
               </div>
               <button
                 type="button"
                 onClick={handleReverseDirection}
-                className="px-2.5 py-1 rounded-md bg-oros-900 border border-oros-700 text-oros-300 hover:text-gold-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                className="px-2 py-1 rounded-[2px] bg-oros-900 border border-oros-750 text-oros-300 hover:text-oros-100 text-xs font-medium flex items-center gap-1.5 transition-colors"
                 title="Swap source and target direction"
               >
-                <ArrowRightLeft className="w-3.5 h-3.5" />
+                <ArrowRightLeft className="w-3 h-3" />
                 <span>Reverse</span>
               </button>
             </div>
@@ -1015,7 +1011,7 @@ const RelationGraphCanvasContent: React.FC = () => {
             <form onSubmit={handleSaveEdit} className="space-y-4">
               {/* Relationship Presets with Icons & Colors */}
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1.5">Presets</label>
+                <label className="block text-xs font-medium text-oros-300 mb-1.5">Presets</label>
                 <div className="flex flex-wrap gap-1.5">
                   {BOND_PRESETS.map((preset) => {
                     const PresetIcon = getIconComponent(preset.icon)
@@ -1025,10 +1021,10 @@ const RelationGraphCanvasContent: React.FC = () => {
                         key={preset.label}
                         type="button"
                         onClick={() => applyEditPreset(preset)}
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-sans border transition-all flex items-center gap-1.5 ${
+                        className={`px-2 py-1 rounded-[2px] text-[10px] font-mono border transition-colors flex items-center gap-1.5 ${
                           isSelected
-                            ? 'bg-oros-950 border-2 font-bold shadow-md'
-                            : 'bg-oros-950/60 border-oros-800 text-slate-300 hover:border-gold-400/60'
+                            ? 'bg-oros-950 border font-semibold shadow-sm'
+                            : 'bg-oros-950/60 border-oros-750 text-oros-300 hover:border-oros-600'
                         }`}
                         style={{ borderColor: isSelected ? preset.color : undefined }}
                       >
@@ -1044,33 +1040,33 @@ const RelationGraphCanvasContent: React.FC = () => {
 
               {/* Relationship Label Input */}
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">Relationship Label</label>
+                <label className="block text-xs font-medium text-oros-300 mb-1">Relationship Label</label>
                 <input
                   type="text"
                   required
                   value={editLabel}
                   onChange={(e) => setEditLabel(e.target.value)}
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 />
               </div>
 
               {/* Custom Icon Picker */}
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1.5">Pick Icon</label>
-                <div className="grid grid-cols-7 gap-1.5 p-2 bg-oros-950 rounded-xl border border-oros-800">
+                <label className="block text-xs font-medium text-oros-300 mb-1.5">Pick Icon</label>
+                <div className="grid grid-cols-7 gap-1.5 p-1.5 bg-oros-950 rounded-[3px] border border-oros-750">
                   {Object.entries(RELATION_ICONS).map(([key, IconComp]) => (
                     <button
                       key={key}
                       type="button"
                       onClick={() => setEditIcon(key)}
                       title={key}
-                      className={`p-2 rounded-lg flex items-center justify-center transition-all ${
+                      className={`p-1.5 rounded-[2px] flex items-center justify-center transition-colors ${
                         editIcon === key
-                          ? 'bg-oros-800 border-2 border-gold-400 text-gold-300 shadow-md scale-110'
-                          : 'text-oros-400 hover:text-slate-100 hover:bg-oros-900'
+                          ? 'bg-oros-800 border border-oros-500 text-oros-100 shadow-sm'
+                          : 'text-oros-400 hover:text-oros-100 hover:bg-oros-900'
                       }`}
                     >
-                      <IconComp className="w-4 h-4" />
+                      <IconComp className="w-3.5 h-3.5" />
                     </button>
                   ))}
                 </div>
@@ -1079,16 +1075,16 @@ const RelationGraphCanvasContent: React.FC = () => {
               {/* Color Picker & Line Style */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-oros-300 mb-1.5">Pick Color</label>
-                  <div className="flex flex-wrap gap-1.5 p-1.5 bg-oros-950 rounded-xl border border-oros-800">
+                  <label className="block text-xs font-medium text-oros-300 mb-1.5">Pick Color</label>
+                  <div className="flex flex-wrap gap-1.5 p-1.5 bg-oros-950 rounded-[3px] border border-oros-750">
                     {BOND_COLORS.map((c) => (
                       <button
                         key={c.hex}
                         type="button"
                         onClick={() => setEditColor(c.hex)}
                         title={c.label}
-                        className={`w-6 h-6 rounded-full transition-transform flex items-center justify-center ${
-                          editColor === c.hex ? 'scale-125 ring-2 ring-white shadow-md' : 'hover:scale-110'
+                        className={`w-5 h-5 rounded-[2px] transition-colors flex items-center justify-center ${
+                          editColor === c.hex ? 'ring-1 ring-white shadow-sm' : 'hover:opacity-90'
                         }`}
                         style={{ backgroundColor: c.hex }}
                       >
@@ -1099,11 +1095,11 @@ const RelationGraphCanvasContent: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-oros-300 mb-1.5">Line Style</label>
+                  <label className="block text-xs font-medium text-oros-300 mb-1.5">Line Style</label>
                   <button
                     type="button"
                     onClick={() => setEditIsDashed(!editIsDashed)}
-                    className="w-full h-10 bg-oros-950 border border-oros-700 rounded-xl px-3 text-xs text-slate-200 flex items-center justify-between hover:border-gold-400 transition-colors"
+                    className="w-full h-8 bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 text-xs text-oros-200 flex items-center justify-between hover:border-oros-600 transition-colors"
                   >
                     <span>{editIsDashed ? 'Dashed Line' : 'Solid Line'}</span>
                     <span className="font-mono text-oros-400 font-bold">{editIsDashed ? '- - -' : '───'}</span>
@@ -1115,7 +1111,7 @@ const RelationGraphCanvasContent: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleDeleteRelation(editingRelation.id)}
-                  className="px-3.5 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 border border-rose-500/30 flex items-center gap-1.5 transition-colors"
+                  className="px-2.5 py-1.5 rounded-[3px] text-xs font-medium text-rose-400 hover:bg-rose-950/40 border border-rose-500/30 flex items-center gap-1.5 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Delete</span>
@@ -1125,13 +1121,13 @@ const RelationGraphCanvasContent: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setEditingRelation(null)}
-                    className="px-4 py-2 rounded-lg text-xs text-oros-300 hover:bg-oros-800"
+                    className="px-3 py-1.5 rounded-[3px] text-xs text-oros-300 hover:bg-oros-800 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-lg text-xs font-bold bg-gold-500 hover:bg-gold-400 text-oros-950 shadow-md flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm flex items-center gap-1.5 transition-colors"
                   >
                     <Check className="w-3.5 h-3.5" />
                     <span>Save Changes</span>

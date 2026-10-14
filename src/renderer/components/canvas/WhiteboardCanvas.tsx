@@ -1202,7 +1202,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
       </ReactFlow>
 
       {/* Top-Left Canvas Name & Switcher Dropdown */}
-      <div className="absolute top-4 left-4 z-20">
+      <div className="absolute top-3.5 left-3.5 z-20">
         <div className="relative">
           {isRenamingCanvas ? (
             <input
@@ -1227,12 +1227,12 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
                 }
                 if (e.key === 'Escape') setIsRenamingCanvas(false)
               }}
-              className="px-3 py-1.5 rounded-full bg-oros-900/90 border border-gold-400 text-xs font-semibold text-slate-100 shadow-xl outline-none"
+              className="px-2.5 py-1 rounded-[3px] bg-oros-950 border border-oros-600 text-xs font-medium text-oros-100 shadow-lg outline-none font-sans"
             />
           ) : (
             <button
               onClick={() => setShowCanvasDropdown(!showCanvasDropdown)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-oros-900/80 hover:bg-oros-800/90 border border-oros-700/60 text-xs font-semibold text-slate-100 shadow-xl backdrop-blur-md transition-all"
+              className="flex items-center gap-2 px-2.5 py-1 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-750 text-xs font-medium text-oros-200 shadow-md transition-colors"
             >
               <span>{currentCanvas?.name || 'New Canvas'}</span>
               <ChevronDown className="w-3.5 h-3.5 text-oros-400" />
@@ -1240,8 +1240,8 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
           )}
 
           {showCanvasDropdown && (
-            <div className="absolute left-0 mt-2 w-56 bg-oros-900/95 backdrop-blur-md border border-oros-700/80 rounded-xl shadow-2xl py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-3 py-1 text-[10px] font-semibold text-oros-400 uppercase tracking-wider">
+            <div className="absolute left-0 mt-1.5 w-56 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl py-1 z-30">
+              <div className="px-2.5 py-1 text-[10px] font-mono text-oros-500 uppercase tracking-wider">
                 Canvases
               </div>
               {worldCanvases.map((c) => (
@@ -1251,12 +1251,12 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
                     setSelectedCanvasId(c.id)
                     setShowCanvasDropdown(false)
                   }}
-                  className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-oros-800/60 transition-colors ${
-                    c.id === currentCanvas?.id ? 'text-gold-400 font-semibold bg-oros-800/40' : 'text-slate-300'
+                  className={`w-full text-left px-2.5 py-1.5 text-xs flex items-center justify-between hover:bg-oros-850 transition-colors ${
+                    c.id === currentCanvas?.id ? 'text-oros-100 font-medium bg-oros-850' : 'text-oros-300'
                   }`}
                 >
                   <span className="truncate">{c.name}</span>
-                  {c.id === currentCanvas?.id && <Check className="w-3.5 h-3.5 shrink-0" />}
+                  {c.id === currentCanvas?.id && <Check className="w-3.5 h-3.5 text-oros-400 shrink-0" />}
                 </button>
               ))}
               <div className="border-t border-oros-800 my-1" />
@@ -1266,7 +1266,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
                   setRenameValue(currentCanvas?.name || '')
                   setIsRenamingCanvas(true)
                 }}
-                className="w-full text-left px-3 py-1.5 text-xs text-slate-300 hover:bg-oros-800 hover:text-white"
+                className="w-full text-left px-2.5 py-1.5 text-xs text-oros-300 hover:bg-oros-850 hover:text-oros-100 transition-colors"
               >
                 Rename Canvas
               </button>
@@ -1276,43 +1276,43 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
                   const c = createCanvas(`Canvas ${Date.now().toString().slice(-4)}`)
                   addToast(`Created ${c.name}`, 'success')
                 }}
-                className="w-full text-left px-3 py-1.5 text-xs text-gold-400 hover:bg-oros-800 flex items-center gap-1.5 font-medium"
+                className="w-full text-left px-2.5 py-1.5 text-xs text-oros-200 hover:bg-oros-850 flex items-center gap-1.5 font-medium transition-colors"
               >
-                <Plus className="w-3.5 h-3.5" />
-                New Canvas
+                <Plus className="w-3.5 h-3.5 text-oros-400" />
+                <span>New Canvas</span>
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* FLOATING BOTTOM TOOLBAR / PILL DOCK (Inspired by VVD) */}
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20">
-        <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-oros-950/85 backdrop-blur-md border border-oros-700/60 shadow-2xl">
+      {/* FLOATING BOTTOM CONSOLE DOCK */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 select-none">
+        <div className="flex items-center gap-1 px-1.5 py-1 rounded-[4px] bg-oros-900 border border-oros-750 shadow-2xl">
           {/* 1. Select Tool (Pointer) */}
           <button
             onClick={() => setActiveTool('select')}
             title="Select & Move (V)"
-            className={`p-2 rounded-full transition-all ${
+            className={`p-1.5 rounded-[3px] transition-colors ${
               activeTool === 'select'
-                ? 'bg-gold-500/20 text-gold-400 border border-gold-400/40 shadow-sm'
-                : 'text-oros-400 hover:text-slate-100 hover:bg-oros-800/60'
+                ? 'bg-oros-800 text-oros-100 border border-oros-600 shadow-sm'
+                : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
             }`}
           >
-            <MousePointer className="w-4 h-4" />
+            <MousePointer className="w-3.5 h-3.5" />
           </button>
 
           {/* 2. Pan / Hand Tool */}
           <button
             onClick={() => setActiveTool('pan')}
             title="Pan / Hand tool (H)"
-            className={`p-2 rounded-full transition-all ${
+            className={`p-1.5 rounded-[3px] transition-colors ${
               activeTool === 'pan'
-                ? 'bg-gold-500/20 text-gold-400 border border-gold-400/40 shadow-sm'
-                : 'text-oros-400 hover:text-slate-100 hover:bg-oros-800/60'
+                ? 'bg-oros-800 text-oros-100 border border-oros-600 shadow-sm'
+                : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
             }`}
           >
-            <Hand className="w-4 h-4" />
+            <Hand className="w-3.5 h-3.5" />
           </button>
 
           <div className="w-[1px] h-4 bg-oros-800 mx-0.5" />
@@ -1322,44 +1322,44 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             <button
               onClick={() => setShowShapePicker(!showShapePicker)}
               title="Add Geometric Shape"
-              className={`p-2 rounded-full transition-all ${
+              className={`p-1.5 rounded-[3px] transition-colors ${
                 showShapePicker
-                  ? 'bg-gold-500/20 text-gold-400 border border-gold-400/40'
-                  : 'text-oros-400 hover:text-slate-100 hover:bg-oros-800/60'
+                  ? 'bg-oros-800 text-oros-100 border border-oros-600'
+                  : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
               }`}
             >
-              <Square className="w-4 h-4" />
+              <Square className="w-3.5 h-3.5" />
             </button>
 
             {showShapePicker && (
-              <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-oros-900 border border-oros-700 rounded-xl shadow-2xl p-2 flex items-center gap-1.5 z-30">
+              <div className="absolute bottom-11 left-1/2 -translate-x-1/2 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-1 flex items-center gap-1 z-30">
                 <button
                   onClick={() => handleAddShape('parallelogram')}
-                  title="Parallelogram (VVD style)"
-                  className="p-1.5 rounded hover:bg-oros-800 text-slate-200 hover:text-gold-400"
+                  title="Parallelogram"
+                  className="p-1 rounded-[2px] hover:bg-oros-850 text-oros-300 hover:text-white"
                 >
                   <span className="font-mono text-xs font-bold italic tracking-tighter">▱</span>
                 </button>
                 <button
                   onClick={() => handleAddShape('diamond')}
                   title="Diamond"
-                  className="p-1.5 rounded hover:bg-oros-800 text-slate-200 hover:text-gold-400"
+                  className="p-1 rounded-[2px] hover:bg-oros-850 text-oros-300 hover:text-white"
                 >
-                  <Diamond className="w-4 h-4" />
+                  <Diamond className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleAddShape('rectangle')}
                   title="Rectangle"
-                  className="p-1.5 rounded hover:bg-oros-800 text-slate-200 hover:text-gold-400"
+                  className="p-1 rounded-[2px] hover:bg-oros-850 text-oros-300 hover:text-white"
                 >
-                  <Square className="w-4 h-4" />
+                  <Square className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleAddShape('circle')}
                   title="Circle"
-                  className="p-1.5 rounded hover:bg-oros-800 text-slate-200 hover:text-gold-400"
+                  className="p-1 rounded-[2px] hover:bg-oros-850 text-oros-300 hover:text-white"
                 >
-                  <Circle className="w-4 h-4" />
+                  <Circle className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
@@ -1369,9 +1369,9 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
           <button
             onClick={handleAddStickyNote}
             title="Add Lined Sticky Note"
-            className="p-2 rounded-full text-oros-400 hover:text-amber-300 hover:bg-oros-800/60 transition-all"
+            className="p-1.5 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors"
           >
-            <StickyNote className="w-4 h-4" />
+            <StickyNote className="w-3.5 h-3.5" />
           </button>
 
           {/* 5. Lore Card Button */}
@@ -1379,30 +1379,30 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             <button
               onClick={() => setShowCardPicker(!showCardPicker)}
               title="Add Lore / Character Card"
-              className="p-2 rounded-full text-oros-400 hover:text-emerald-400 hover:bg-oros-800/60 transition-all"
+              className="p-1.5 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors"
             >
-              <Layers className="w-4 h-4" />
+              <Layers className="w-3.5 h-3.5" />
             </button>
 
             {showCardPicker && (
-              <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-64 bg-oros-900 border border-oros-700 rounded-xl shadow-2xl p-2 max-h-72 overflow-y-auto z-30">
-                <div className="px-2 py-1 text-[10px] font-semibold text-oros-400 uppercase tracking-wider">
+              <div className="absolute bottom-11 left-1/2 -translate-x-1/2 w-64 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-1.5 max-h-72 overflow-y-auto z-30">
+                <div className="px-2 py-1 text-[10px] font-mono text-oros-500 uppercase tracking-wider">
                   Pick Lore Entity
                 </div>
                 {worldEntities.map((ent) => (
                   <button
                     key={ent.id}
                     onClick={() => handleDropCard(ent)}
-                    className="w-full text-left p-1.5 rounded-lg hover:bg-oros-800 flex items-center gap-2 text-xs text-slate-200 transition-colors"
+                    className="w-full text-left p-1.5 rounded-[2px] hover:bg-oros-850 flex items-center gap-2 text-xs text-oros-200 transition-colors"
                   >
                     <img
                       src={ent.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80'}
                       alt={ent.title}
-                      className="w-6 h-6 rounded-md object-cover"
+                      className="w-5 h-5 rounded-[2px] object-cover border border-oros-800"
                     />
                     <div className="truncate flex-1">
-                      <div className="font-medium truncate">{ent.title}</div>
-                      <div className="text-[10px] text-oros-400">{ent.type}</div>
+                      <div className="font-medium truncate text-oros-200">{ent.title}</div>
+                      <div className="text-[10px] text-oros-500 font-mono capitalize">{ent.type}</div>
                     </div>
                   </button>
                 ))}
@@ -1416,22 +1416,22 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
           <button
             onClick={() => setActiveTool(activeTool === 'pen' ? 'select' : 'pen')}
             title="Pen / Freehand Sketch (Draw circles & loops)"
-            className={`p-2 rounded-full transition-all ${
+            className={`p-1.5 rounded-[3px] transition-colors ${
               activeTool === 'pen'
-                ? 'bg-sky-500/20 text-sky-400 border border-sky-400/50 shadow-sm'
-                : 'text-oros-400 hover:text-slate-100 hover:bg-oros-800/60'
+                ? 'bg-oros-800 text-oros-100 border border-oros-600 shadow-sm'
+                : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
             }`}
           >
-            <PenTool className="w-4 h-4" />
+            <PenTool className="w-3.5 h-3.5" />
           </button>
 
           {/* 7. Freeform Text Tool */}
           <button
             onClick={handleAddText}
             title="Add Text (T)"
-            className="p-2 rounded-full text-oros-400 hover:text-slate-100 hover:bg-oros-800/60 transition-all"
+            className="p-1.5 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors"
           >
-            <Type className="w-4 h-4" />
+            <Type className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>

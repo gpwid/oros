@@ -6,7 +6,7 @@ import { WikiEditor } from './WikiEditor'
 import { PromptModal, ConfirmModal } from '../common/PromptModal'
 import { QuickPeekCard } from '../common/QuickPeekCard'
 import { 
-  Plus, Edit, Eye, Trash2, Tag, BookOpen, Link2, Sparkles, Filter, ChevronDown, SlidersHorizontal 
+  Plus, Edit, Eye, Trash2, Tag, BookOpen, Link2, List, Filter, ChevronDown, SlidersHorizontal 
 } from 'lucide-react'
 import { EntityType, LoreEntity } from '@shared/types'
 import { 
@@ -150,30 +150,30 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
   return (
     <div className="flex-1 flex overflow-hidden relative">
       {/* Left Column: Article Index / Directory */}
-      <aside className="w-72 bg-oros-950/70 border-r border-oros-800/40 flex flex-col justify-between shrink-0 select-none">
+      <aside className="w-72 bg-oros-950 border-r border-oros-800 flex flex-col justify-between shrink-0 select-none">
         <div>
-          <div className="p-3 border-b border-oros-800/40 flex items-center justify-between">
-            <div className="text-xs font-serif font-bold text-slate-200 tracking-wide flex items-center gap-2">
-              <BookOpen className="w-3.5 h-3.5 text-gold-400" />
+          <div className="p-3 border-b border-oros-800 flex items-center justify-between">
+            <div className="text-xs font-sans font-semibold text-oros-100 tracking-tight flex items-center gap-2">
+              <BookOpen className="w-3.5 h-3.5 text-oros-400" />
               Articles Directory
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="p-1 px-2 rounded-md bg-gold-500/20 hover:bg-gold-500/30 text-gold-400 text-xs font-semibold flex items-center gap-1 transition-colors"
+              className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-200 border border-oros-750 text-xs font-medium flex items-center gap-1 transition-colors"
             >
-              <Plus className="w-3 h-3" />
+              <Plus className="w-3 h-3 text-oros-400" />
               <span>New</span>
             </button>
           </div>
 
           {/* Category Filter Pills */}
-          <div className="px-2 py-2 flex items-center gap-1 overflow-x-auto text-[11px] border-b border-oros-800/30 scrollbar-thin">
+          <div className="px-2 py-1.5 flex items-center gap-1 overflow-x-auto text-[11px] border-b border-oros-800 scrollbar-thin">
             <button
               onClick={() => setFilterType('all')}
-              className={`px-2 py-0.5 rounded capitalize shrink-0 transition-colors ${
+              className={`px-2 py-0.5 rounded-[2px] capitalize shrink-0 font-medium transition-colors ${
                 filterType === 'all' 
-                  ? 'bg-gold-500 text-oros-950 font-bold' 
-                  : 'text-oros-400 hover:text-slate-200 hover:bg-oros-900'
+                  ? 'bg-oros-200 text-oros-950 font-semibold' 
+                  : 'text-oros-400 hover:text-oros-200 hover:bg-oros-900'
               }`}
             >
               All
@@ -184,15 +184,15 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                 <button
                   key={cat.id}
                   onClick={() => setFilterType(cat.id)}
-                  className={`px-2 py-0.5 rounded shrink-0 flex items-center gap-1 transition-colors ${
+                  className={`px-2 py-0.5 rounded-[2px] shrink-0 flex items-center gap-1 transition-colors font-medium ${
                     isActive 
-                      ? 'bg-gold-500 text-oros-950 font-bold' 
-                      : 'text-oros-400 hover:text-slate-200 hover:bg-oros-900'
+                      ? 'bg-oros-200 text-oros-950 font-semibold' 
+                      : 'text-oros-400 hover:text-oros-200 hover:bg-oros-900'
                   }`}
                 >
                   <span
                     className="w-1.5 h-1.5 rounded-full"
-                    style={{ backgroundColor: isActive ? '#020617' : (cat.color || '#eab308') }}
+                    style={{ backgroundColor: isActive ? '#090a0d' : (cat.color || '#94a3b8') }}
                   />
                   <span>{cat.name}</span>
                 </button>
@@ -201,14 +201,14 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
             <button
               onClick={() => setShowCategoryManager(true)}
               title="Manage Categories"
-              className="p-1 rounded text-oros-400 hover:text-gold-300 hover:bg-oros-900 shrink-0 transition-colors ml-auto"
+              className="p-1 rounded-[2px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 shrink-0 transition-colors ml-auto"
             >
               <SlidersHorizontal className="w-3 h-3" />
             </button>
           </div>
 
           {/* Entity List */}
-          <div className="overflow-y-auto p-2 space-y-1 max-h-[calc(100vh-140px)]">
+          <div className="overflow-y-auto p-1.5 space-y-0.5 max-h-[calc(100vh-140px)]">
             {filteredEntities.map((ent) => {
               const isSelected = ent.id === currentEntity?.id
               const catMeta = getCategoryMeta(ent.type, worldCategories)
@@ -221,20 +221,20 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                     openTab({ title: ent.title, type: 'wiki', targetId: ent.id })
                     setIsEditing(false)
                   }}
-                  className={`w-full text-left p-2.5 rounded-lg text-xs transition-all flex items-start justify-between group ${
+                  className={`w-full text-left p-2 rounded-[3px] text-xs transition-all flex items-start justify-between group ${
                     isSelected
-                      ? 'bg-oros-800/80 text-gold-400 font-semibold shadow-inner border border-oros-700/50'
-                      : 'text-slate-300 hover:bg-oros-900/60 hover:text-slate-100'
+                      ? 'bg-oros-850 text-oros-100 font-medium border border-oros-750'
+                      : 'text-oros-300 hover:bg-oros-900 hover:text-oros-100'
                   }`}
                 >
                   <div className="truncate pr-2">
                     <div className="truncate">{ent.title}</div>
-                    <div className="text-[10px] text-oros-400 font-normal uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
+                    <div className="text-[10px] text-oros-500 font-mono uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
                       <span
                         className="w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: catMeta.color || '#eab308' }}
+                        style={{ backgroundColor: catMeta.color || '#94a3b8' }}
                       />
-                      <CatIcon className="w-2.5 h-2.5 opacity-80" />
+                      <CatIcon className="w-2.5 h-2.5 opacity-70" />
                       <span>{catMeta.name}</span>
                     </div>
                   </div>
@@ -242,7 +242,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
               )
             })}
             {filteredEntities.length === 0 && (
-              <div className="p-4 text-center text-xs text-oros-500 italic">
+              <div className="p-4 text-center text-xs text-oros-500 font-sans">
                 No matching articles found.
               </div>
             )}
@@ -255,9 +255,9 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
         {currentEntity ? (
           <div className="max-w-5xl mx-auto">
             {/* Header: Title, Tags, and Action Controls */}
-            <div className="border-b border-oros-800/60 pb-4 mb-6 flex items-start justify-between">
+            <div className="border-b border-oros-800 pb-4 mb-6 flex items-start justify-between">
               <div>
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1.5">
                   {(() => {
                     const currentCatMeta = getCategoryMeta(currentEntity.type, worldCategories)
                     const CurrentCatIcon = getCategoryIconComponent(currentCatMeta.icon)
@@ -265,11 +265,11 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                       <div className="relative inline-block">
                         <button
                           onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                          className="px-2.5 py-0.5 rounded-md text-[10px] uppercase font-mono tracking-wider border font-semibold flex items-center gap-1.5 transition-all hover:brightness-110 shadow-sm"
+                          className="px-2 py-0.5 rounded-[2px] text-[10px] uppercase font-mono tracking-wider border font-medium flex items-center gap-1.5 transition-all shadow-sm"
                           style={{
-                            backgroundColor: `${currentCatMeta.color || '#eab308'}15`,
-                            borderColor: `${currentCatMeta.color || '#eab308'}40`,
-                            color: currentCatMeta.color || '#eab308'
+                            backgroundColor: `${currentCatMeta.color || '#94a3b8'}15`,
+                            borderColor: `${currentCatMeta.color || '#94a3b8'}40`,
+                            color: currentCatMeta.color || '#cbd5e1'
                           }}
                           title="Click to reclassify category / label"
                         >
@@ -281,7 +281,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                         {/* Category Reassignment Dropdown */}
                         {showCategoryDropdown && (
                           <div 
-                            className="absolute top-full left-0 mt-1.5 w-56 bg-oros-900 border border-oros-700/80 rounded-xl shadow-2xl py-1 z-50 animate-fade-in"
+                            className="absolute top-full left-0 mt-1.5 w-56 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl py-1 z-50"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-oros-400 font-mono border-b border-oros-800 flex items-center justify-between">
@@ -291,7 +291,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                                   setShowCategoryDropdown(false)
                                   setShowCategoryManager(true)
                                 }}
-                                className="text-gold-400 hover:text-gold-300 font-sans normal-case text-[10px] font-semibold flex items-center gap-1"
+                                className="text-oros-300 hover:text-oros-100 font-sans normal-case text-[10px] font-medium flex items-center gap-1"
                               >
                                 <SlidersHorizontal className="w-2.5 h-2.5" />
                                 <span>Manage</span>
@@ -309,21 +309,21 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                                       setShowCategoryDropdown(false)
                                       addToast(`Reassigned to ${c.name}`, 'success')
                                     }}
-                                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
+                                    className={`w-full text-left px-2.5 py-1.5 rounded-[3px] text-xs flex items-center justify-between transition-colors ${
                                       isSelected
-                                        ? 'bg-oros-800 text-gold-300 font-semibold'
-                                        : 'text-slate-300 hover:bg-oros-800/60 hover:text-slate-100'
+                                        ? 'bg-oros-800 text-oros-100 font-medium'
+                                        : 'text-oros-300 hover:bg-oros-850 hover:text-oros-100'
                                     }`}
                                   >
                                     <div className="flex items-center gap-2">
                                       <span
                                         className="w-1.5 h-1.5 rounded-full"
-                                        style={{ backgroundColor: c.color || '#eab308' }}
+                                        style={{ backgroundColor: c.color || '#94a3b8' }}
                                       />
-                                      <Icon className="w-3.5 h-3.5" style={{ color: c.color || '#eab308' }} />
+                                      <Icon className="w-3.5 h-3.5" style={{ color: c.color || '#94a3b8' }} />
                                       <span>{c.name}</span>
                                     </div>
-                                    {isSelected && <span className="text-[10px] text-gold-400 font-mono">✓</span>}
+                                    {isSelected && <span className="text-[10px] text-oros-300 font-mono">✓</span>}
                                   </button>
                                 )
                               })}
@@ -334,29 +334,29 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                     )
                   })()}
                   {currentEntity.aliases.length > 0 && (
-                    <span className="text-xs text-oros-400 italic">
+                    <span className="text-xs text-oros-400 italic font-sans">
                       Also known as: {currentEntity.aliases.join(', ')}
                     </span>
                   )}
                 </div>
-                <h1 className="font-serif text-3xl font-extrabold text-slate-100 tracking-wide">
+                <h1 className="font-serif text-2xl font-bold text-oros-100 tracking-tight">
                   {currentEntity.title}
                 </h1>
                 {currentEntity.summary && (
-                  <p className="text-sm text-oros-300 mt-1 font-sans leading-relaxed">
+                  <p className="text-xs text-oros-300 mt-1 font-sans leading-relaxed">
                     {currentEntity.summary}
                   </p>
                 )}
               </div>
 
               {/* Mode Toggle & Delete */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setIsEditing(!isEditing)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm ${
+                  className={`px-3 py-1.5 rounded-[3px] text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm ${
                     isEditing 
-                      ? 'bg-gold-500 text-oros-950 hover:bg-gold-400' 
-                      : 'bg-oros-900 hover:bg-oros-800 text-slate-200 border border-oros-700/60'
+                      ? 'bg-oros-200 text-oros-950 hover:bg-white' 
+                      : 'bg-oros-900 hover:bg-oros-850 text-oros-200 border border-oros-750'
                   }`}
                 >
                   {isEditing ? <Eye className="w-3.5 h-3.5" /> : <Edit className="w-3.5 h-3.5" />}
@@ -364,7 +364,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                 </button>
                 <button
                   onClick={() => setShowDeleteModal(true)}
-                  className="p-1.5 rounded-lg bg-oros-900/60 hover:bg-red-950/60 text-oros-400 hover:text-red-400 border border-oros-800 transition-colors"
+                  className="p-1.5 rounded-[3px] bg-oros-900 hover:bg-rose-950/60 text-oros-400 hover:text-rose-400 border border-oros-750 transition-colors"
                   title="Delete article"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -377,14 +377,14 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
               {/* Center Article Content */}
               <div className="flex-1 min-w-0">
                 {isEditing ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3.5">
                     <div>
-                      <label className="block text-xs font-semibold text-oros-400 mb-1">Article Summary</label>
+                      <label className="block text-xs font-medium text-oros-400 mb-1 font-sans">Article Summary</label>
                       <input
                         type="text"
                         value={currentEntity.summary}
                         onChange={(e) => updateEntity(currentEntity.id, { summary: e.target.value })}
-                        className="w-full bg-oros-900 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                        className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                         placeholder="A concise, high-level summary..."
                       />
                     </div>
@@ -397,30 +397,30 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                   <div>
                     {/* Dynamic Wikipedia Table of Contents (TOC) */}
                     {tocItems.length >= 2 && (
-                      <div className="bg-oros-900/60 border border-oros-800 rounded-xl p-3.5 max-w-sm mb-6 text-xs shadow-md">
-                        <div className="flex items-center justify-between border-b border-oros-800/80 pb-2 mb-2">
-                          <div className="font-serif font-bold text-slate-200 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                            <Sparkles className="w-3 h-3 text-gold-400" />
+                      <div className="bg-oros-900 border border-oros-800 rounded-[4px] p-3 max-w-sm mb-6 text-xs shadow-sm">
+                        <div className="flex items-center justify-between border-b border-oros-800 pb-1.5 mb-2">
+                          <div className="font-mono text-oros-300 uppercase tracking-wider text-[11px] font-medium flex items-center gap-1.5">
+                            <List className="w-3.5 h-3.5 text-oros-400" />
                             Contents
                           </div>
                           <button
                             onClick={() => setIsTocCollapsed(!isTocCollapsed)}
-                            className="text-[10px] font-mono text-oros-400 hover:text-gold-400 transition-colors"
+                            className="text-[10px] font-mono text-oros-400 hover:text-oros-200 transition-colors"
                           >
                             [{isTocCollapsed ? 'show' : 'hide'}]
                           </button>
                         </div>
 
                         {!isTocCollapsed && (
-                          <nav className="space-y-1">
+                          <nav className="space-y-0.5">
                             {numberedTocItems.map((item) => (
                               <button
                                 key={item.id}
                                 onClick={() => scrollToHeading(item.id)}
                                 style={{ paddingLeft: item.level > 2 ? '1rem' : '0rem' }}
-                                className="w-full text-left py-0.5 text-xs text-oros-300 hover:text-gold-400 hover:underline flex items-baseline gap-1.5 transition-colors group"
+                                className="w-full text-left py-0.5 text-xs text-oros-400 hover:text-oros-100 hover:underline flex items-baseline gap-1.5 transition-colors group"
                               >
-                                <span className="font-mono text-[10px] text-oros-500 group-hover:text-gold-400/80 shrink-0">
+                                <span className="font-mono text-[10px] text-oros-500 group-hover:text-oros-300 shrink-0">
                                   {item.numberStr}
                                 </span>
                                 <span className="truncate">{item.text}</span>
@@ -440,9 +440,9 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                 )}
 
                 {/* Backlinks / What Links Here */}
-                <div className="mt-12 pt-6 border-t border-oros-800/60">
-                  <h3 className="font-serif text-sm font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <Link2 className="w-4 h-4 text-gold-400" />
+                <div className="mt-12 pt-6 border-t border-oros-800">
+                  <h3 className="font-sans text-xs font-semibold text-oros-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <Link2 className="w-3.5 h-3.5 text-oros-400" />
                     What Links Here (Backlinks)
                   </h3>
                   {backlinks.length > 0 ? (
@@ -459,13 +459,13 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                               setSelectedEntityId(bl.id)
                               openTab({ title: bl.title, type: 'wiki', targetId: bl.id })
                             }}
-                            className="w-full text-left p-2.5 rounded-xl bg-oros-900/60 border border-oros-800/60 hover:border-gold-400/50 hover:bg-oros-900 transition-all flex items-center justify-between group"
+                            className="w-full text-left p-2.5 rounded-[3px] bg-oros-900 border border-oros-800 hover:border-oros-700 hover:bg-oros-850 transition-all flex items-center justify-between group"
                           >
                             <div>
-                              <div className="text-xs font-medium text-slate-200 group-hover:text-gold-400">
+                              <div className="text-xs font-medium text-oros-200 group-hover:text-white">
                                 {bl.title}
                               </div>
-                              <div className="text-[10px] text-oros-400 capitalize">{bl.type}</div>
+                              <div className="text-[10px] text-oros-500 font-mono capitalize">{bl.type}</div>
                             </div>
                             <span className="text-[10px] text-oros-500 font-mono">Reference</span>
                           </button>
@@ -473,7 +473,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-oros-500 italic">
+                    <p className="text-xs text-oros-500 font-sans">
                       No other articles currently cite or link to this entry.
                     </p>
                   )}
@@ -489,15 +489,15 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
           </div>
         ) : (
           <div className="h-full flex items-center justify-center text-center">
-            <div className="max-w-md p-6 bg-oros-900/40 border border-oros-800 rounded-xl">
-              <BookOpen className="w-10 h-10 text-gold-400 mx-auto mb-3 opacity-80" />
-              <h3 className="font-serif text-lg font-bold text-slate-100 mb-1">No Article Selected</h3>
-              <p className="text-xs text-oros-400 mb-4">
-                Choose an article from the directory on the left or forge a new entry for your realm.
+            <div className="max-w-md p-6 bg-oros-900 border border-oros-750 rounded-[4px] shadow-sm">
+              <BookOpen className="w-8 h-8 text-oros-500 mx-auto mb-3" />
+              <h3 className="font-sans text-sm font-semibold text-oros-100 mb-1">No Article Selected</h3>
+              <p className="text-xs text-oros-400 mb-4 font-sans">
+                Choose an article from the directory on the left or create a new entry for your realm.
               </p>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 rounded-lg bg-gold-500 hover:bg-gold-400 text-oros-950 font-bold text-xs"
+                className="px-3.5 py-1.5 rounded-[3px] bg-oros-200 hover:bg-white text-oros-950 font-semibold text-xs shadow-sm transition-colors"
               >
                 Create New Article
               </button>

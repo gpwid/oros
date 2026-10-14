@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Sparkles, X } from 'lucide-react'
+import { PenLine, X } from 'lucide-react'
 
 interface PromptModalProps {
   isOpen: boolean;
@@ -41,26 +41,26 @@ export const PromptModal: React.FC<PromptModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-oros-900 border border-oros-700/80 rounded-xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-start justify-between mb-3">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl max-w-md w-full p-5">
+        <div className="flex items-start justify-between mb-2.5">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-gold-400" />
-            <h3 className="font-serif font-bold text-base text-slate-100">{title}</h3>
+            <PenLine className="w-3.5 h-3.5 text-oros-400" />
+            <h3 className="font-sans font-semibold text-sm text-oros-100 tracking-tight">{title}</h3>
           </div>
           <button
             onClick={onCancel}
-            className="text-oros-400 hover:text-slate-200 transition-colors"
+            className="text-oros-400 hover:text-oros-200 transition-colors p-0.5 rounded-[2px]"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {description && (
-          <p className="text-xs text-oros-300 mb-4 leading-relaxed">{description}</p>
+          <p className="text-xs text-oros-400 mb-3.5 leading-relaxed font-sans">{description}</p>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3.5">
           <input
             ref={inputRef}
             type="text"
@@ -68,20 +68,20 @@ export const PromptModal: React.FC<PromptModalProps> = ({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={placeholder}
-            className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3.5 py-2.5 text-xs text-slate-100 placeholder-oros-500 focus:outline-none focus:border-gold-400 transition-colors"
+            className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-500 transition-colors font-sans"
           />
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-2 border-t border-oros-800">
             <button
               type="button"
               onClick={onCancel}
-              className="px-3.5 py-2 rounded-lg text-xs font-medium text-oros-300 hover:bg-oros-800 transition-colors"
+              className="px-3 py-1.5 rounded-[3px] text-xs font-medium text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-lg text-xs font-bold bg-gold-500 hover:bg-gold-400 text-oros-950 shadow-md transition-colors"
+              className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
             >
               {confirmLabel}
             </button>
@@ -114,25 +114,25 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-oros-900 border border-oros-700/80 rounded-xl shadow-2xl max-w-sm w-full p-6 animate-in fade-in zoom-in-95 duration-150">
-        <h3 className="font-serif font-bold text-base text-slate-100 mb-2">{title}</h3>
-        <p className="text-xs text-oros-300 mb-5 leading-relaxed">{message}</p>
-        <div className="flex justify-end gap-2">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl max-w-sm w-full p-5">
+        <h3 className="font-sans font-semibold text-sm text-oros-100 mb-1.5 tracking-tight">{title}</h3>
+        <p className="text-xs text-oros-400 mb-4 leading-relaxed font-sans">{message}</p>
+        <div className="flex justify-end gap-2 pt-2 border-t border-oros-800">
           <button
             type="button"
             onClick={onCancel}
-            className="px-3.5 py-1.5 rounded-lg text-xs text-oros-300 hover:bg-oros-800 transition-colors"
+            className="px-3 py-1.5 rounded-[3px] text-xs text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-md ${
+            className={`px-3.5 py-1.5 rounded-[3px] text-xs font-semibold transition-colors shadow-sm ${
               isDestructive
                 ? 'bg-rose-600 hover:bg-rose-500 text-white'
-                : 'bg-gold-500 hover:bg-gold-400 text-oros-950'
+                : 'bg-oros-200 hover:bg-white text-oros-950'
             }`}
           >
             {confirmLabel}
@@ -142,3 +142,4 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     </div>
   )
 }
+

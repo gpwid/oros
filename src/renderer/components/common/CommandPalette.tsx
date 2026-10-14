@@ -3,7 +3,7 @@ import { useWorldStore, ActiveNavTab } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
 import { 
   Search, BookOpen, Map, Feather, Shield, Plus, FolderOpen, 
-  Download, Sparkles, Layers, ArrowRight, Clock, Users, Network 
+  Download, Layers, ArrowRight, Clock, Users, Network 
 } from 'lucide-react'
 
 interface PaletteItem {
@@ -228,11 +228,11 @@ export const CommandPalette: React.FC = () => {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-start justify-center pt-24 p-4 animate-in fade-in duration-100 select-none">
-      <div className="bg-oros-900 border border-oros-700/80 rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start justify-center pt-20 p-4 animate-in fade-in duration-100 select-none">
+      <div className="bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl max-w-xl w-full overflow-hidden flex flex-col">
         {/* Search Input Bar */}
-        <div className="p-3 border-b border-oros-800 flex items-center gap-3 bg-oros-950/60">
-          <Search className="w-4 h-4 text-gold-400 shrink-0" />
+        <div className="p-3 border-b border-oros-800 flex items-center gap-2.5 bg-oros-950">
+          <Search className="w-4 h-4 text-oros-400 shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -243,15 +243,15 @@ export const CommandPalette: React.FC = () => {
             }}
             onKeyDown={handleKeyDown}
             placeholder="Type a command or search world lore, maps, chapters..."
-            className="w-full bg-transparent border-none text-xs text-slate-100 placeholder-oros-500 focus:outline-none"
+            className="w-full bg-transparent border-none text-xs text-oros-100 placeholder-oros-500 focus:outline-none font-sans"
           />
-          <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-oros-800/80 text-oros-400 border border-oros-700/60 shrink-0">
+          <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded-[2px] bg-oros-900 text-oros-400 border border-oros-750 shrink-0">
             ESC
           </kbd>
         </div>
 
         {/* Results List */}
-        <div className="max-h-96 overflow-y-auto p-2 space-y-1">
+        <div className="max-h-96 overflow-y-auto p-1.5 space-y-0.5">
           {filtered.map((item, idx) => {
             const isSelected = idx === selectedIndex
             const Icon = item.icon
@@ -263,31 +263,31 @@ export const CommandPalette: React.FC = () => {
                   setIsOpen(false)
                 }}
                 onMouseEnter={() => setSelectedIndex(idx)}
-                className={`w-full text-left p-2.5 rounded-xl text-xs flex items-center justify-between transition-all group ${
+                className={`w-full text-left p-2 rounded-[3px] text-xs flex items-center justify-between transition-colors group ${
                   isSelected
-                    ? 'bg-gold-500/15 border border-gold-500/40 text-gold-300'
-                    : 'text-slate-200 hover:bg-oros-800/50'
+                    ? 'bg-oros-800 border border-oros-600 text-oros-100 font-medium'
+                    : 'text-oros-300 hover:bg-oros-850/60 border border-transparent'
                 }`}
               >
-                <div className="flex items-center gap-3 truncate">
-                  <div className={`p-1.5 rounded-lg ${
-                    isSelected ? 'bg-gold-500 text-oros-950' : 'bg-oros-800 text-oros-400'
+                <div className="flex items-center gap-2.5 truncate">
+                  <div className={`p-1.5 rounded-[2px] ${
+                    isSelected ? 'bg-oros-700 text-oros-100' : 'bg-oros-950 text-oros-400 border border-oros-800'
                   }`}>
                     <Icon className="w-3.5 h-3.5" />
                   </div>
                   <div className="truncate">
-                    <div className="font-medium truncate">{item.title}</div>
+                    <div className="truncate">{item.title}</div>
                     {item.subtitle && (
-                      <div className="text-[10px] text-oros-400 truncate mt-0.5">{item.subtitle}</div>
+                      <div className="text-[10px] text-oros-400 truncate mt-0.5 font-mono">{item.subtitle}</div>
                     )}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-oros-950 text-oros-400 border border-oros-800">
+                  <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded-[2px] bg-oros-950 text-oros-400 border border-oros-800">
                     {item.category}
                   </span>
-                  {isSelected && <ArrowRight className="w-3.5 h-3.5 text-gold-400" />}
+                  {isSelected && <ArrowRight className="w-3.5 h-3.5 text-oros-300" />}
                 </div>
               </button>
             )
@@ -301,13 +301,13 @@ export const CommandPalette: React.FC = () => {
         </div>
 
         {/* Footer Hint Bar */}
-        <div className="p-2.5 bg-oros-950/80 border-t border-oros-800/60 text-[10px] text-oros-400 flex items-center justify-between font-mono">
+        <div className="p-2 bg-oros-950 border-t border-oros-800 text-[10px] text-oros-400 flex items-center justify-between font-mono">
           <div className="flex items-center gap-3">
             <span>↑↓ Navigate</span>
             <span>↵ Select</span>
             <span>ESC Close</span>
           </div>
-          <span className="text-gold-400/80">Project Oros Command Palette</span>
+          <span className="text-oros-500 uppercase tracking-wider">Oros Command Dispatch</span>
         </div>
       </div>
     </div>

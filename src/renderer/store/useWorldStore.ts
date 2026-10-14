@@ -89,8 +89,10 @@ interface WorldState {
   createMap: (name: string, imageUrl: string) => WorldMap;
   updateMap: (mapId: string, updates: Partial<WorldMap>) => void;
   addPinToMap: (mapId: string, pin: Omit<MapPin, 'id' | 'mapId'>) => void;
+  updatePinOnMap: (mapId: string, pinId: string, updates: Partial<MapPin>) => void;
   removePinFromMap: (mapId: string, pinId: string) => void;
   addRegionToMap: (mapId: string, region: Omit<MapRegion, 'id' | 'mapId'>) => void;
+  updateRegionOnMap: (mapId: string, regionId: string, updates: Partial<MapRegion>) => void;
   removeRegionFromMap: (mapId: string, regionId: string) => void;
 
   // Relations CRUD
@@ -718,6 +720,23 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     get().persistStore();
   },
 
+  updatePinOnMap: (mapId, pinId, updates) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    set((state) => {
+      const list = (state.maps[worldId] || []).map((m) =>
+        m.id === mapId
+          ? {
+              ...m,
+              pins: m.pins.map((p) => (p.id === pinId ? { ...p, ...updates } : p))
+            }
+          : m
+      );
+      return { maps: { ...state.maps, [worldId]: list } };
+    });
+    get().persistStore();
+  },
+
   removePinFromMap: (mapId, pinId) => {
     const worldId = get().activeWorldId;
     if (!worldId) return;
@@ -737,6 +756,23 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     set((state) => {
       const list = (state.maps[worldId] || []).map((m) =>
         m.id === mapId ? { ...m, regions: [...m.regions, newRegion] } : m
+      );
+      return { maps: { ...state.maps, [worldId]: list } };
+    });
+    get().persistStore();
+  },
+
+  updateRegionOnMap: (mapId, regionId, updates) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    set((state) => {
+      const list = (state.maps[worldId] || []).map((m) =>
+        m.id === mapId
+          ? {
+              ...m,
+              regions: m.regions.map((r) => (r.id === regionId ? { ...r, ...updates } : r))
+            }
+          : m
       );
       return { maps: { ...state.maps, [worldId]: list } };
     });

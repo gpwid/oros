@@ -431,52 +431,64 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
         id: 'node-card-ronald',
         type: 'canvasCard',
         position: { x: 420, y: 220 },
+        style: { width: 180, height: 250 },
         data: {
           entityId: 'char-ronald',
           title: 'High King Ronald III',
           subtitle: 'Character',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+          width: 180,
+          height: 250
         }
       },
       {
         id: 'node-note-1',
         type: 'stickyNote',
         position: { x: 630, y: 220 },
+        style: { width: 250, height: 200 },
         data: {
           title: 'Title',
-          content: 'Write something...'
+          content: 'Write something...',
+          width: 250,
+          height: 200
         }
       },
       {
         id: 'node-shape-1',
         type: 'shape',
         position: { x: 880, y: 320 },
+        style: { width: 160, height: 120 },
         data: {
           shapeType: 'parallelogram',
           color: '#ffffff',
           fillOpacity: 0.95,
-          text: ''
+          text: '',
+          width: 160,
+          height: 120
         }
       },
       {
         id: 'node-text-1',
         type: 'canvasText',
         position: { x: 120, y: 500 },
+        style: { width: 240, height: 44 },
         data: {
-          text: 'Can draw, add cards, texts, shapes, arrows'
+          text: 'Can draw, add cards, texts, shapes, arrows',
+          width: 240,
+          height: 44
         }
       },
       {
         id: 'node-loop-drawing',
         type: 'canvasDrawing',
         position: { x: 330, y: 120 },
+        style: { width: 540, height: 420 },
         data: {
           path: 'M 40 60 C 100 10 340 0 470 30 C 530 80 520 250 490 330 C 400 410 130 420 30 280 C -15 180 0 90 40 60 Z',
           color: '#ffffff',
           width: 540,
           height: 420,
-          strokeWidth: 3.5,
-          scale: 1
+          strokeWidth: 3.5
         }
       }
     ],

@@ -24,7 +24,7 @@ import {
   MousePointer, Hand, StickyNote, Square, Circle, Diamond, 
   Type, PenTool, Sparkles, Plus, Trash2, X, ChevronDown, 
   User, Image as ImageIcon, Check, RefreshCw, Palette,
-  ArrowRight, Undo, Layers
+  ArrowRight, Undo, Layers, Move, ZoomIn, ZoomOut
 } from 'lucide-react'
 import { LoreEntity, CanvasStroke } from '@shared/types'
 
@@ -45,7 +45,7 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const fallbackAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
 
   return (
-    <div className={`relative w-44 rounded-2xl bg-oros-950/95 border transition-all duration-200 overflow-hidden shadow-2xl select-none group ${
+    <div className={`relative w-44 rounded-2xl bg-oros-950/95 border transition-all duration-200 overflow-hidden shadow-2xl select-none group cursor-move ${
       selected ? 'border-gold-400 ring-2 ring-gold-400/40' : 'border-oros-800/80 hover:border-oros-700'
     }`}>
       {/* 4 Cardinal Handles */}
@@ -84,10 +84,9 @@ const StickyNoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const noteData = data as { title?: string; content?: string }
   const [title, setTitle] = useState(noteData.title || 'Title')
   const [content, setContent] = useState(noteData.content || 'Write something...')
-  const { saveCanvasNodesAndEdges, selectedCanvasId, canvases, activeWorldId } = useWorldStore()
 
   return (
-    <div className={`relative w-64 rounded-xl bg-[#fefae0] text-amber-950 border border-amber-300/80 shadow-2xl transition-all duration-200 p-3 select-none ${
+    <div className={`relative w-64 rounded-xl bg-[#fefae0] text-amber-950 border border-amber-300/80 shadow-2xl transition-all duration-200 p-3 select-none cursor-move ${
       selected ? 'ring-2 ring-amber-500 shadow-amber-900/40' : 'hover:shadow-xl'
     }`}>
       {/* 4 Cardinal Handles */}
@@ -120,7 +119,7 @@ const StickyNoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             backgroundImage: 'repeating-linear-gradient(transparent, transparent 23px, #e9d8a6 24px)',
             backgroundAttachment: 'local'
           }}
-          className="w-full bg-transparent text-xs text-amber-900/90 placeholder-amber-700/50 outline-none resize-none"
+          className="w-full bg-transparent text-xs text-amber-900/90 placeholder-amber-700/50 outline-none resize-none cursor-text"
         />
       </div>
     </div>
@@ -138,7 +137,7 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const type = shapeData.shapeType || 'parallelogram'
 
   return (
-    <div className={`relative transition-all duration-200 select-none ${
+    <div className={`relative transition-all duration-200 select-none cursor-move ${
       selected ? 'ring-2 ring-gold-400' : ''
     }`}>
       {/* 4 Cardinal Handles */}
@@ -162,7 +161,7 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder=""
-            className="absolute inset-0 bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none px-6"
+            className="absolute inset-0 bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none px-6 cursor-text"
           />
         </div>
       )}
@@ -182,7 +181,7 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder=""
-            className="absolute inset-0 bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none px-4"
+            className="absolute inset-0 bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none px-4 cursor-text"
           />
         </div>
       )}
@@ -194,7 +193,7 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Text..."
-            className="w-full bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none"
+            className="w-full bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none cursor-text"
           />
         </div>
       )}
@@ -206,7 +205,7 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Text..."
-            className="w-full bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none"
+            className="w-full bg-transparent text-center font-sans font-medium text-xs text-slate-800 outline-none cursor-text"
           />
         </div>
       )}
@@ -220,7 +219,7 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const [text, setText] = useState(textData.text || 'Write annotation...')
 
   return (
-    <div className={`relative px-3 py-1.5 rounded-lg select-none transition-all ${
+    <div className={`relative px-3 py-1.5 rounded-lg select-none transition-all cursor-move ${
       selected ? 'ring-1 ring-gold-400 bg-oros-900/40' : 'hover:bg-oros-900/20'
     }`}>
       {/* 4 Cardinal Handles */}
@@ -233,8 +232,137 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         type="text"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        className="bg-transparent font-serif text-slate-200 text-sm tracking-wide outline-none min-w-[200px]"
+        className="bg-transparent font-serif text-slate-200 text-sm tracking-wide outline-none min-w-[200px] cursor-text"
       />
+    </div>
+  )
+}
+
+// 5. FIRST-CLASS DRAGGABLE, SCALABLE, DELETABLE DRAWING NODE
+const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
+  const drawingData = data as {
+    path?: string;
+    color?: string;
+    width?: number;
+    height?: number;
+    strokeWidth?: number;
+    scale?: number;
+  }
+
+  const reactFlow = useReactFlow()
+  const [scale, setScale] = useState(drawingData.scale || 1)
+  const [color, setColor] = useState(drawingData.color || '#ffffff')
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    reactFlow.setNodes((nds) => nds.filter((n) => n.id !== id))
+  }
+
+  const handleScale = (factor: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const newScale = Math.max(0.3, Math.min(3.5, Number((scale * factor).toFixed(2))))
+    setScale(newScale)
+    reactFlow.setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, scale: newScale } } : n))
+    )
+  }
+
+  const handleColorChange = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const palette = ['#ffffff', '#f5c542', '#38bdf8', '#f43f5e', '#34d399']
+    const next = palette[(palette.indexOf(color) + 1) % palette.length]
+    setColor(next)
+    reactFlow.setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, color: next } } : n))
+    )
+  }
+
+  const w = drawingData.width || 100
+  const h = drawingData.height || 100
+
+  return (
+    <div
+      style={{
+        transform: `scale(${scale})`,
+        transformOrigin: 'top left'
+      }}
+      className={`relative select-none cursor-move group ${
+        selected ? 'ring-2 ring-gold-400 ring-dashed rounded-xl bg-gold-400/5' : ''
+      }`}
+    >
+      {/* 4 Handles */}
+      <Handle type="target" position={Position.Top} className="!opacity-0 !w-2 !h-2" />
+      <Handle type="source" position={Position.Bottom} className="!opacity-0 !w-2 !h-2" />
+      <Handle type="target" position={Position.Left} className="!opacity-0 !w-2 !h-2" />
+      <Handle type="source" position={Position.Right} className="!opacity-0 !w-2 !h-2" />
+
+      {/* Floating Toolbar on Selection */}
+      {selected && (
+        <div 
+          className="absolute -top-11 left-0 flex items-center gap-1.5 bg-oros-900 border border-oros-700 rounded-lg px-2 py-1 shadow-2xl z-30 animate-in fade-in zoom-in-95 duration-100"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Zoom Out / Scale Down */}
+          <button
+            onClick={(e) => handleScale(0.85, e)}
+            className="p-1 rounded hover:bg-oros-800 text-slate-300 hover:text-white"
+            title="Scale Down"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          
+          <span className="text-[10px] font-mono text-oros-400 min-w-8 text-center">
+            {Math.round(scale * 100)}%
+          </span>
+
+          {/* Zoom In / Scale Up */}
+          <button
+            onClick={(e) => handleScale(1.15, e)}
+            className="p-1 rounded hover:bg-oros-800 text-slate-300 hover:text-white"
+            title="Scale Up"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+
+          <div className="w-[1px] h-3 bg-oros-800 mx-0.5" />
+
+          {/* Color Switcher */}
+          <button
+            onClick={handleColorChange}
+            className="w-4 h-4 rounded-full border border-slate-400/80 shadow-sm"
+            style={{ backgroundColor: color }}
+            title="Cycle stroke color"
+          />
+
+          <div className="w-[1px] h-3 bg-oros-800 mx-0.5" />
+
+          {/* Delete Drawing Button */}
+          <button
+            onClick={handleDelete}
+            className="p-1 rounded hover:bg-rose-950 text-oros-400 hover:text-rose-400"
+            title="Delete Drawing (Del / Backspace)"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* SVG Path */}
+      <svg
+        width={w}
+        height={h}
+        viewBox={`0 0 ${w} ${h}`}
+        className="overflow-visible pointer-events-auto"
+      >
+        <path
+          d={drawingData.path}
+          stroke={color}
+          strokeWidth={drawingData.strokeWidth || 3.5}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
     </div>
   )
 }
@@ -244,6 +372,7 @@ const nodeTypes = {
   stickyNote: StickyNoteNode,
   shape: ShapeNode,
   canvasText: CanvasTextNode,
+  canvasDrawing: CanvasDrawingNode
 }
 
 // ==========================================
@@ -258,7 +387,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
   const { 
     activeWorldId, canvases, selectedCanvasId, setSelectedCanvasId,
     createCanvas, updateCanvas, deleteCanvas, saveCanvasNodesAndEdges,
-    addCanvasStroke, clearCanvasStrokes, entities
+    entities
   } = useWorldStore()
 
   const { addToast } = useToastStore()
@@ -281,7 +410,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     }
   }, [currentCanvas?.id])
 
-  // Active Tool state: 'select' | 'pan' | 'pen' | 'text' | 'shape' | 'note' | 'card'
+  // Active Tool state: 'select' | 'pan' | 'pen' | 'text'
   const [activeTool, setActiveTool] = useState<'select' | 'pan' | 'pen' | 'text'>('select')
   const [penColor, setPenColor] = useState('#ffffff')
   const [showShapePicker, setShowShapePicker] = useState(false)
@@ -293,7 +422,6 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
   // Freehand drawing state
   const [isDrawing, setIsDrawing] = useState(false)
   const [currentStroke, setCurrentStroke] = useState<{ x: number; y: number }[]>([])
-  const drawingContainerRef = useRef<HTMLDivElement>(null)
 
   // Handle new edge connection with directional arrow
   const onConnect = useCallback((connection: Connection) => {
@@ -322,12 +450,11 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
   // Save changes to store
   const handleNodesChangeWrapped = useCallback((changes: any) => {
     onNodesChange(changes)
-    // Auto-save nodes after dragging
     setTimeout(() => {
       if (currentCanvas) {
         saveCanvasNodesAndEdges(currentCanvas.id, reactFlowInstance.getNodes(), edges)
       }
-    }, 100)
+    }, 120)
   }, [currentCanvas, onNodesChange, edges, saveCanvasNodesAndEdges, reactFlowInstance])
 
   // Add a Sticky Note at center of viewport
@@ -433,22 +560,6 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     setCurrentStroke((prev) => [...prev, pos])
   }
 
-  const handlePointerUp = () => {
-    if (!isDrawing || activeTool !== 'pen') return
-    setIsDrawing(false)
-    if (currentStroke.length > 1 && currentCanvas) {
-      const newStroke: CanvasStroke = {
-        id: `stroke-${Date.now()}`,
-        points: currentStroke,
-        color: penColor,
-        width: 3
-      }
-      addCanvasStroke(currentCanvas.id, newStroke)
-    }
-    setCurrentStroke([])
-  }
-
-  // Convert points array to smooth SVG path
   const pointsToSvgPath = (points: { x: number; y: number }[]) => {
     if (points.length < 2) return ''
     let d = `M ${points[0].x} ${points[0].y}`
@@ -456,6 +567,59 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
       d += ` L ${points[i].x} ${points[i].y}`
     }
     return d
+  }
+
+  const handlePointerUp = () => {
+    if (!isDrawing || activeTool !== 'pen') return
+    setIsDrawing(false)
+
+    if (currentStroke.length > 2) {
+      // Calculate bounding box
+      const xs = currentStroke.map((p) => p.x)
+      const ys = currentStroke.map((p) => p.y)
+      const minX = Math.min(...xs) - 10
+      const minY = Math.min(...ys) - 10
+      const maxX = Math.max(...xs) + 10
+      const maxY = Math.max(...ys) + 10
+      const width = Math.max(maxX - minX, 40)
+      const height = Math.max(maxY - minY, 40)
+
+      // Normalize points to local coordinates inside the node
+      const normalized = currentStroke.map((p) => ({
+        x: p.x - minX,
+        y: p.y - minY
+      }))
+
+      const pathStr = pointsToSvgPath(normalized)
+
+      const newNode: Node = {
+        id: `draw-${Date.now()}`,
+        type: 'canvasDrawing',
+        position: { x: minX, y: minY },
+        data: {
+          path: pathStr,
+          color: penColor,
+          width,
+          height,
+          strokeWidth: 3.5,
+          scale: 1
+        }
+      }
+
+      setNodes((nds) => {
+        const updated = [...nds, newNode]
+        if (currentCanvas) {
+          saveCanvasNodesAndEdges(currentCanvas.id, updated, edges)
+        }
+        return updated
+      })
+
+      // Automatically switch back to select mode so drawing can be moved, scaled, and deleted!
+      setActiveTool('select')
+      addToast('Drawing created. Drag to move, or click to scale and delete.', 'info')
+    }
+
+    setCurrentStroke([])
   }
 
   // Active world entities for the card picker
@@ -477,6 +641,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         fitView
+        deleteKeyCode={['Backspace', 'Delete']}
         panOnDrag={activeTool === 'pan' || activeTool === 'select'}
         selectionOnDrag={activeTool === 'select'}
         zoomOnScroll={true}
@@ -492,38 +657,21 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
           color="rgba(255, 255, 255, 0.14)" 
         />
 
-        {/* Freehand Strokes SVG Layer (Transformed with flow coordinate space) */}
-        <svg 
-          className="absolute inset-0 pointer-events-none w-full h-full overflow-visible z-10"
-        >
-          <g transform={`translate(${reactFlowInstance.getViewport().x}, ${reactFlowInstance.getViewport().y}) scale(${reactFlowInstance.getViewport().zoom})`}>
-            {/* Saved Strokes */}
-            {(currentCanvas?.strokes || []).map((stroke) => (
-              <path
-                key={stroke.id}
-                d={pointsToSvgPath(stroke.points)}
-                stroke={stroke.color}
-                strokeWidth={stroke.width}
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity={0.9}
-              />
-            ))}
-
-            {/* In-progress Active Stroke */}
-            {isDrawing && currentStroke.length > 1 && (
+        {/* Live Active Stroke Preview during Pen Drawing */}
+        {isDrawing && currentStroke.length > 1 && (
+          <svg className="absolute inset-0 pointer-events-none w-full h-full overflow-visible z-30">
+            <g transform={`translate(${reactFlowInstance.getViewport().x}, ${reactFlowInstance.getViewport().y}) scale(${reactFlowInstance.getViewport().zoom})`}>
               <path
                 d={pointsToSvgPath(currentStroke)}
                 stroke={penColor}
-                strokeWidth={3}
+                strokeWidth={3.5}
                 fill="none"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
-            )}
-          </g>
-        </svg>
+            </g>
+          </svg>
+        )}
       </ReactFlow>
 
       {/* Top-Left Canvas Name & Switcher Dropdown */}
@@ -757,20 +905,6 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             className="p-2 rounded-full text-oros-400 hover:text-slate-100 hover:bg-oros-800/60 transition-all"
           >
             <Type className="w-4 h-4" />
-          </button>
-
-          {/* 8. Clear Freehand Strokes */}
-          <button
-            onClick={() => {
-              if (currentCanvas && confirm('Clear all freehand pen sketches on this canvas?')) {
-                clearCanvasStrokes(currentCanvas.id)
-                addToast('Cleared drawing strokes', 'info')
-              }
-            }}
-            title="Clear Freehand Drawings"
-            className="p-2 rounded-full text-oros-400 hover:text-rose-400 hover:bg-rose-950/40 transition-all"
-          >
-            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>

@@ -1,65 +1,59 @@
-import React, { useMemo, useState, useCallback } from 'react'
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { 
   ReactFlow, Controls, Background, MiniMap, Node, Edge, 
   MarkerType, Handle, Position, useNodesState, useEdgesState,
-  BaseEdge, EdgeProps, getStraightPath, useInternalNode
+  useReactFlow, ReactFlowProvider, BaseEdge, EdgeProps, getStraightPath
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
 import { 
   Network, Search, Filter, BookOpen, ExternalLink, ArrowRight, 
-  Sparkles, Link2, GitFork, User, MapPin, Shield, Gem, Scroll, 
-  Radio, X, Info, CheckCircle2, AlertCircle
+  Sparkles, Link2, User, MapPin, Shield, Gem, Scroll, 
+  X, AlertCircle, Play, Pause, Maximize2, Orbit
 } from 'lucide-react'
 import { LoreEntity, EntityType } from '@shared/types'
 
-// Dynamic boundary intersection for straight network links
-function getWikiIntersection(sourceNode: any, targetNode: any) {
-  const w1 = sourceNode.measured?.width || 190
-  const h1 = sourceNode.measured?.height || 72
-  const pos1 = sourceNode.internals?.positionAbsolute || sourceNode.position || { x: 0, y: 0 }
-  const cx1 = pos1.x + w1 / 2
-  const cy1 = pos1.y + h1 / 2
+// Optimal cardinal handle picker based on relative center positions
+function getOptimalHandles(
+  sourcePos: { x: number; y: number },
+  targetPos: { x: number; y: number }
+): { sourceHandle: string; targetHandle: string } {
+  // Center of card: 224px wide, 68px tall
+  const sCx = sourcePos.x + 112
+  const sCy = sourcePos.y + 34
+  const tCx = targetPos.x + 112
+  const tCy = targetPos.y + 34
 
-  const w2 = targetNode.measured?.width || 190
-  const h2 = targetNode.measured?.height || 72
-  const pos2 = targetNode.internals?.positionAbsolute || targetNode.position || { x: 0, y: 0 }
-  const cx2 = pos2.x + w2 / 2
-  const cy2 = pos2.y + h2 / 2
+  const dx = tCx - sCx
+  const dy = tCy - sCy
 
-  const dx = cx2 - cx1
-  const dy = cy2 - cy1
-  if (dx === 0 && dy === 0) return { sourceX: cx1, sourceY: cy1, targetX: cx2, targetY: cy2 }
-
-  const scaleX1 = (w1 / 2) / (Math.abs(dx) || 1e-9)
-  const scaleY1 = (h1 / 2) / (Math.abs(dy) || 1e-9)
-  const scale1 = Math.min(scaleX1, scaleY1)
-  const sourceX = cx1 + dx * scale1
-  const sourceY = cy1 + dy * scale1
-
-  const scaleX2 = (w2 / 2) / (Math.abs(dx) || 1e-9)
-  const scaleY2 = (h2 / 2) / (Math.abs(dy) || 1e-9)
-  const scale2 = Math.min(scaleX2, scaleY2)
-  const targetX = cx2 - dx * scale2
-  const targetY = cy2 - dy * scale2
-
-  return { sourceX, sourceY, targetX, targetY }
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx > 0
+      ? { sourceHandle: 'r-src', targetHandle: 'l-tgt' }
+      : { sourceHandle: 'l-src', targetHandle: 'r-tgt' }
+  } else {
+    return dy > 0
+      ? { sourceHandle: 'b-src', targetHandle: 't-tgt' }
+      : { sourceHandle: 't-src', targetHandle: 'b-tgt' }
+  }
 }
 
-const WikiNetworkEdge = ({ id, source, target, markerEnd, style }: EdgeProps) => {
-  const sourceNode = useInternalNode(source)
-  const targetNode = useInternalNode(target)
-
-  if (!sourceNode || !targetNode) return null
-
-  const { sourceX, sourceY, targetX, targetY } = getWikiIntersection(sourceNode, targetNode)
+// Rock-solid straight edge connecting cardinal handles directly
+const DirectStraightEdge: React.FC<EdgeProps> = ({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  style,
+  markerEnd
+}) => {
   const [edgePath] = getStraightPath({ sourceX, sourceY, targetX, targetY })
-
   return <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={style} />
 }
 
-// Icon helper by entity type
+// Icon helper by entity type (Single unified gold color palette)
 const getEntityIcon = (type: EntityType) => {
   switch (type) {
     case 'character': return User
@@ -70,18 +64,8 @@ const getEntityIcon = (type: EntityType) => {
   }
 }
 
-// Color theme by entity type
-const getTypeColor = (type: EntityType) => {
-  switch (type) {
-    case 'character': return { border: 'border-amber-500/70', bg: 'bg-amber-500/10', text: 'text-amber-400', badge: 'bg-amber-500/20 text-amber-300' }
-    case 'location': return { border: 'border-emerald-500/70', bg: 'bg-emerald-500/10', text: 'text-emerald-400', badge: 'bg-emerald-500/20 text-emerald-300' }
-    case 'faction': return { border: 'border-blue-500/70', bg: 'bg-blue-500/10', text: 'text-blue-400', badge: 'bg-blue-500/20 text-blue-300' }
-    case 'item': return { border: 'border-purple-500/70', bg: 'bg-purple-500/10', text: 'text-purple-400', badge: 'bg-purple-500/20 text-purple-300' }
-    default: return { border: 'border-rose-500/70', bg: 'bg-rose-500/10', text: 'text-rose-400', badge: 'bg-rose-500/20 text-rose-300' }
-  }
-}
-
 // Compact, high-density Wiki Node for the Knowledge Network
+// UNIFIED SINGLE-COLOR PALETTE: Muted Gold & Slate (Easier to look at)
 const WikiArticleNode = ({ data }: { data: { 
   entity: LoreEntity; 
   degree: number; 
@@ -92,42 +76,58 @@ const WikiArticleNode = ({ data }: { data: {
   onSelect: (id: string) => void;
 } }) => {
   const { entity, degree, inDegree, outDegree, isHub, isSelected } = data
-  const theme = getTypeColor(entity.type)
   const Icon = getEntityIcon(entity.type)
+  const [imgError, setImgError] = useState(false)
 
   return (
-    <div className={`w-52 rounded-xl bg-oros-900/95 border-2 shadow-xl transition-all cursor-pointer select-none text-left ${
-      isSelected 
-        ? 'border-gold-400 ring-2 ring-gold-400/40 scale-105 z-20' 
-        : isHub
-          ? `${theme.border} ring-1 ring-gold-400/30 hover:border-gold-400`
-          : 'border-oros-700/80 hover:border-slate-300'
-    }`}>
-      {/* Invisible Handles */}
-      <Handle type="target" position={Position.Top} className="!opacity-0 !w-1 !h-1 pointer-events-none" />
-      <Handle type="source" position={Position.Bottom} className="!opacity-0 !w-1 !h-1 pointer-events-none" />
+    <div 
+      onClick={() => data.onSelect(entity.id)}
+      className={`w-56 rounded-xl bg-oros-900/95 border-2 shadow-2xl transition-all duration-200 cursor-pointer select-none text-left relative ${
+        isSelected 
+          ? 'border-gold-400 ring-2 ring-gold-400/50 shadow-[0_0_24px_rgba(245,197,66,0.3)] z-30 scale-[1.02]' 
+          : isHub
+            ? 'border-gold-500/60 ring-1 ring-gold-400/20 hover:border-gold-400 shadow-xl'
+            : 'border-oros-700/80 hover:border-gold-400/70'
+      }`}
+    >
+      {/* 8 Cardinal Handles for Glitch-Free Omnidirectional Connections */}
+      <Handle type="target" position={Position.Top} id="t-tgt" className="!opacity-0 !w-2 !h-2 pointer-events-none" />
+      <Handle type="source" position={Position.Top} id="t-src" className="!opacity-0 !w-2 !h-2 pointer-events-none" />
+      <Handle type="target" position={Position.Bottom} id="b-tgt" className="!opacity-0 !w-2 !h-2 pointer-events-none" />
+      <Handle type="source" position={Position.Bottom} id="b-src" className="!opacity-0 !w-2 !h-2 pointer-events-none" />
+      <Handle type="target" position={Position.Left} id="l-tgt" className="!opacity-0 !w-2 !h-2 pointer-events-none" />
+      <Handle type="source" position={Position.Left} id="l-src" className="!opacity-0 !w-2 !h-2 pointer-events-none" />
+      <Handle type="target" position={Position.Right} id="r-tgt" className="!opacity-0 !w-2 !h-2 pointer-events-none" />
+      <Handle type="source" position={Position.Right} id="r-src" className="!opacity-0 !w-2 !h-2 pointer-events-none" />
 
       <div className="p-2.5 flex items-center gap-2.5">
-        {/* Entity Portrait or Icon */}
-        <div className="w-10 h-10 rounded-lg overflow-hidden bg-oros-950 flex-shrink-0 border border-oros-700/60 flex items-center justify-center">
-          {entity.avatar ? (
-            <img src={entity.avatar} alt={entity.title} className="w-full h-full object-cover" />
+        {/* Entity Portrait or Icon (Included on every card) */}
+        <div className="w-11 h-11 rounded-lg overflow-hidden bg-oros-950 flex-shrink-0 border border-oros-700/70 flex items-center justify-center shadow-inner">
+          {entity.avatar && !imgError ? (
+            <img 
+              src={entity.avatar} 
+              alt={entity.title} 
+              onError={() => setImgError(true)}
+              className="w-full h-full object-cover" 
+            />
           ) : (
-            <Icon className={`w-5 h-5 ${theme.text}`} />
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-oros-850 to-oros-950 text-gold-400 font-serif font-bold text-sm">
+              <Icon className="w-5 h-5 text-gold-400" />
+            </div>
           )}
         </div>
 
-        {/* Title and stats */}
+        {/* Title and stats - Single-color gold/slate palette */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-1 mb-0.5">
-            <span className={`text-[8px] uppercase font-mono font-bold px-1.5 py-0.2 rounded ${theme.badge}`}>
+          <div className="flex items-center justify-between gap-1 mb-1">
+            <span className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.2 rounded bg-oros-950 text-gold-300 border border-gold-400/20 truncate">
               {entity.type}
             </span>
-            <span className="text-[9px] font-mono font-semibold text-oros-400" title={`${inDegree} backlinks, ${outDegree} outbound`}>
-              {degree} links
+            <span className="text-[9px] font-mono font-semibold text-oros-400 shrink-0" title={`${inDegree} backlinks, ${outDegree} outbound`}>
+              {degree} {degree === 1 ? 'link' : 'links'}
             </span>
           </div>
-          <h4 className="font-serif font-bold text-xs text-slate-100 truncate">
+          <h4 className="font-serif font-bold text-xs text-slate-100 truncate group-hover:text-gold-300">
             {entity.title}
           </h4>
         </div>
@@ -141,25 +141,40 @@ const nodeTypes = {
 }
 
 const edgeTypes = {
-  wikiNetwork: WikiNetworkEdge
+  directStraight: DirectStraightEdge
 }
 
-export const WikiNetworkGraph: React.FC = () => {
+interface SimNode {
+  id: string
+  x: number
+  y: number
+  vx: number
+  vy: number
+}
+
+const WikiNetworkGraphInner: React.FC = () => {
   const { 
     entities, relations, activeWorldId, setSelectedEntityId, setActiveTab 
   } = useWorldStore()
   const { addToast } = useToastStore()
+  const { fitView } = useReactFlow()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<string>('all')
   const [selectedWikiId, setSelectedWikiId] = useState<string | null>(null)
   const [showOnlyHubs, setShowOnlyHubs] = useState(false)
+  const [isSimulating, setIsSimulating] = useState(true)
 
-  const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
-  const worldRelations = activeWorldId ? relations[activeWorldId] || [] : []
+  const worldEntities = useMemo(() => {
+    return activeWorldId ? entities[activeWorldId] || [] : []
+  }, [activeWorldId, entities])
 
-  // Extract all cross-wiki connections (mentions, infobox links, relations)
-  const { linkMap, inDegreeMap, outDegreeMap, allLinks } = useMemo(() => {
+  const worldRelations = useMemo(() => {
+    return activeWorldId ? relations[activeWorldId] || [] : []
+  }, [activeWorldId, relations])
+
+  // Extract all cross-wiki connections (relations, infobox links, content mentions)
+  const { inDegreeMap, outDegreeMap, allLinks } = useMemo(() => {
     const linkMap: Record<string, Set<string>> = {}
     const inDegreeMap: Record<string, number> = {}
     const outDegreeMap: Record<string, number> = {}
@@ -176,7 +191,7 @@ export const WikiNetworkGraph: React.FC = () => {
       if (linkMap[r.sourceEntityId] && linkMap[r.targetEntityId]) {
         if (!linkMap[r.sourceEntityId].has(r.targetEntityId)) {
           linkMap[r.sourceEntityId].add(r.targetEntityId)
-          allLinks.push({ source: r.sourceEntityId, target: r.targetEntityId, reason: r.label || 'Relation' })
+          allLinks.push({ source: r.sourceEntityId, target: r.targetEntityId, reason: r.label || 'Relasi' })
           outDegreeMap[r.sourceEntityId] = (outDegreeMap[r.sourceEntityId] || 0) + 1
           inDegreeMap[r.targetEntityId] = (inDegreeMap[r.targetEntityId] || 0) + 1
         }
@@ -199,19 +214,18 @@ export const WikiNetworkGraph: React.FC = () => {
       })
     })
 
-    // 3. Scan HTML content mentions (TipTap data-id or text mention of other entity title)
+    // 3. Scan HTML content mentions (TipTap data-id or title text mention)
     worldEntities.forEach(source => {
       const content = source.content || ''
       worldEntities.forEach(target => {
         if (source.id !== target.id) {
-          // Check mention tag or title text match
           const hasMentionTag = content.includes(`data-id="${target.id}"`) || content.includes(`data-label="${target.title}"`)
           const hasTitleMention = target.title.length > 3 && content.includes(target.title)
           
           if (hasMentionTag || hasTitleMention) {
             if (!linkMap[source.id].has(target.id)) {
               linkMap[source.id].add(target.id)
-              allLinks.push({ source: source.id, target: target.id, reason: 'Mention in article text' })
+              allLinks.push({ source: source.id, target: target.id, reason: 'Disebutkan dalam artikel' })
               outDegreeMap[source.id] = (outDegreeMap[source.id] || 0) + 1
               inDegreeMap[target.id] = (inDegreeMap[target.id] || 0) + 1
             }
@@ -220,7 +234,7 @@ export const WikiNetworkGraph: React.FC = () => {
       })
     })
 
-    return { linkMap, inDegreeMap, outDegreeMap, allLinks }
+    return { inDegreeMap, outDegreeMap, allLinks }
   }, [worldEntities, worldRelations])
 
   // Filtered entities for nodes
@@ -237,30 +251,130 @@ export const WikiNetworkGraph: React.FC = () => {
     })
   }, [worldEntities, selectedType, showOnlyHubs, searchQuery, inDegreeMap, outDegreeMap])
 
-  // Generate Nodes in an organic spiral/circular layout
-  const initialNodes: Node[] = useMemo(() => {
-    const total = Math.max(filteredEntities.length, 1)
-    const radius = 340
-    const centerX = 550
-    const centerY = 350
+  // Mutable Simulation State Ref
+  const simNodesRef = useRef<Map<string, SimNode>>(new Map())
+  const animFrameRef = useRef<number | null>(null)
+  const lastStateSyncRef = useRef<number>(0)
 
-    return filteredEntities.map((ent, idx) => {
-      const angle = (idx / total) * 2 * Math.PI - Math.PI / 2
+  // Initialize or re-synchronize simulation nodes
+  useEffect(() => {
+    const existing = simNodesRef.current
+    const nextMap = new Map<string, SimNode>()
+    const count = Math.max(filteredEntities.length, 1)
+    const centerX = 550
+    const centerY = 340
+    const radius = Math.min(380, Math.max(220, count * 35))
+
+    filteredEntities.forEach((ent, idx) => {
+      if (existing.has(ent.id)) {
+        nextMap.set(ent.id, existing.get(ent.id)!)
+      } else {
+        const angle = (idx / count) * 2 * Math.PI - Math.PI / 2
+        const inDeg = inDegreeMap[ent.id] || 0
+        const outDeg = outDegreeMap[ent.id] || 0
+        const isHub = (inDeg + outDeg) >= 2
+        const r = isHub ? radius * 0.7 : radius
+
+        nextMap.set(ent.id, {
+          id: ent.id,
+          x: centerX + r * Math.cos(angle) + (Math.random() - 0.5) * 40,
+          y: centerY + r * Math.sin(angle) + (Math.random() - 0.5) * 40,
+          vx: 0,
+          vy: 0
+        })
+      }
+    })
+
+    // Pre-settle warm-up simulation (50 iterations)
+    const nodeArray = Array.from(nextMap.values())
+    const visibleIds = new Set(filteredEntities.map(e => e.id))
+    const activeLinks = allLinks.filter(l => visibleIds.has(l.source) && visibleIds.has(l.target))
+
+    for (let step = 0; step < 50; step++) {
+      // 1. Center gravity (slight gravitational pull toward center)
+      nodeArray.forEach(node => {
+        node.vx += (centerX - node.x) * 0.0035
+        node.vy += (centerY - node.y) * 0.0035
+      })
+
+      // 2. Coulomb Repulsion between all node pairs
+      for (let i = 0; i < nodeArray.length; i++) {
+        for (let j = i + 1; j < nodeArray.length; j++) {
+          const n1 = nodeArray[i]
+          const n2 = nodeArray[j]
+          const dx = n2.x - n1.x
+          const dy = n2.y - n1.y
+          const distSq = dx * dx + dy * dy
+          const dist = Math.sqrt(distSq) || 1
+          const force = 48000 / Math.max(distSq, 1600)
+
+          const fx = (dx / dist) * force
+          const fy = (dy / dist) * force
+
+          n1.vx -= fx
+          n1.vy -= fy
+          n2.vx += fx
+          n2.vy += fy
+
+          // Anti-overlap box push (224px width, 68px height)
+          const overlapX = 230 - Math.abs(dx)
+          const overlapY = 75 - Math.abs(dy)
+          if (overlapX > 0 && overlapY > 0) {
+            const push = Math.min(overlapX, overlapY) * 0.12
+            n1.vx -= Math.sign(dx || 1) * push
+            n1.vy -= Math.sign(dy || 1) * push
+            n2.vx += Math.sign(dx || 1) * push
+            n2.vy += Math.sign(dy || 1) * push
+          }
+        }
+      }
+
+      // 3. Link spring attraction
+      activeLinks.forEach(l => {
+        const n1 = nextMap.get(l.source)
+        const n2 = nextMap.get(l.target)
+        if (n1 && n2) {
+          const dx = n2.x - n1.x
+          const dy = n2.y - n1.y
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1
+          const delta = dist - 250
+          const force = delta * 0.016
+          const fx = (dx / dist) * force
+          const fy = (dy / dist) * force
+
+          n1.vx += fx
+          n1.vy += fy
+          n2.vx -= fx
+          n2.vy -= fy
+        }
+      })
+
+      // 4. Damping & integration
+      nodeArray.forEach(node => {
+        node.vx *= 0.82
+        node.vy *= 0.82
+        node.x += node.vx
+        node.y += node.vy
+      })
+    }
+
+    simNodesRef.current = nextMap
+  }, [filteredEntities, inDegreeMap, outDegreeMap, allLinks])
+
+  // Build React Flow Nodes with initial coordinates
+  const initialNodes: Node[] = useMemo(() => {
+    return filteredEntities.map((ent) => {
+      const sim = simNodesRef.current.get(ent.id) || { x: 550, y: 340 }
       const inDeg = inDegreeMap[ent.id] || 0
       const outDeg = outDegreeMap[ent.id] || 0
       const totalDeg = inDeg + outDeg
       const isHub = totalDeg >= 2
 
-      // Hubs positioned slightly closer to center
-      const r = isHub ? radius * 0.75 : radius
-
-      const x = centerX + r * Math.cos(angle)
-      const y = centerY + r * Math.sin(angle)
-
       return {
         id: ent.id,
         type: 'wikiArticle',
-        position: { x, y },
+        position: { x: sim.x, y: sim.y },
+        draggable: false, // User requested: "Dont have the option to move it at all"
         data: {
           entity: ent,
           degree: totalDeg,
@@ -274,7 +388,7 @@ export const WikiNetworkGraph: React.FC = () => {
     })
   }, [filteredEntities, inDegreeMap, outDegreeMap, selectedWikiId])
 
-  // Generate Edges between visible nodes
+  // Build React Flow Edges with initial optimal cardinal handles
   const initialEdges: Edge[] = useMemo(() => {
     const visibleIds = new Set(filteredEntities.map(e => e.id))
 
@@ -288,16 +402,22 @@ export const WikiNetworkGraph: React.FC = () => {
         const strokeColor = isHighlighted ? '#f5c542' : '#475569'
         const strokeWidth = isHighlighted ? 2.5 : 1.5
 
+        const srcPos = simNodesRef.current.get(link.source) || { x: 0, y: 0 }
+        const tgtPos = simNodesRef.current.get(link.target) || { x: 0, y: 0 }
+        const handles = getOptimalHandles(srcPos, tgtPos)
+
         return {
           id: `wlink-${idx}-${link.source}-${link.target}`,
           source: link.source,
           target: link.target,
-          type: 'wikiNetwork',
+          sourceHandle: handles.sourceHandle,
+          targetHandle: handles.targetHandle,
+          type: 'directStraight',
           animated: isHighlighted,
           style: { 
             stroke: strokeColor, 
             strokeWidth,
-            opacity: selectedWikiId ? (isHighlighted ? 1 : 0.25) : 0.7
+            opacity: selectedWikiId ? (isHighlighted ? 1 : 0.2) : 0.75
           },
           markerEnd: {
             type: MarkerType.ArrowClosed,
@@ -312,13 +432,146 @@ export const WikiNetworkGraph: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
-  React.useEffect(() => {
+  useEffect(() => {
     setNodes(initialNodes)
   }, [initialNodes, setNodes])
 
-  React.useEffect(() => {
+  useEffect(() => {
     setEdges(initialEdges)
   }, [initialEdges, setEdges])
+
+  // DYNAMIC CONTINUOUS GRAVITY PHYSICS LOOP
+  useEffect(() => {
+    if (!isSimulating) return
+
+    const centerX = 550
+    const centerY = 340
+    const visibleIds = new Set(filteredEntities.map(e => e.id))
+    const activeLinks = allLinks.filter(l => visibleIds.has(l.source) && visibleIds.has(l.target))
+
+    const stepSimulation = (time: number) => {
+      const nodeMap = simNodesRef.current
+      const nodeArray = Array.from(nodeMap.values())
+      if (nodeArray.length === 0) return
+
+      const timeSec = time * 0.001
+
+      // 1. Center gravity (slight gravitational pull toward center)
+      nodeArray.forEach((node, idx) => {
+        node.vx += (centerX - node.x) * 0.003
+        node.vy += (centerY - node.y) * 0.003
+
+        // Subtle celestial breathing (gentle living float)
+        node.vx += Math.sin(timeSec * 0.8 + idx * 0.7) * 0.06
+        node.vy += Math.cos(timeSec * 0.8 + idx * 0.7) * 0.06
+      })
+
+      // 2. Pairwise Coulomb Repulsion & Box Collision
+      for (let i = 0; i < nodeArray.length; i++) {
+        for (let j = i + 1; j < nodeArray.length; j++) {
+          const n1 = nodeArray[i]
+          const n2 = nodeArray[j]
+          const dx = n2.x - n1.x
+          const dy = n2.y - n1.y
+          const distSq = dx * dx + dy * dy
+          const dist = Math.sqrt(distSq) || 1
+          const force = 45000 / Math.max(distSq, 1600)
+
+          const fx = (dx / dist) * force
+          const fy = (dy / dist) * force
+
+          n1.vx -= fx
+          n1.vy -= fy
+          n2.vx += fx
+          n2.vy += fy
+
+          // Card boundary anti-overlap push (224px width, 68px height)
+          const overlapX = 230 - Math.abs(dx)
+          const overlapY = 75 - Math.abs(dy)
+          if (overlapX > 0 && overlapY > 0) {
+            const push = Math.min(overlapX, overlapY) * 0.1
+            n1.vx -= Math.sign(dx || 1) * push
+            n1.vy -= Math.sign(dy || 1) * push
+            n2.vx += Math.sign(dx || 1) * push
+            n2.vy += Math.sign(dy || 1) * push
+          }
+        }
+      }
+
+      // 3. Link spring attraction
+      activeLinks.forEach(l => {
+        const n1 = nodeMap.get(l.source)
+        const n2 = nodeMap.get(l.target)
+        if (n1 && n2) {
+          const dx = n2.x - n1.x
+          const dy = n2.y - n1.y
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1
+          const delta = dist - 250
+          const force = delta * 0.015
+          const fx = (dx / dist) * force
+          const fy = (dy / dist) * force
+
+          n1.vx += fx
+          n1.vy += fy
+          n2.vx -= fx
+          n2.vy -= fy
+        }
+      })
+
+      // 4. Velocity damping and integration
+      nodeArray.forEach(node => {
+        node.vx *= 0.84
+        node.vy *= 0.84
+
+        // Cap speed
+        const speed = Math.sqrt(node.vx * node.vx + node.vy * node.vy)
+        if (speed > 6) {
+          node.vx = (node.vx / speed) * 6
+          node.vy = (node.vy / speed) * 6
+        }
+
+        node.x += node.vx
+        node.y += node.vy
+      })
+
+      // 5. Throttled sync to React Flow (~33ms / 30fps) for silky 60fps rendering without React overhead
+      if (time - lastStateSyncRef.current > 32) {
+        lastStateSyncRef.current = time
+
+        setNodes(prev =>
+          prev.map(n => {
+            const sim = nodeMap.get(n.id)
+            if (!sim) return n
+            // Only update if moved noticeably
+            if (Math.abs(n.position.x - sim.x) > 0.3 || Math.abs(n.position.y - sim.y) > 0.3) {
+              return { ...n, position: { x: sim.x, y: sim.y } }
+            }
+            return n
+          })
+        )
+
+        setEdges(prev =>
+          prev.map(e => {
+            const sPos = nodeMap.get(e.source)
+            const tPos = nodeMap.get(e.target)
+            if (!sPos || !tPos) return e
+            const optimal = getOptimalHandles(sPos, tPos)
+            if (e.sourceHandle !== optimal.sourceHandle || e.targetHandle !== optimal.targetHandle) {
+              return { ...e, sourceHandle: optimal.sourceHandle, targetHandle: optimal.targetHandle }
+            }
+            return e
+          })
+        )
+      }
+
+      animFrameRef.current = requestAnimationFrame(stepSimulation)
+    }
+
+    animFrameRef.current = requestAnimationFrame(stepSimulation)
+    return () => {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
+    }
+  }, [isSimulating, filteredEntities, allLinks, setNodes, setEdges])
 
   const onNodeClick = (_: React.MouseEvent, node: Node) => {
     setSelectedWikiId(node.id)
@@ -352,10 +605,10 @@ export const WikiNetworkGraph: React.FC = () => {
   const handleOpenInWiki = (entityId: string) => {
     setSelectedEntityId(entityId)
     setActiveTab('wiki')
-    addToast('Opened article in Encyclopedia', 'info')
+    addToast('Membuka artikel di Ensiklopedia', 'info')
   }
 
-  // Knowledge graph health metrics
+  // Network health metrics
   const totalArticles = worldEntities.length
   const totalLinks = allLinks.length
   const orphanCount = worldEntities.filter(e => ((inDegreeMap[e.id] || 0) + (outDegreeMap[e.id] || 0)) === 0).length
@@ -363,71 +616,71 @@ export const WikiNetworkGraph: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-oros-950 relative select-none">
-      {/* Top Header & Metrics Bar */}
-      <div className="h-12 bg-oros-900/90 border-b border-oros-800/60 px-4 flex items-center justify-between z-20 backdrop-blur-sm">
+      {/* Top Header & Metrics Bar - Unified Single Color Palette */}
+      <div className="h-12 bg-oros-900/90 border-b border-oros-800/80 px-4 flex items-center justify-between z-20 backdrop-blur-sm">
         <div className="flex items-center gap-3">
-          <div className="p-1 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">
+          <div className="p-1 rounded-md bg-gold-400/10 text-gold-400 border border-gold-400/20">
             <Network className="w-4 h-4" />
           </div>
           <div>
             <h2 className="font-serif text-sm font-bold text-slate-100 flex items-center gap-2">
-              Wiki Cross-Link Network
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-oros-800 text-blue-400 font-normal">
+              Jaringan Relasi Elemen Dunia
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-oros-800 text-gold-400 font-normal border border-gold-400/20">
                 Knowledge Graph
               </span>
             </h2>
           </div>
         </div>
 
-        {/* Global Network Health Stats */}
+        {/* Global Network Health Stats (Unified Gold/Slate Colors) */}
         <div className="hidden lg:flex items-center gap-4 text-xs font-mono">
           <div className="flex items-center gap-1.5 text-oros-300">
             <BookOpen className="w-3.5 h-3.5 text-gold-400" />
-            <span>{totalArticles} Articles</span>
+            <span>{totalArticles} Elemen</span>
           </div>
           <div className="flex items-center gap-1.5 text-oros-300">
-            <Link2 className="w-3.5 h-3.5 text-blue-400" />
-            <span>{totalLinks} Cross-Links</span>
+            <Link2 className="w-3.5 h-3.5 text-gold-400" />
+            <span>{totalLinks} Relasi & Koneksi</span>
           </div>
           <div className="flex items-center gap-1.5 text-oros-300">
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <Sparkles className="w-3.5 h-3.5 text-gold-400" />
             <span>{hubCount} Hubs</span>
           </div>
           {orphanCount > 0 && (
-            <div className="flex items-center gap-1.5 text-amber-400" title="Articles with 0 connections">
-              <AlertCircle className="w-3.5 h-3.5" />
-              <span>{orphanCount} Unlinked</span>
+            <div className="flex items-center gap-1.5 text-oros-400" title="Elemen tanpa relasi">
+              <AlertCircle className="w-3.5 h-3.5 text-gold-400" />
+              <span>{orphanCount} Belum Terhubung</span>
             </div>
           )}
         </div>
 
-        {/* Filter & Search Bar */}
+        {/* Filter, Dynamic Gravity & Search Bar */}
         <div className="flex items-center gap-2">
           {/* Search box */}
           <div className="relative">
-            <Search className="w-3 h-3 text-oros-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3 h-3 text-gold-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search wiki articles..."
-              className="bg-oros-950 border border-oros-800 rounded-lg pl-7 pr-3 py-1 text-xs text-slate-200 placeholder-oros-500 focus:outline-none focus:border-blue-400/80 w-36 lg:w-48 transition-all"
+              placeholder="Cari kartu..."
+              className="bg-oros-950 border border-oros-800 rounded-lg pl-7 pr-3 py-1 text-xs text-slate-200 placeholder-oros-500 focus:outline-none focus:border-gold-400 w-32 lg:w-44 transition-all"
             />
           </div>
 
           {/* Type Filter */}
           <div className="flex items-center gap-1 bg-oros-950 border border-oros-800 rounded-lg px-2 py-1 text-xs">
-            <Filter className="w-3 h-3 text-oros-400" />
+            <Filter className="w-3 h-3 text-gold-400" />
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
               className="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer"
             >
-              <option value="all">All Types</option>
-              <option value="character">Characters</option>
-              <option value="location">Locations</option>
-              <option value="faction">Factions</option>
-              <option value="item">Items</option>
+              <option value="all">Semua Tipe</option>
+              <option value="character">Karakter</option>
+              <option value="location">Lokasi</option>
+              <option value="faction">Fraksi</option>
+              <option value="item">Item</option>
             </select>
           </div>
 
@@ -436,12 +689,35 @@ export const WikiNetworkGraph: React.FC = () => {
             onClick={() => setShowOnlyHubs(!showOnlyHubs)}
             className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1 transition-colors ${
               showOnlyHubs
-                ? 'bg-blue-500/20 border-blue-400 text-blue-300'
+                ? 'bg-gold-500/20 border-gold-400 text-gold-300'
                 : 'bg-oros-900 border-oros-800 text-oros-400 hover:text-slate-200'
             }`}
           >
-            <Sparkles className="w-3 h-3" />
-            <span>Hubs Only</span>
+            <Sparkles className="w-3 h-3 text-gold-400" />
+            <span>Hubs Saja</span>
+          </button>
+
+          {/* Dynamic Gravity Float Toggle */}
+          <button
+            onClick={() => setIsSimulating(!isSimulating)}
+            className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+              isSimulating
+                ? 'bg-gold-500/10 border-gold-400/50 text-gold-400 shadow-sm'
+                : 'bg-oros-900 border-oros-800 text-oros-400 hover:text-slate-200'
+            }`}
+            title={isSimulating ? 'Gravitasi & Dinamika: AKTIF' : 'Gravitasi & Dinamika: DIAM'}
+          >
+            <Orbit className={`w-3.5 h-3.5 ${isSimulating ? 'animate-spin' : ''}`} style={{ animationDuration: '6s' }} />
+            <span className="hidden sm:inline">{isSimulating ? 'Dinamis' : 'Diam'}</span>
+          </button>
+
+          {/* Recenter & Fit Camera */}
+          <button
+            onClick={() => fitView({ padding: 0.2, duration: 600 })}
+            className="p-1.5 rounded-lg border border-oros-800 bg-oros-900 hover:bg-oros-800 text-oros-400 hover:text-gold-400 transition-colors"
+            title="Pusatkan Kamera ke Seluruh Graf"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -456,6 +732,11 @@ export const WikiNetworkGraph: React.FC = () => {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeClick={onNodeClick}
+          nodesDraggable={false} // User requested: "Dont have the option to move it at all"
+          nodesConnectable={false}
+          elementsSelectable={true}
+          panOnDrag={true}
+          zoomOnScroll={true}
           fitView
           attributionPosition="bottom-left"
         >
@@ -470,8 +751,8 @@ export const WikiNetworkGraph: React.FC = () => {
 
         {/* Bottom Helper Bar */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-3.5 py-1.5 rounded-full bg-oros-900/90 border border-oros-700/80 text-[11px] text-oros-300 shadow-xl backdrop-blur-md pointer-events-none flex items-center gap-2">
-          <Link2 className="w-3 h-3 text-blue-400" />
-          <span>Click any article node to inspect its <strong>cross-references</strong>, <strong>backlinks</strong>, and jump to the Encyclopedia</span>
+          <Link2 className="w-3 h-3 text-gold-400" />
+          <span>Klik salah satu kartu untuk melihat relasi, backlink, dan artikel ensiklopedia</span>
         </div>
       </div>
 
@@ -485,13 +766,13 @@ export const WikiNetworkGraph: React.FC = () => {
                 {activeArticle.avatar ? (
                   <img src={activeArticle.avatar} alt={activeArticle.title} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center font-serif text-lg font-bold text-gold-400/60">
+                  <div className="w-full h-full flex items-center justify-center font-serif text-lg font-bold text-gold-400">
                     {activeArticle.title.charAt(0)}
                   </div>
                 )}
               </div>
               <div className="min-w-0">
-                <span className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-oros-950 text-gold-400 border border-oros-700/60">
+                <span className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-oros-950 text-gold-400 border border-gold-400/20">
                   {activeArticle.type}
                 </span>
                 <h3 className="font-serif font-bold text-sm text-slate-100 truncate mt-1">
@@ -511,18 +792,18 @@ export const WikiNetworkGraph: React.FC = () => {
           <div className="p-3 border-b border-oros-800/60 bg-oros-950/40">
             <button
               onClick={() => handleOpenInWiki(activeArticle.id)}
-              className="w-full py-2 px-3 rounded-lg bg-gold-500 hover:bg-gold-400 text-oros-950 font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors"
+              className="w-full py-2 px-3 rounded-lg bg-gold-500 hover:bg-gold-400 text-oros-950 font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
             >
-              <BookOpen className="w-4 h-4" />
-              <span>Read Full Article in Encyclopedia</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <BookOpen className="w-4 h-4 text-oros-950" />
+              <span>Buka di Ensiklopedia</span>
+              <ExternalLink className="w-3.5 h-3.5 text-oros-950" />
             </button>
           </div>
 
           {/* Summary */}
           {activeArticle.summary && (
             <div className="p-4 border-b border-oros-800/40">
-              <h5 className="text-[10px] font-mono uppercase font-bold text-oros-400 mb-1">Codex Summary</h5>
+              <h5 className="text-[10px] font-mono uppercase font-bold text-oros-400 mb-1">Ringkasan Entitas</h5>
               <p className="text-xs text-oros-300 leading-relaxed">
                 {activeArticle.summary}
               </p>
@@ -536,14 +817,14 @@ export const WikiNetworkGraph: React.FC = () => {
               <div className="flex items-center justify-between mb-2">
                 <h5 className="text-[11px] font-mono uppercase font-bold text-slate-200 flex items-center gap-1.5">
                   <ArrowRight className="w-3 h-3 text-gold-400" />
-                  <span>Outbound Links ({outboundArticles.length})</span>
+                  <span>Koneksi Keluar ({outboundArticles.length})</span>
                 </h5>
-                <span className="text-[10px] text-oros-500">Mentions in this wiki</span>
+                <span className="text-[10px] text-oros-500">Menghubungkan ke</span>
               </div>
 
               {outboundArticles.length === 0 ? (
                 <p className="text-xs text-oros-500 italic p-2 rounded-lg bg-oros-950/40">
-                  No outbound wiki mentions found in article.
+                  Tidak ada koneksi keluar pada artikel ini.
                 </p>
               ) : (
                 <div className="space-y-1.5">
@@ -558,7 +839,7 @@ export const WikiNetworkGraph: React.FC = () => {
                           {tgt.avatar ? (
                             <img src={tgt.avatar} alt={tgt.title} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-[10px] text-oros-400 font-bold">
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-gold-400 font-bold">
                               {tgt.title.charAt(0)}
                             </div>
                           )}
@@ -583,15 +864,15 @@ export const WikiNetworkGraph: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h5 className="text-[11px] font-mono uppercase font-bold text-slate-200 flex items-center gap-1.5">
-                  <Link2 className="w-3 h-3 text-blue-400" />
-                  <span>Inbound Backlinks ({inboundArticles.length})</span>
+                  <Link2 className="w-3 h-3 text-gold-400" />
+                  <span>Koneksi Masuk ({inboundArticles.length})</span>
                 </h5>
-                <span className="text-[10px] text-oros-500">Articles linking here</span>
+                <span className="text-[10px] text-oros-500">Dihubungkan oleh</span>
               </div>
 
               {inboundArticles.length === 0 ? (
                 <p className="text-xs text-oros-500 italic p-2 rounded-lg bg-oros-950/40">
-                  No other articles reference this page yet.
+                  Belum ada artikel lain yang merujuk entitas ini.
                 </p>
               ) : (
                 <div className="space-y-1.5">
@@ -599,20 +880,20 @@ export const WikiNetworkGraph: React.FC = () => {
                     <div
                       key={src.id}
                       onClick={() => setSelectedWikiId(src.id)}
-                      className="p-2 rounded-lg bg-oros-950/70 border border-oros-800/70 hover:border-blue-400/60 cursor-pointer transition-colors group flex items-center justify-between"
+                      className="p-2 rounded-lg bg-oros-950/70 border border-oros-800/70 hover:border-gold-400/60 cursor-pointer transition-colors group flex items-center justify-between"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="w-6 h-6 rounded bg-oros-900 overflow-hidden flex-shrink-0">
                           {src.avatar ? (
                             <img src={src.avatar} alt={src.title} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-[10px] text-oros-400 font-bold">
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-gold-400 font-bold">
                               {src.title.charAt(0)}
                             </div>
                           )}
                         </div>
                         <div className="min-w-0">
-                          <div className="text-xs font-serif font-bold text-slate-200 group-hover:text-blue-300 truncate">
+                          <div className="text-xs font-serif font-bold text-slate-200 group-hover:text-gold-300 truncate">
                             {src.title}
                           </div>
                           <div className="text-[10px] text-oros-400 truncate">
@@ -620,7 +901,7 @@ export const WikiNetworkGraph: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      <ArrowRight className="w-3.5 h-3.5 text-oros-500 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                      <ArrowRight className="w-3.5 h-3.5 text-oros-500 group-hover:text-gold-400 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
                     </div>
                   ))}
                 </div>
@@ -632,3 +913,12 @@ export const WikiNetworkGraph: React.FC = () => {
     </div>
   )
 }
+
+export const WikiNetworkGraph: React.FC = () => {
+  return (
+    <ReactFlowProvider>
+      <WikiNetworkGraphInner />
+    </ReactFlowProvider>
+  )
+}
+export default WikiNetworkGraph

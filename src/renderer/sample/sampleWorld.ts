@@ -465,22 +465,23 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
         data: {
           text: 'Can draw, add cards, texts, shapes, arrows'
         }
+      },
+      {
+        id: 'node-loop-drawing',
+        type: 'canvasDrawing',
+        position: { x: 330, y: 120 },
+        data: {
+          path: 'M 40 60 C 100 10 340 0 470 30 C 530 80 520 250 490 330 C 400 410 130 420 30 280 C -15 180 0 90 40 60 Z',
+          color: '#ffffff',
+          width: 540,
+          height: 420,
+          strokeWidth: 3.5,
+          scale: 1
+        }
       }
     ],
     edges: [],
-    strokes: [
-      {
-        id: 'stroke-encircling-loop',
-        points: [
-          { x: 380, y: 180 }, { x: 440, y: 150 }, { x: 550, y: 140 }, { x: 670, y: 140 },
-          { x: 790, y: 170 }, { x: 840, y: 240 }, { x: 840, y: 360 }, { x: 820, y: 440 },
-          { x: 750, y: 490 }, { x: 630, y: 520 }, { x: 480, y: 520 }, { x: 390, y: 470 },
-          { x: 350, y: 390 }, { x: 350, y: 280 }, { x: 370, y: 210 }, { x: 400, y: 180 }
-        ],
-        color: '#ffffff',
-        width: 3.5
-      }
-    ],
+    strokes: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }

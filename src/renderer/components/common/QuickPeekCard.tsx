@@ -2,6 +2,11 @@ import React from 'react'
 import { LoreEntity } from '@shared/types'
 import { useWorldStore } from '../../store/useWorldStore'
 import { ExternalLink, Tag, Shield, Sparkles } from 'lucide-react'
+import { 
+  DEFAULT_PRESET_CATEGORIES, 
+  getCategoryIconComponent, 
+  getCategoryMeta 
+} from '../../utils/categoryIcons'
 
 interface QuickPeekCardProps {
   entity: LoreEntity;
@@ -10,7 +15,11 @@ interface QuickPeekCardProps {
 }
 
 export const QuickPeekCard: React.FC<QuickPeekCardProps> = ({ entity, onClose, onOpenWiki }) => {
-  const { setSelectedEntityId, openTab } = useWorldStore()
+  const { setSelectedEntityId, openTab, categories, activeWorldId } = useWorldStore()
+
+  const worldCategories = (activeWorldId && categories[activeWorldId]) ? categories[activeWorldId] : DEFAULT_PRESET_CATEGORIES
+  const catMeta = getCategoryMeta(entity.type, worldCategories)
+  const CatIcon = getCategoryIconComponent(catMeta.icon)
 
   const handleOpen = () => {
     setSelectedEntityId(entity.id)
@@ -42,8 +51,16 @@ export const QuickPeekCard: React.FC<QuickPeekCardProps> = ({ entity, onClose, o
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-oros-900 via-transparent to-transparent"></div>
-        <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded text-[10px] uppercase font-mono tracking-wider bg-oros-950/90 text-gold-400 border border-oros-700/60 font-semibold backdrop-blur-sm">
-          {entity.type}
+        <span 
+          className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded text-[10px] uppercase font-mono tracking-wider backdrop-blur-sm border font-semibold flex items-center gap-1 shadow-sm"
+          style={{
+            backgroundColor: 'rgba(2, 6, 23, 0.90)',
+            borderColor: `${catMeta.color || '#eab308'}60`,
+            color: catMeta.color || '#eab308'
+          }}
+        >
+          <CatIcon className="w-3 h-3" />
+          <span>{catMeta.name}</span>
         </span>
       </div>
 

@@ -1,4 +1,4 @@
-export type EntityType = 
+export type EntityPresetType = 
   | 'character' 
   | 'location' 
   | 'faction' 
@@ -8,6 +8,17 @@ export type EntityType =
   | 'species' 
   | 'religion' 
   | 'document';
+
+export type EntityType = EntityPresetType | (string & {});
+
+export interface EntityCategory {
+  id: string;
+  name: string;
+  icon?: string;
+  color?: string;
+  isPreset?: boolean;
+  description?: string;
+}
 
 export interface InfoboxField {
   id: string;
@@ -138,6 +149,7 @@ export interface StorageData {
   folders?: Record<string, DirectoryFolder[]>; // key: worldId
   directoryItems?: Record<string, DirectoryItem[]>; // key: worldId
   canvases?: Record<string, WhiteboardCanvasData[]>; // key: worldId
+  categories?: Record<string, EntityCategory[]>; // key: worldId
 }
 
 export type DirectoryItemType = 

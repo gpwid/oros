@@ -6,9 +6,15 @@ import { WikiEditor } from './WikiEditor'
 import { PromptModal, ConfirmModal } from '../common/PromptModal'
 import { QuickPeekCard } from '../common/QuickPeekCard'
 import { 
-  Plus, Edit, Eye, Trash2, Tag, BookOpen, Link2, Sparkles, Filter 
+  Plus, Edit, Eye, Trash2, Tag, BookOpen, Link2, Sparkles, Filter, ChevronDown, SlidersHorizontal 
 } from 'lucide-react'
 import { EntityType, LoreEntity } from '@shared/types'
+import { 
+  DEFAULT_PRESET_CATEGORIES, 
+  getCategoryIconComponent, 
+  getCategoryMeta 
+} from '../../utils/categoryIcons'
+import { CategoryManagerModal } from '../common/CategoryManagerModal'
 
 interface WikiArticleViewProps {
   entityId?: string
@@ -16,20 +22,24 @@ interface WikiArticleViewProps {
 
 export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) => {
   const { 
-    entities, activeWorldId, selectedEntityId, setSelectedEntityId, openTab,
+    entities, categories, activeWorldId, selectedEntityId, setSelectedEntityId, openTab,
     updateEntity, createEntity, deleteEntity, searchQuery 
   } = useWorldStore()
 
   const { addToast } = useToastStore()
 
   const [isEditing, setIsEditing] = useState(false)
-  const [filterType, setFilterType] = useState<EntityType | 'all'>('all')
+  const [filterType, setFilterType] = useState<string | 'all'>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showCategoryManager, setShowCategoryManager] = useState(false)
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [hoveredEntity, setHoveredEntity] = useState<LoreEntity | null>(null)
   const [isTocCollapsed, setIsTocCollapsed] = useState(false)
 
+  const worldId = activeWorldId || 'world-aethelgard'
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
+  const worldCategories = categories[worldId] || DEFAULT_PRESET_CATEGORIES
 
   // Prioritize entityId prop if passed from active workspace tab
   const effectiveId = entityId || selectedEntityId
@@ -152,26 +162,52 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
           </div>
 
           {/* Category Filter Pills */}
-          <div className="px-2 py-2 flex items-center gap-1 overflow-x-auto text-[11px] border-b border-oros-800/30">
-            {(['all', 'character', 'location', 'faction', 'item'] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setFilterType(t)}
-                className={`px-2 py-0.5 rounded capitalize shrink-0 transition-colors ${
-                  filterType === t 
-                    ? 'bg-gold-500 text-oros-950 font-bold' 
-                    : 'text-oros-400 hover:text-slate-200 hover:bg-oros-900'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
+          <div className="px-2 py-2 flex items-center gap-1 overflow-x-auto text-[11px] border-b border-oros-800/30 scrollbar-thin">
+            <button
+              onClick={() => setFilterType('all')}
+              className={`px-2 py-0.5 rounded capitalize shrink-0 transition-colors ${
+                filterType === 'all' 
+                  ? 'bg-gold-500 text-oros-950 font-bold' 
+                  : 'text-oros-400 hover:text-slate-200 hover:bg-oros-900'
+              }`}
+            >
+              All
+            </button>
+            {worldCategories.map((cat) => {
+              const isActive = filterType === cat.id
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setFilterType(cat.id)}
+                  className={`px-2 py-0.5 rounded shrink-0 flex items-center gap-1 transition-colors ${
+                    isActive 
+                      ? 'bg-gold-500 text-oros-950 font-bold' 
+                      : 'text-oros-400 hover:text-slate-200 hover:bg-oros-900'
+                  }`}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: isActive ? '#020617' : (cat.color || '#eab308') }}
+                  />
+                  <span>{cat.name}</span>
+                </button>
+              )
+            })}
+            <button
+              onClick={() => setShowCategoryManager(true)}
+              title="Manage Categories"
+              className="p-1 rounded text-oros-400 hover:text-gold-300 hover:bg-oros-900 shrink-0 transition-colors ml-auto"
+            >
+              <SlidersHorizontal className="w-3 h-3" />
+            </button>
           </div>
 
           {/* Entity List */}
           <div className="overflow-y-auto p-2 space-y-1 max-h-[calc(100vh-140px)]">
             {filteredEntities.map((ent) => {
               const isSelected = ent.id === currentEntity?.id
+              const catMeta = getCategoryMeta(ent.type, worldCategories)
+              const CatIcon = getCategoryIconComponent(catMeta.icon)
               return (
                 <button
                   key={ent.id}
@@ -188,9 +224,13 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                 >
                   <div className="truncate pr-2">
                     <div className="truncate">{ent.title}</div>
-                    <div className="text-[10px] text-oros-400 font-normal uppercase tracking-wider flex items-center gap-1 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gold-400/80"></span>
-                      {ent.type}
+                    <div className="text-[10px] text-oros-400 font-normal uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
+                      <span
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: catMeta.color || '#eab308' }}
+                      />
+                      <CatIcon className="w-2.5 h-2.5 opacity-80" />
+                      <span>{catMeta.name}</span>
                     </div>
                   </div>
                 </button>
@@ -213,9 +253,81 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
             <div className="border-b border-oros-800/60 pb-4 mb-6 flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2 py-0.5 rounded text-[10px] uppercase font-mono tracking-wider bg-oros-900 text-gold-400 border border-oros-800 font-semibold">
-                    {currentEntity.type}
-                  </span>
+                  {(() => {
+                    const currentCatMeta = getCategoryMeta(currentEntity.type, worldCategories)
+                    const CurrentCatIcon = getCategoryIconComponent(currentCatMeta.icon)
+                    return (
+                      <div className="relative inline-block">
+                        <button
+                          onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                          className="px-2.5 py-0.5 rounded-md text-[10px] uppercase font-mono tracking-wider border font-semibold flex items-center gap-1.5 transition-all hover:brightness-110 shadow-sm"
+                          style={{
+                            backgroundColor: `${currentCatMeta.color || '#eab308'}15`,
+                            borderColor: `${currentCatMeta.color || '#eab308'}40`,
+                            color: currentCatMeta.color || '#eab308'
+                          }}
+                          title="Click to reclassify category / label"
+                        >
+                          <CurrentCatIcon className="w-3 h-3" />
+                          <span>{currentCatMeta.name}</span>
+                          <ChevronDown className="w-2.5 h-2.5 opacity-60 ml-0.5" />
+                        </button>
+
+                        {/* Category Reassignment Dropdown */}
+                        {showCategoryDropdown && (
+                          <div 
+                            className="absolute top-full left-0 mt-1.5 w-56 bg-oros-900 border border-oros-700/80 rounded-xl shadow-2xl py-1 z-50 animate-fade-in"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-oros-400 font-mono border-b border-oros-800 flex items-center justify-between">
+                              <span>Change Label</span>
+                              <button
+                                onClick={() => {
+                                  setShowCategoryDropdown(false)
+                                  setShowCategoryManager(true)
+                                }}
+                                className="text-gold-400 hover:text-gold-300 font-sans normal-case text-[10px] font-semibold flex items-center gap-1"
+                              >
+                                <SlidersHorizontal className="w-2.5 h-2.5" />
+                                <span>Manage</span>
+                              </button>
+                            </div>
+                            <div className="max-h-48 overflow-y-auto p-1 space-y-0.5">
+                              {worldCategories.map((c) => {
+                                const Icon = getCategoryIconComponent(c.icon)
+                                const isSelected = c.id === currentEntity.type
+                                return (
+                                  <button
+                                    key={c.id}
+                                    onClick={() => {
+                                      updateEntity(currentEntity.id, { type: c.id })
+                                      setShowCategoryDropdown(false)
+                                      addToast(`Reassigned to ${c.name}`, 'success')
+                                    }}
+                                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
+                                      isSelected
+                                        ? 'bg-oros-800 text-gold-300 font-semibold'
+                                        : 'text-slate-300 hover:bg-oros-800/60 hover:text-slate-100'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span
+                                        className="w-1.5 h-1.5 rounded-full"
+                                        style={{ backgroundColor: c.color || '#eab308' }}
+                                      />
+                                      <Icon className="w-3.5 h-3.5" style={{ color: c.color || '#eab308' }} />
+                                      <span>{c.name}</span>
+                                    </div>
+                                    {isSelected && <span className="text-[10px] text-gold-400 font-mono">✓</span>}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
                   {currentEntity.aliases.length > 0 && (
                     <span className="text-xs text-oros-400 italic">
                       Also known as: {currentEntity.aliases.join(', ')}
@@ -415,6 +527,15 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
         isDestructive={true}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setShowDeleteModal(false)}
+      />
+
+      {/* Category Manager Modal */}
+      <CategoryManagerModal
+        isOpen={showCategoryManager}
+        onClose={() => setShowCategoryManager(false)}
+        onSelectCategory={(catId) => {
+          setFilterType(catId)
+        }}
       />
     </div>
   )

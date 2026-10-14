@@ -9,6 +9,11 @@ import {
   Flame, Sparkles, Move, Check, X, FolderTree
 } from 'lucide-react'
 import { DirectoryItem, DirectoryFolder, DirectoryItemType, LoreEntity } from '@shared/types'
+import { 
+  DEFAULT_PRESET_CATEGORIES, 
+  getCategoryIconComponent, 
+  getCategoryMeta 
+} from '../../utils/categoryIcons'
 
 export const Sidebar: React.FC = () => {
   const { 
@@ -16,7 +21,7 @@ export const Sidebar: React.FC = () => {
     createFolder, renameFolder, deleteFolder, toggleFolderOpen, moveFolderToFolder,
     createDirectoryItem, deleteDirectoryItem, moveItemToFolder,
     createCanvas, createEntity, createMap, createChapter,
-    entities, maps, timelines, relations, manuscripts
+    entities, maps, timelines, relations, manuscripts, categories
   } = useWorldStore()
 
   const { addToast } = useToastStore()
@@ -54,6 +59,7 @@ export const Sidebar: React.FC = () => {
   const currentFolders = folders[worldId] || []
   const currentItems = directoryItems[worldId] || []
   const worldEntities = entities[worldId] || []
+  const worldCategories = categories[worldId] || DEFAULT_PRESET_CATEGORIES
 
   // Filter items based on search
   const filteredItems = currentItems.filter((item) =>
@@ -65,25 +71,14 @@ export const Sidebar: React.FC = () => {
     if (item.type === 'card' || item.type === 'wiki') {
       const entity = worldEntities.find((e) => e.id === item.targetId)
       const subtype = entity?.type || 'character'
-      switch (subtype) {
-        case 'character':
-          return <User className="w-3.5 h-3.5 text-gold-400 shrink-0" />
-        case 'location':
-          return <Compass className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-        case 'faction':
-          return <Shield className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-        case 'item':
-          return <Gem className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-        case 'event':
-          return <Flame className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-        case 'magic_system':
-        case 'document':
-        case 'religion':
-        case 'species':
-          return <Sparkles className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-        default:
-          return <Layers className="w-3.5 h-3.5 text-gold-400 shrink-0" />
-      }
+      const meta = getCategoryMeta(subtype, worldCategories)
+      const IconComp = getCategoryIconComponent(meta.icon)
+      return (
+        <IconComp 
+          className="w-3.5 h-3.5 shrink-0" 
+          style={{ color: meta.color || '#eab308' }} 
+        />
+      )
     }
 
     switch (item.type) {
@@ -737,18 +732,14 @@ export const Sidebar: React.FC = () => {
                   <label className="block text-[11px] font-semibold text-oros-300 mb-1">Card Category</label>
                   <select
                     value={newCardSubtype}
-                    onChange={(e) => setNewCardSubtype(e.target.value as LoreEntity['type'])}
+                    onChange={(e) => setNewCardSubtype(e.target.value)}
                     className="w-full bg-oros-950 border border-oros-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
                   >
-                    <option value="character">Character / NPC</option>
-                    <option value="location">Location / Landmark</option>
-                    <option value="faction">Faction / Organization</option>
-                    <option value="item">Relic / Item</option>
-                    <option value="event">Historical Event</option>
-                    <option value="magic_system">Magic System / Arcana</option>
-                    <option value="species">Species / Race</option>
-                    <option value="religion">Religion / Faith</option>
-                    <option value="document">Lore Document / Chronicle</option>
+                    {worldCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} {c.isPreset ? '' : '(Custom)'}
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}

@@ -14,6 +14,11 @@ import {
   X, AlertCircle, Maximize2, Orbit, ChevronDown, Check, Wind
 } from 'lucide-react'
 import { LoreEntity, EntityType } from '@shared/types'
+import { 
+  DEFAULT_PRESET_CATEGORIES, 
+  getCategoryIconComponent, 
+  getCategoryMeta 
+} from '../../utils/categoryIcons'
 
 // Optimal cardinal handle picker based on relative center positions
 function getOptimalHandles(
@@ -54,17 +59,6 @@ const DirectStraightEdge: React.FC<EdgeProps> = ({
   return <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={style} />
 }
 
-// Icon helper by entity type (Single unified gold color palette)
-const getEntityIcon = (type: EntityType) => {
-  switch (type) {
-    case 'character': return User
-    case 'location': return MapPin
-    case 'faction': return Shield
-    case 'item': return Gem
-    default: return Scroll
-  }
-}
-
 // Compact, high-density Wiki Node for the Knowledge Network
 // UNIFIED SINGLE-COLOR PALETTE: Muted Gold & Slate (Easier to look at)
 const WikiArticleNode = ({ data }: { data: { 
@@ -77,7 +71,8 @@ const WikiArticleNode = ({ data }: { data: {
   onSelect: (id: string) => void;
 } }) => {
   const { entity, degree, inDegree, outDegree, isHub, isSelected } = data
-  const Icon = getEntityIcon(entity.type)
+  const catMeta = getCategoryMeta(entity.type)
+  const Icon = getCategoryIconComponent(catMeta.icon)
   const [imgError, setImgError] = useState(false)
 
   return (
@@ -121,8 +116,14 @@ const WikiArticleNode = ({ data }: { data: {
         {/* Title and stats - Single-color gold/slate palette */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-1 mb-1">
-            <span className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.2 rounded bg-oros-950 text-gold-300 border border-gold-400/20 truncate">
-              {entity.type}
+            <span 
+              className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.2 rounded bg-oros-950 border truncate flex items-center gap-1"
+              style={{
+                borderColor: `${catMeta.color || '#eab308'}40`,
+                color: catMeta.color || '#eab308'
+              }}
+            >
+              {catMeta.name}
             </span>
             <span className="text-[9px] font-mono font-semibold text-oros-400 shrink-0" title={`${inDegree} backlinks, ${outDegree} outbound`}>
               {degree} {degree === 1 ? 'link' : 'links'}
@@ -148,16 +149,9 @@ const edgeTypes = {
 interface FilterOption {
   label: string
   value: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
+  color?: string
 }
-
-const TYPE_OPTIONS: FilterOption[] = [
-  { label: 'All Types', value: 'all', icon: Filter },
-  { label: 'Characters', value: 'character', icon: User },
-  { label: 'Locations', value: 'location', icon: MapPin },
-  { label: 'Factions', value: 'faction', icon: Shield },
-  { label: 'Items', value: 'item', icon: Gem }
-]
 
 interface GraphMiniMapProps {
   nodes: Node[]
@@ -387,7 +381,7 @@ const GraphMiniMap: React.FC<GraphMiniMapProps> = React.memo(({
 
 const WikiNetworkGraphInner: React.FC = () => {
   const { 
-    entities, relations, activeWorldId, setSelectedEntityId, setActiveTab, openTab 
+    entities, relations, categories, activeWorldId, setSelectedEntityId, setActiveTab, openTab 
   } = useWorldStore()
   const { addToast } = useToastStore()
   const { fitView } = useReactFlow()
@@ -822,7 +816,20 @@ const WikiNetworkGraphInner: React.FC = () => {
     addToast('Opened article in Encyclopedia', 'info')
   }
 
-  const currentFilterLabel = TYPE_OPTIONS.find(o => o.value === selectedType)?.label || 'All Types'
+  const worldId = activeWorldId || 'world-aethelgard'
+  const worldCategories = categories[worldId] || DEFAULT_PRESET_CATEGORIES
+
+  const typeOptions: FilterOption[] = useMemo(() => [
+    { label: 'All Types', value: 'all', icon: Filter },
+    ...worldCategories.map((c) => ({
+      label: c.name,
+      value: c.id,
+      icon: getCategoryIconComponent(c.icon),
+      color: c.color
+    }))
+  ], [worldCategories])
+
+  const currentFilterLabel = typeOptions.find(o => o.value === selectedType)?.label || 'All Types'
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-oros-950 relative select-none">
@@ -890,8 +897,8 @@ const WikiNetworkGraphInner: React.FC = () => {
             </button>
 
             {filterDropdownOpen && (
-              <div className="absolute top-10 left-0 bg-oros-900 border border-oros-700/90 rounded-xl shadow-2xl py-1.5 min-w-[170px] z-50 animate-in fade-in zoom-in-95 duration-100 backdrop-blur-md">
-                {TYPE_OPTIONS.map((opt) => (
+              <div className="absolute top-10 left-0 bg-oros-900 border border-oros-700/90 rounded-xl shadow-2xl py-1.5 min-w-[170px] max-h-60 overflow-y-auto z-50 animate-in fade-in zoom-in-95 duration-100 backdrop-blur-md">
+                {typeOptions.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => {
@@ -905,7 +912,10 @@ const WikiNetworkGraphInner: React.FC = () => {
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <opt.icon className="w-3.5 h-3.5 text-gold-400" />
+                      <opt.icon 
+                        className="w-3.5 h-3.5" 
+                        style={{ color: opt.color || '#eab308' }} 
+                      />
                       <span>{opt.label}</span>
                     </div>
                     {selectedType === opt.value && (

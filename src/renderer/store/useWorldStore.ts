@@ -3,8 +3,9 @@ import {
   World, LoreEntity, WorldMap, RelationEdge, TimelineEvent, ManuscriptChapter, 
   StorageData, MapPin, MapRegion,
   DirectoryFolder, DirectoryItem, DirectoryItemType, WorkspaceTab, 
-  WhiteboardCanvasData, CanvasStroke
+  WhiteboardCanvasData, CanvasStroke, EntityCategory
 } from '@shared/types'
+import { DEFAULT_PRESET_CATEGORIES } from '../utils/categoryIcons'
 import { 
   sampleWorld, sampleEntities, sampleMap, sampleRelations, 
   sampleTimelines, sampleManuscript,
@@ -37,6 +38,7 @@ interface WorldState {
   folders: Record<string, DirectoryFolder[]>;
   directoryItems: Record<string, DirectoryItem[]>;
   canvases: Record<string, WhiteboardCanvasData[]>;
+  categories: Record<string, EntityCategory[]>;
 
   // Actions
   initStore: () => Promise<void>;
@@ -86,6 +88,12 @@ interface WorldState {
   createEntity: (type: LoreEntity['type'], title: string, folderId?: string | null) => LoreEntity;
   updateEntity: (entityId: string, updates: Partial<LoreEntity>) => void;
   deleteEntity: (entityId: string) => void;
+
+  // Category / Label CRUD
+  getCategories: (worldId?: string) => EntityCategory[];
+  createCategory: (name: string, icon?: string, color?: string, description?: string) => EntityCategory;
+  updateCategory: (categoryId: string, updates: Partial<EntityCategory>) => void;
+  deleteCategory: (categoryId: string, fallbackCategoryId?: string) => void;
 
   // Map CRUD
   createMap: (name: string, imageUrl: string, folderId?: string | null) => WorldMap;
@@ -138,6 +146,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   folders: { [sampleWorld.id]: sampleFolders },
   directoryItems: { [sampleWorld.id]: sampleDirectoryItems },
   canvases: { [sampleWorld.id]: sampleCanvases },
+  categories: { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES },
 
   initStore: async () => {
     try {
@@ -155,7 +164,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
             manuscripts: parsed.manuscripts || { [sampleWorld.id]: sampleManuscript },
             folders: parsed.folders || { [sampleWorld.id]: sampleFolders },
             directoryItems: parsed.directoryItems || { [sampleWorld.id]: sampleDirectoryItems },
-            canvases: parsed.canvases || { [sampleWorld.id]: sampleCanvases }
+            canvases: parsed.canvases || { [sampleWorld.id]: sampleCanvases },
+            categories: parsed.categories || { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES }
           });
           get().syncVaultDirectory();
           return;
@@ -182,7 +192,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       manuscripts: s.manuscripts,
       folders: s.folders,
       directoryItems: s.directoryItems,
-      canvases: s.canvases
+      canvases: s.canvases,
+      categories: s.categories
     };
     try {
       if (window.oros) {
@@ -1284,6 +1295,89 @@ export const useWorldStore = create<WorldState>((set, get) => ({
         selectedChapterId: state.selectedChapterId === chapterId ? (list[0]?.id || null) : state.selectedChapterId
       };
     });
+    get().persistStore();
+  },
+
+  // Category / Label Actions
+  getCategories: (targetWorldId) => {
+    const worldId = targetWorldId || get().activeWorldId || sampleWorld.id;
+    return get().categories[worldId] || DEFAULT_PRESET_CATEGORIES;
+  },
+
+  createCategory: (name, icon = 'Layers', color = '#eab308', description = '') => {
+    const worldId = get().activeWorldId || sampleWorld.id;
+    const newCategory: EntityCategory = {
+      id: `cat-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      name: name.trim(),
+      icon,
+      color,
+      isPreset: false,
+      description: description.trim()
+    };
+
+    set((state) => {
+      const currentList = state.categories[worldId] || DEFAULT_PRESET_CATEGORIES;
+      return {
+        categories: {
+          ...state.categories,
+          [worldId]: [...currentList, newCategory]
+        }
+      };
+    });
+
+    get().persistStore();
+    return newCategory;
+  },
+
+  updateCategory: (categoryId, updates) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+
+    set((state) => {
+      const currentList = state.categories[worldId] || DEFAULT_PRESET_CATEGORIES;
+      const updatedList = currentList.map((c) =>
+        c.id === categoryId ? { ...c, ...updates } : c
+      );
+
+      return {
+        categories: {
+          ...state.categories,
+          [worldId]: updatedList
+        }
+      };
+    });
+
+    get().persistStore();
+  },
+
+  deleteCategory: (categoryId, fallbackCategoryId = 'character') => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+
+    set((state) => {
+      const currentList = state.categories[worldId] || DEFAULT_PRESET_CATEGORIES;
+      const filteredList = currentList.filter((c) => c.id !== categoryId);
+
+      // Reassign any entities that were using this category
+      const currentEntities = state.entities[worldId] || [];
+      const updatedEntities = currentEntities.map((ent) =>
+        ent.type === categoryId 
+          ? { ...ent, type: fallbackCategoryId, updatedAt: new Date().toISOString() } 
+          : ent
+      );
+
+      return {
+        categories: {
+          ...state.categories,
+          [worldId]: filteredList
+        },
+        entities: {
+          ...state.entities,
+          [worldId]: updatedEntities
+        }
+      };
+    });
+
     get().persistStore();
   },
 

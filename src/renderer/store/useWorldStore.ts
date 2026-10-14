@@ -1,22 +1,28 @@
 import { create } from 'zustand'
 import { 
   World, LoreEntity, WorldMap, RelationEdge, TimelineEvent, ManuscriptChapter, 
-  StorageData, MapPin, MapRegion 
+  StorageData, MapPin, MapRegion,
+  DirectoryFolder, DirectoryItem, DirectoryItemType, WorkspaceTab, 
+  WhiteboardCanvasData, CanvasStroke
 } from '@shared/types'
 import { 
   sampleWorld, sampleEntities, sampleMap, sampleRelations, 
-  sampleTimelines, sampleManuscript 
+  sampleTimelines, sampleManuscript,
+  sampleFolders, sampleDirectoryItems, sampleCanvases, sampleWorkspaceTabs
 } from '../sample/sampleWorld'
 
-export type ActiveNavTab = 'wiki' | 'cards' | 'relations' | 'wiki-network' | 'maps' | 'timeline' | 'writer' | 'graph';
+export type ActiveNavTab = 'wiki' | 'cards' | 'relations' | 'wiki-network' | 'maps' | 'timeline' | 'writer' | 'graph' | 'canvas';
 
 interface WorldState {
   // Navigation & UI state
   activeTab: ActiveNavTab;
+  openTabs: WorkspaceTab[];
+  activeTabId: string;
   activeWorldId: string | null;
   selectedEntityId: string | null;
   selectedMapId: string | null;
   selectedChapterId: string | null;
+  selectedCanvasId: string | null;
   searchQuery: string;
   isSaving: boolean;
   gmMode: boolean; // Toggle GM / Private notes and hidden layers
@@ -28,6 +34,9 @@ interface WorldState {
   relations: Record<string, RelationEdge[]>;
   timelines: Record<string, TimelineEvent[]>;
   manuscripts: Record<string, ManuscriptChapter[]>;
+  folders: Record<string, DirectoryFolder[]>;
+  directoryItems: Record<string, DirectoryItem[]>;
+  canvases: Record<string, WhiteboardCanvasData[]>;
 
   // Actions
   initStore: () => Promise<void>;
@@ -37,8 +46,33 @@ interface WorldState {
   setSelectedEntityId: (id: string | null) => void;
   setSelectedMapId: (id: string | null) => void;
   setSelectedChapterId: (id: string | null) => void;
+  setSelectedCanvasId: (id: string | null) => void;
   setSearchQuery: (query: string) => void;
   toggleGmMode: () => void;
+
+  // Workspace Tabs Actions
+  openTab: (tab: { title: string; type: DirectoryItemType; targetId?: string; id?: string }) => void;
+  closeTab: (tabId: string) => void;
+  setActiveTabId: (tabId: string) => void;
+
+  // Directory Folders CRUD
+  createFolder: (name: string, parentId?: string | null) => DirectoryFolder;
+  renameFolder: (folderId: string, name: string) => void;
+  deleteFolder: (folderId: string) => void;
+  toggleFolderOpen: (folderId: string) => void;
+
+  // Directory Items CRUD
+  createDirectoryItem: (name: string, type: DirectoryItemType, folderId?: string | null, targetId?: string) => DirectoryItem;
+  deleteDirectoryItem: (itemId: string) => void;
+  moveItemToFolder: (itemId: string, folderId: string | null) => void;
+
+  // Canvas Actions
+  createCanvas: (name?: string, folderId?: string | null) => WhiteboardCanvasData;
+  updateCanvas: (canvasId: string, updates: Partial<WhiteboardCanvasData>) => void;
+  deleteCanvas: (canvasId: string) => void;
+  saveCanvasNodesAndEdges: (canvasId: string, nodes: any[], edges: any[]) => void;
+  addCanvasStroke: (canvasId: string, stroke: CanvasStroke) => void;
+  clearCanvasStrokes: (canvasId: string) => void;
 
   // World CRUD
   createWorld: (name: string, tagline: string, genre: string) => void;
@@ -75,11 +109,14 @@ interface WorldState {
 }
 
 export const useWorldStore = create<WorldState>((set, get) => ({
-  activeTab: 'wiki',
+  activeTab: 'canvas',
+  openTabs: sampleWorkspaceTabs,
+  activeTabId: 'tab-canvas',
   activeWorldId: sampleWorld.id,
   selectedEntityId: sampleEntities[0].id,
   selectedMapId: sampleMap.id,
   selectedChapterId: sampleManuscript[0].id,
+  selectedCanvasId: sampleCanvases[0].id,
   searchQuery: '',
   isSaving: false,
   gmMode: false,
@@ -90,6 +127,9 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   relations: { [sampleWorld.id]: sampleRelations },
   timelines: { [sampleWorld.id]: sampleTimelines },
   manuscripts: { [sampleWorld.id]: sampleManuscript },
+  folders: { [sampleWorld.id]: sampleFolders },
+  directoryItems: { [sampleWorld.id]: sampleDirectoryItems },
+  canvases: { [sampleWorld.id]: sampleCanvases },
 
   initStore: async () => {
     try {
@@ -104,7 +144,10 @@ export const useWorldStore = create<WorldState>((set, get) => ({
             maps: parsed.maps || { [sampleWorld.id]: [sampleMap] },
             relations: parsed.relations || { [sampleWorld.id]: sampleRelations },
             timelines: parsed.timelines || { [sampleWorld.id]: sampleTimelines },
-            manuscripts: parsed.manuscripts || { [sampleWorld.id]: sampleManuscript }
+            manuscripts: parsed.manuscripts || { [sampleWorld.id]: sampleManuscript },
+            folders: parsed.folders || { [sampleWorld.id]: sampleFolders },
+            directoryItems: parsed.directoryItems || { [sampleWorld.id]: sampleDirectoryItems },
+            canvases: parsed.canvases || { [sampleWorld.id]: sampleCanvases }
           });
           return;
         }
@@ -125,7 +168,10 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       maps: s.maps,
       relations: s.relations,
       timelines: s.timelines,
-      manuscripts: s.manuscripts
+      manuscripts: s.manuscripts,
+      folders: s.folders,
+      directoryItems: s.directoryItems,
+      canvases: s.canvases
     };
     try {
       if (window.oros) {
@@ -143,19 +189,350 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const entities = get().entities[id] || [];
     const maps = get().maps[id] || [];
     const chapters = get().manuscripts[id] || [];
+    const canvases = get().canvases[id] || [];
     set({ 
       activeWorldId: id,
       selectedEntityId: entities[0]?.id || null,
       selectedMapId: maps[0]?.id || null,
-      selectedChapterId: chapters[0]?.id || null
+      selectedChapterId: chapters[0]?.id || null,
+      selectedCanvasId: canvases[0]?.id || null
     });
     get().persistStore();
   },
   setSelectedEntityId: (id) => set({ selectedEntityId: id }),
   setSelectedMapId: (id) => set({ selectedMapId: id }),
   setSelectedChapterId: (id) => set({ selectedChapterId: id }),
+  setSelectedCanvasId: (id) => set({ selectedCanvasId: id }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   toggleGmMode: () => set((state) => ({ gmMode: !state.gmMode })),
+
+  // Workspace Tabs Actions
+  openTab: (tab) => {
+    const s = get();
+    // Check if an identical tab is already open
+    const existing = s.openTabs.find((t) => 
+      tab.id ? t.id === tab.id : (t.type === tab.type && (tab.targetId ? t.targetId === tab.targetId : true))
+    );
+    if (existing) {
+      set({ 
+        activeTabId: existing.id, 
+        activeTab: existing.type as ActiveNavTab 
+      });
+      if (existing.targetId) {
+        if (existing.type === 'wiki' || existing.type === 'card') set({ selectedEntityId: existing.targetId });
+        if (existing.type === 'map') set({ selectedMapId: existing.targetId });
+        if (existing.type === 'writer') set({ selectedChapterId: existing.targetId });
+        if (existing.type === 'canvas') set({ selectedCanvasId: existing.targetId });
+      }
+      return;
+    }
+
+    const newTab: WorkspaceTab = {
+      id: tab.id || `tab-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      title: tab.title,
+      type: tab.type,
+      targetId: tab.targetId,
+      isClosable: true
+    };
+
+    set({
+      openTabs: [...s.openTabs, newTab],
+      activeTabId: newTab.id,
+      activeTab: newTab.type as ActiveNavTab
+    });
+
+    if (newTab.targetId) {
+      if (newTab.type === 'wiki' || newTab.type === 'card') set({ selectedEntityId: newTab.targetId });
+      if (newTab.type === 'map') set({ selectedMapId: newTab.targetId });
+      if (newTab.type === 'writer') set({ selectedChapterId: newTab.targetId });
+      if (newTab.type === 'canvas') set({ selectedCanvasId: newTab.targetId });
+    }
+  },
+
+  closeTab: (tabId) => {
+    const s = get();
+    const index = s.openTabs.findIndex((t) => t.id === tabId);
+    if (index === -1) return;
+    const newTabs = s.openTabs.filter((t) => t.id !== tabId);
+
+    if (newTabs.length === 0) {
+      const fallbackTab: WorkspaceTab = {
+        id: `tab-canvas-default`,
+        title: 'Canvas',
+        type: 'canvas',
+        targetId: 'canvas-main',
+        isClosable: true
+      };
+      set({
+        openTabs: [fallbackTab],
+        activeTabId: fallbackTab.id,
+        activeTab: 'canvas',
+        selectedCanvasId: 'canvas-main'
+      });
+      return;
+    }
+
+    let nextActiveId = s.activeTabId;
+    if (s.activeTabId === tabId) {
+      const nextTab = newTabs[Math.max(0, index - 1)];
+      nextActiveId = nextTab.id;
+      set({ activeTab: nextTab.type as ActiveNavTab });
+      if (nextTab.targetId) {
+        if (nextTab.type === 'wiki' || nextTab.type === 'card') set({ selectedEntityId: nextTab.targetId });
+        if (nextTab.type === 'map') set({ selectedMapId: nextTab.targetId });
+        if (nextTab.type === 'writer') set({ selectedChapterId: nextTab.targetId });
+        if (nextTab.type === 'canvas') set({ selectedCanvasId: nextTab.targetId });
+      }
+    }
+    set({ openTabs: newTabs, activeTabId: nextActiveId });
+  },
+
+  setActiveTabId: (tabId) => {
+    const s = get();
+    const tab = s.openTabs.find((t) => t.id === tabId);
+    if (tab) {
+      set({ activeTabId: tabId, activeTab: tab.type as ActiveNavTab });
+      if (tab.targetId) {
+        if (tab.type === 'wiki' || tab.type === 'card') set({ selectedEntityId: tab.targetId });
+        if (tab.type === 'map') set({ selectedMapId: tab.targetId });
+        if (tab.type === 'writer') set({ selectedChapterId: tab.targetId });
+        if (tab.type === 'canvas') set({ selectedCanvasId: tab.targetId });
+      }
+    }
+  },
+
+  // Directory Folders CRUD
+  createFolder: (name, parentId = null) => {
+    const worldId = get().activeWorldId || sampleWorld.id;
+    const newFolder: DirectoryFolder = {
+      id: `folder-${Date.now()}`,
+      worldId,
+      name,
+      parentId,
+      isOpen: true,
+      createdAt: new Date().toISOString()
+    };
+    set((state) => ({
+      folders: {
+        ...state.folders,
+        [worldId]: [...(state.folders[worldId] || []), newFolder]
+      }
+    }));
+    get().persistStore();
+    return newFolder;
+  },
+
+  renameFolder: (folderId, name) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    set((state) => ({
+      folders: {
+        ...state.folders,
+        [worldId]: (state.folders[worldId] || []).map((f) =>
+          f.id === folderId ? { ...f, name } : f
+        )
+      }
+    }));
+    get().persistStore();
+  },
+
+  deleteFolder: (folderId) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    set((state) => ({
+      folders: {
+        ...state.folders,
+        [worldId]: (state.folders[worldId] || []).filter((f) => f.id !== folderId)
+      },
+      // Move items in deleted folder to root
+      directoryItems: {
+        ...state.directoryItems,
+        [worldId]: (state.directoryItems[worldId] || []).map((item) =>
+          item.folderId === folderId ? { ...item, folderId: null } : item
+        )
+      }
+    }));
+    get().persistStore();
+  },
+
+  toggleFolderOpen: (folderId) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    set((state) => ({
+      folders: {
+        ...state.folders,
+        [worldId]: (state.folders[worldId] || []).map((f) =>
+          f.id === folderId ? { ...f, isOpen: !f.isOpen } : f
+        )
+      }
+    }));
+  },
+
+  // Directory Items CRUD
+  createDirectoryItem: (name, type, folderId = null, targetId) => {
+    const worldId = get().activeWorldId || sampleWorld.id;
+    const newItem: DirectoryItem = {
+      id: `item-${Date.now()}`,
+      worldId,
+      name,
+      type,
+      folderId,
+      targetId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    set((state) => ({
+      directoryItems: {
+        ...state.directoryItems,
+        [worldId]: [...(state.directoryItems[worldId] || []), newItem]
+      }
+    }));
+    get().persistStore();
+    return newItem;
+  },
+
+  deleteDirectoryItem: (itemId) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    set((state) => ({
+      directoryItems: {
+        ...state.directoryItems,
+        [worldId]: (state.directoryItems[worldId] || []).filter((item) => item.id !== itemId)
+      }
+    }));
+    get().persistStore();
+  },
+
+  moveItemToFolder: (itemId, folderId) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    set((state) => ({
+      directoryItems: {
+        ...state.directoryItems,
+        [worldId]: (state.directoryItems[worldId] || []).map((item) =>
+          item.id === itemId ? { ...item, folderId, updatedAt: new Date().toISOString() } : item
+        )
+      }
+    }));
+    get().persistStore();
+  },
+
+  // Canvas Actions
+  createCanvas: (name = 'New Canvas', folderId = null) => {
+    const worldId = get().activeWorldId || sampleWorld.id;
+    const newCanvas: WhiteboardCanvasData = {
+      id: `canvas-${Date.now()}`,
+      worldId,
+      name,
+      nodes: [],
+      edges: [],
+      strokes: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    const newItem: DirectoryItem = {
+      id: `item-${Date.now()}`,
+      worldId,
+      name,
+      type: 'canvas',
+      folderId,
+      targetId: newCanvas.id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    set((state) => ({
+      canvases: {
+        ...state.canvases,
+        [worldId]: [...(state.canvases[worldId] || []), newCanvas]
+      },
+      directoryItems: {
+        ...state.directoryItems,
+        [worldId]: [...(state.directoryItems[worldId] || []), newItem]
+      },
+      selectedCanvasId: newCanvas.id
+    }));
+    get().openTab({
+      title: name,
+      type: 'canvas',
+      targetId: newCanvas.id
+    });
+    get().persistStore();
+    return newCanvas;
+  },
+
+  updateCanvas: (canvasId, updates) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    set((state) => ({
+      canvases: {
+        ...state.canvases,
+        [worldId]: (state.canvases[worldId] || []).map((c) =>
+          c.id === canvasId ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c
+        )
+      }
+    }));
+    get().persistStore();
+  },
+
+  deleteCanvas: (canvasId) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    set((state) => ({
+      canvases: {
+        ...state.canvases,
+        [worldId]: (state.canvases[worldId] || []).filter((c) => c.id !== canvasId)
+      },
+      directoryItems: {
+        ...state.directoryItems,
+        [worldId]: (state.directoryItems[worldId] || []).filter((item) => item.targetId !== canvasId)
+      }
+    }));
+    get().persistStore();
+  },
+
+  saveCanvasNodesAndEdges: (canvasId, nodes, edges) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    set((state) => ({
+      canvases: {
+        ...state.canvases,
+        [worldId]: (state.canvases[worldId] || []).map((c) =>
+          c.id === canvasId ? { ...c, nodes, edges, updatedAt: new Date().toISOString() } : c
+        )
+      }
+    }));
+    get().persistStore();
+  },
+
+  addCanvasStroke: (canvasId, stroke) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    set((state) => ({
+      canvases: {
+        ...state.canvases,
+        [worldId]: (state.canvases[worldId] || []).map((c) =>
+          c.id === canvasId 
+            ? { ...c, strokes: [...(c.strokes || []), stroke], updatedAt: new Date().toISOString() } 
+            : c
+        )
+      }
+    }));
+    get().persistStore();
+  },
+
+  clearCanvasStrokes: (canvasId) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    set((state) => ({
+      canvases: {
+        ...state.canvases,
+        [worldId]: (state.canvases[worldId] || []).map((c) =>
+          c.id === canvasId ? { ...c, strokes: [], updatedAt: new Date().toISOString() } : c
+        )
+      }
+    }));
+    get().persistStore();
+  },
 
   createWorld: (name, tagline, genre) => {
     const newWorld: World = {

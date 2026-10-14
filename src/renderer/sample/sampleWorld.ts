@@ -1,4 +1,7 @@
-import { World, LoreEntity, WorldMap, RelationEdge, TimelineEvent, ManuscriptChapter } from '@shared/types'
+import { 
+  World, LoreEntity, WorldMap, RelationEdge, TimelineEvent, ManuscriptChapter,
+  DirectoryFolder, DirectoryItem, WhiteboardCanvasData, WorkspaceTab
+} from '@shared/types'
 
 export const sampleWorld: World = {
   id: 'world-aethelgard',
@@ -415,5 +418,157 @@ export const sampleManuscript: ManuscriptChapter[] = [
     order: 1,
     wordCount: 104,
     updatedAt: new Date().toISOString()
+  }
+]
+
+export const sampleCanvases: WhiteboardCanvasData[] = [
+  {
+    id: 'canvas-main',
+    worldId: 'world-aethelgard',
+    name: 'New Canvas',
+    nodes: [
+      {
+        id: 'node-card-ronald',
+        type: 'canvasCard',
+        position: { x: 420, y: 220 },
+        data: {
+          entityId: 'char-ronald',
+          title: 'yrtrtrt',
+          subtitle: 'Karakter',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
+        }
+      },
+      {
+        id: 'node-note-1',
+        type: 'stickyNote',
+        position: { x: 630, y: 220 },
+        data: {
+          title: 'Title',
+          content: 'Write something...'
+        }
+      },
+      {
+        id: 'node-shape-1',
+        type: 'shape',
+        position: { x: 880, y: 320 },
+        data: {
+          shapeType: 'parallelogram',
+          color: '#ffffff',
+          fillOpacity: 0.95,
+          text: ''
+        }
+      },
+      {
+        id: 'node-text-1',
+        type: 'canvasText',
+        position: { x: 120, y: 500 },
+        data: {
+          text: 'Can draw, add cards, texts, shapes, arrows'
+        }
+      }
+    ],
+    edges: [],
+    strokes: [
+      {
+        id: 'stroke-encircling-loop',
+        points: [
+          { x: 380, y: 180 }, { x: 440, y: 150 }, { x: 550, y: 140 }, { x: 670, y: 140 },
+          { x: 790, y: 170 }, { x: 840, y: 240 }, { x: 840, y: 360 }, { x: 820, y: 440 },
+          { x: 750, y: 490 }, { x: 630, y: 520 }, { x: 480, y: 520 }, { x: 390, y: 470 },
+          { x: 350, y: 390 }, { x: 350, y: 280 }, { x: 370, y: 210 }, { x: 400, y: 180 }
+        ],
+        color: '#ffffff',
+        width: 3.5
+      }
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+]
+
+export const sampleFolders: DirectoryFolder[] = [
+  {
+    id: 'folder-court',
+    worldId: 'world-aethelgard',
+    name: 'yrtrtrt',
+    parentId: null,
+    isOpen: true,
+    createdAt: new Date().toISOString()
+  }
+]
+
+export const sampleDirectoryItems: DirectoryItem[] = [
+  {
+    id: 'doc-canvas-1',
+    worldId: 'world-aethelgard',
+    name: 'New Canvas',
+    type: 'canvas',
+    targetId: 'canvas-main',
+    folderId: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'doc-timeline-1',
+    worldId: 'world-aethelgard',
+    name: 'Baru Linimasa',
+    type: 'timeline',
+    folderId: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'doc-rel-1',
+    worldId: 'world-aethelgard',
+    name: 'Baru Pohon relasi',
+    type: 'relations',
+    folderId: 'folder-court',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'doc-wiki-1',
+    worldId: 'world-aethelgard',
+    name: 'Encyclopedia',
+    type: 'wiki',
+    folderId: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'doc-map-1',
+    worldId: 'world-aethelgard',
+    name: 'Archipelago Map',
+    type: 'map',
+    targetId: 'map-aethelgard-main',
+    folderId: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'doc-manuscript-1',
+    worldId: 'world-aethelgard',
+    name: 'Chains of Dawn',
+    type: 'writer',
+    targetId: 'ch-1',
+    folderId: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+]
+
+export const sampleWorkspaceTabs: WorkspaceTab[] = [
+  {
+    id: 'tab-relations',
+    title: 'Baru Pohon relasi & Canvas',
+    type: 'relations',
+    isClosable: true
+  },
+  {
+    id: 'tab-canvas',
+    title: 'Canvas',
+    type: 'canvas',
+    targetId: 'canvas-main',
+    isClosable: true
   }
 ]

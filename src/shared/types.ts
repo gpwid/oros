@@ -135,4 +135,62 @@ export interface StorageData {
   relations: Record<string, RelationEdge[]>; // key: worldId
   timelines: Record<string, TimelineEvent[]>; // key: worldId
   manuscripts: Record<string, ManuscriptChapter[]>; // key: worldId
+  folders?: Record<string, DirectoryFolder[]>; // key: worldId
+  directoryItems?: Record<string, DirectoryItem[]>; // key: worldId
+  canvases?: Record<string, WhiteboardCanvasData[]>; // key: worldId
+}
+
+export type DirectoryItemType = 
+  | 'canvas' 
+  | 'wiki' 
+  | 'card' 
+  | 'relations' 
+  | 'timeline' 
+  | 'map' 
+  | 'writer';
+
+export interface DirectoryItem {
+  id: string;
+  worldId: string;
+  name: string;
+  type: DirectoryItemType;
+  folderId?: string | null;
+  targetId?: string; // id of specific entity, map, chapter, or canvas
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DirectoryFolder {
+  id: string;
+  worldId: string;
+  name: string;
+  parentId?: string | null; // For nested subfolders
+  isOpen?: boolean;
+  createdAt: string;
+}
+
+export interface WorkspaceTab {
+  id: string;
+  title: string;
+  type: DirectoryItemType;
+  targetId?: string;
+  isClosable?: boolean;
+}
+
+export interface CanvasStroke {
+  id: string;
+  points: { x: number; y: number }[];
+  color: string;
+  width: number;
+}
+
+export interface WhiteboardCanvasData {
+  id: string;
+  worldId: string;
+  name: string;
+  nodes: any[];
+  edges: any[];
+  strokes: CanvasStroke[];
+  createdAt: string;
+  updatedAt: string;
 }

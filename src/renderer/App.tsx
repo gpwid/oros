@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { useWorldStore } from './store/useWorldStore'
-import { TitleBar } from './components/layout/TitleBar'
+import { WorkspaceTabs } from './components/layout/WorkspaceTabs'
 import { Sidebar } from './components/layout/Sidebar'
 import { WikiArticleView } from './components/wiki/WikiArticleView'
 import { CardGallery } from './components/cards/CardGallery'
@@ -9,20 +9,27 @@ import { RelationGraphCanvas } from './components/graph/RelationGraphCanvas'
 import { WikiNetworkGraph } from './components/graph/WikiNetworkGraph'
 import { TimelineView } from './components/timeline/TimelineView'
 import { StudioWriter } from './components/writer/StudioWriter'
+import { WhiteboardCanvas } from './components/canvas/WhiteboardCanvas'
 import { CommandPalette } from './components/common/CommandPalette'
 import { ToastContainer } from './components/common/ToastContainer'
 
 export const App: React.FC = () => {
-  const { activeTab, initStore } = useWorldStore()
+  const { activeTab, openTabs, activeTabId, initStore } = useWorldStore()
 
   useEffect(() => {
     initStore()
   }, [initStore])
 
+  const activeTabObj = openTabs.find((t) => t.id === activeTabId)
+  const currentTabType = activeTabObj?.type || activeTab
+
   const renderActiveView = () => {
-    switch (activeTab) {
+    switch (currentTabType) {
+      case 'canvas':
+        return <WhiteboardCanvas canvasId={activeTabObj?.targetId} />
       case 'wiki':
         return <WikiArticleView />
+      case 'card':
       case 'cards':
         return <CardGallery />
       case 'relations':
@@ -30,6 +37,7 @@ export const App: React.FC = () => {
         return <RelationGraphCanvas />
       case 'wiki-network':
         return <WikiNetworkGraph />
+      case 'map':
       case 'maps':
         return <InteractiveMapViewer />
       case 'timeline':
@@ -37,19 +45,23 @@ export const App: React.FC = () => {
       case 'writer':
         return <StudioWriter />
       default:
-        return <WikiArticleView />
+        return <WhiteboardCanvas canvasId={activeTabObj?.targetId} />
     }
   }
 
   return (
     <div className="h-screen w-screen flex flex-col bg-oros-950 text-slate-100 overflow-hidden font-sans">
-      <TitleBar />
+      {/* Top Browser-style Tabs Bar */}
+      <WorkspaceTabs />
+      
+      {/* Main Workspace Layout */}
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
-        <div className="flex-1 flex overflow-hidden bg-oros-950">
+        <main className="flex-1 flex overflow-hidden bg-oros-950">
           {renderActiveView()}
-        </div>
+        </main>
       </div>
+
       <CommandPalette />
       <ToastContainer />
     </div>

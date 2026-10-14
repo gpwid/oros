@@ -1,20 +1,45 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { app, shell, BrowserWindow, ipcMain, dialog, protocol, net } from 'electron'
+import { join, dirname, extname, basename } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
 
+// Register privileged custom protocol for local world assets
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'oros-asset',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true
+    }
+  }
+])
+
 let mainWindow: BrowserWindow | null = null
 
 const userDataPath = app.getPath('userData')
-const dataFilePath = join(userDataPath, 'oros_vault.json')
+const vaultPath = join(userDataPath, 'vault')
+const assetsPath = join(vaultPath, 'assets')
+const dataFilePath = join(vaultPath, 'oros_vault.json')
+const backupFilePath = join(vaultPath, 'oros_vault.json.bak')
+
+// Ensure directory tree exists
+function ensureDirectories() {
+  if (!existsSync(vaultPath)) mkdirSync(vaultPath, { recursive: true })
+  if (!existsSync(assetsPath)) mkdirSync(assetsPath, { recursive: true })
+}
 
 function loadVaultData(): string | null {
   try {
+    ensureDirectories()
     if (existsSync(dataFilePath)) {
       return readFileSync(dataFilePath, 'utf-8')
     }
@@ -26,8 +51,14 @@ function loadVaultData(): string | null {
 
 function saveVaultData(jsonContent: string): boolean {
   try {
-    if (!existsSync(userDataPath)) {
-      mkdirSync(userDataPath, { recursive: true })
+    ensureDirectories()
+    // Create backup before writing
+    if (existsSync(dataFilePath)) {
+      try {
+        copyFileSync(dataFilePath, backupFilePath)
+      } catch (backupErr) {
+        console.warn('Could not write backup file:', backupErr)
+      }
     }
     writeFileSync(dataFilePath, jsonContent, 'utf-8')
     return true
@@ -38,14 +69,13 @@ function saveVaultData(jsonContent: string): boolean {
 }
 
 function createWindow(): void {
-  // Preload is built alongside main into dist-electron/
   const preloadPath = join(__dirname, 'index.mjs')
 
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
-    minWidth: 1024,
-    minHeight: 680,
+    width: 1440,
+    height: 920,
+    minWidth: 1080,
+    minHeight: 700,
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#0e141c',
@@ -75,13 +105,28 @@ function createWindow(): void {
 
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
-    mainWindow.webContents.openDevTools({ mode: 'detach' })
   } else {
     mainWindow.loadFile(join(__dirname, '../dist/index.html'))
   }
 }
 
 app.whenReady().then(() => {
+  ensureDirectories()
+
+  // Protocol handler for oros-asset://<assetFilename>
+  protocol.handle('oros-asset', (request) => {
+    const url = new URL(request.url)
+    // Handle oros-asset://filename.png or oros-asset:///filename.png
+    const filename = url.hostname ? `${url.hostname}${url.pathname}` : url.pathname.replace(/^\/+/, '')
+    const targetFile = join(assetsPath, decodeURIComponent(filename))
+
+    if (existsSync(targetFile)) {
+      return net.fetch(pathToFileURL(targetFile).toString())
+    }
+    return new Response('Asset not found', { status: 404 })
+  })
+
+  // Vault loading & saving
   ipcMain.handle('oros:load-vault', async () => {
     return loadVaultData()
   })
@@ -90,11 +135,32 @@ app.whenReady().then(() => {
     return saveVaultData(content)
   })
 
+  // Native Image Importer: Copies file into local vault and returns oros-asset:// URL
+  ipcMain.handle('oros:import-asset', async () => {
+    if (!mainWindow) return null
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Import Artwork into Oros Vault',
+      properties: ['openFile'],
+      filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'svg', 'gif'] }]
+    })
+
+    if (result.canceled || result.filePaths.length === 0) return null
+
+    const sourcePath = result.filePaths[0]
+    const ext = extname(sourcePath).toLowerCase()
+    const id = randomUUID()
+    const targetFilename = `${id}${ext}`
+    const destinationPath = join(assetsPath, targetFilename)
+
+    copyFileSync(sourcePath, destinationPath)
+    return `oros-asset://${targetFilename}`
+  })
+
   ipcMain.handle('oros:select-image', async () => {
     if (!mainWindow) return null
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openFile'],
-      filters: [{ name: 'Images', extensions: ['jpg', 'png', 'webp', 'svg', 'gif'] }]
+      filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'svg', 'gif'] }]
     })
     if (result.canceled || result.filePaths.length === 0) return null
     return result.filePaths[0]
@@ -109,6 +175,11 @@ app.whenReady().then(() => {
     })
     if (result.canceled || !result.filePath) return false
     writeFileSync(result.filePath, content, 'utf-8')
+    return true
+  })
+
+  ipcMain.handle('oros:open-vault-folder', async () => {
+    shell.openPath(vaultPath)
     return true
   })
 

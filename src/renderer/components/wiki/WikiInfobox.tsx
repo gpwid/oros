@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { LoreEntity, InfoboxField } from '@shared/types'
 import { useWorldStore } from '../../store/useWorldStore'
-import { Plus, Edit3, Check, Trash2, ExternalLink } from 'lucide-react'
+import { useToastStore } from '../../store/useToastStore'
+import { Plus, Edit3, Check, Trash2, ExternalLink, Camera, Image as ImageIcon } from 'lucide-react'
 
 interface WikiInfoboxProps {
   entity: LoreEntity;
@@ -10,6 +11,7 @@ interface WikiInfoboxProps {
 
 export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, onUpdate }) => {
   const { entities, activeWorldId, setSelectedEntityId } = useWorldStore()
+  const { addToast } = useToastStore()
   const [isEditing, setIsEditing] = useState(false)
   const [newFieldLabel, setNewFieldLabel] = useState('')
   const [newFieldValue, setNewFieldValue] = useState('')
@@ -58,8 +60,20 @@ export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, onUpdate }) =>
     })
   }
 
+  const handleImportAvatar = async () => {
+    if (window.oros) {
+      const assetUrl = await window.oros.importAsset()
+      if (assetUrl) {
+        onUpdate({ avatar: assetUrl })
+        addToast('Updated portrait from local vault asset', 'success')
+      }
+    } else {
+      addToast('Local asset importer requires desktop app', 'warning')
+    }
+  }
+
   return (
-    <aside className="w-80 shrink-0 bg-oros-900/90 border border-oros-700/60 rounded-xl overflow-hidden shadow-xl text-xs select-text my-2 ml-6">
+    <aside className="w-80 shrink-0 bg-oros-900/95 border border-oros-700/60 rounded-2xl overflow-hidden shadow-2xl text-xs select-text my-2 ml-6">
       {/* Top Banner / Header */}
       <div className="bg-gradient-to-r from-oros-800 to-oros-900 border-b border-oros-700/60 p-3 text-center">
         <h3 className="font-serif font-bold text-sm tracking-wide text-slate-100">
@@ -73,18 +87,33 @@ export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, onUpdate }) =>
       </div>
 
       {/* Main Portrait / Image */}
-      {entity.avatar && (
-        <div className="p-3 text-center border-b border-oros-800/60 bg-oros-950/40">
+      <div className="p-3 text-center border-b border-oros-800/60 bg-oros-950/40 relative group">
+        {entity.avatar ? (
           <img
             src={entity.avatar}
             alt={entity.title}
-            className="w-full h-44 object-cover rounded-lg border border-oros-700/50 shadow-inner"
+            className="w-full h-44 object-cover rounded-xl border border-oros-700/50 shadow-inner"
           />
-          <span className="block text-[10px] text-oros-400 mt-1.5 italic">
-            Official archival depiction of {entity.title}
-          </span>
-        </div>
-      )}
+        ) : (
+          <div className="w-full h-44 bg-oros-900/60 rounded-xl border border-dashed border-oros-700 flex flex-col items-center justify-center text-oros-500">
+            <ImageIcon className="w-8 h-8 mb-1 opacity-50" />
+            <span className="text-[11px]">No portrait set</span>
+          </div>
+        )}
+
+        {/* Change portrait overlay button */}
+        <button
+          onClick={handleImportAvatar}
+          className="absolute inset-x-7 bottom-7 py-1.5 rounded-lg bg-black/75 hover:bg-black/90 text-gold-400 font-semibold text-[11px] backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 shadow-lg border border-oros-700"
+        >
+          <Camera className="w-3.5 h-3.5" />
+          <span>Import Local Portrait</span>
+        </button>
+
+        <span className="block text-[10px] text-oros-400 mt-1.5 italic">
+          Official archival depiction of {entity.title}
+        </span>
+      </div>
 
       {/* Sections & Key-Value Attributes */}
       <div className="divide-y divide-oros-800/60">

@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@tiptap/extension-character-count": "^2.11.5",
+    "@tiptap/extension-mention": "^2.27.3",
     "@tiptap/extension-placeholder": "^2.11.5",
     "@tiptap/react": "^2.11.5",
     "@tiptap/starter-kit": "^2.11.5",
+    "@tiptap/suggestion": "^2.11.5",
     "@xyflow/react": "^12.4.4",
     "clsx": "^2.1.1",
     "leaflet": "^1.9.4",
@@ -23,6 +25,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^3.0.1",
+    "tippy.js": "^6.3.7",
     "zustand": "^5.0.3"
   },
   "devDependencies": {

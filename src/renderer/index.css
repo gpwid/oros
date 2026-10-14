@@ -98,3 +98,23 @@
   height: 0;
   pointer-events: none;
 }
+
+/* TipTap & Wiki @Mention Badges */
+.oros-mention {
+  background-color: rgba(245, 197, 66, 0.15);
+  color: #f5c542;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(245, 197, 66, 0.35);
+  display: inline-block;
+  line-height: 1.4;
+  transition: all 0.15s ease-in-out;
+}
+
+.oros-mention:hover {
+  background-color: rgba(245, 197, 66, 0.28);
+  border-color: rgba(245, 197, 66, 0.7);
+  box-shadow: 0 0 8px rgba(245, 197, 66, 0.2);
+}

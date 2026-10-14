@@ -1,9 +1,13 @@
 import React, { useState } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
+import { useToastStore } from '../../store/useToastStore'
 import { WikiEditor } from '../wiki/WikiEditor'
+import { PromptModal, ConfirmModal } from '../common/PromptModal'
+import { QuickPeekCard } from '../common/QuickPeekCard'
 import { 
   Feather, Plus, BookOpen, Search, Eye, Trash2, ChevronRight, Sparkles 
 } from 'lucide-react'
+import { LoreEntity } from '@shared/types'
 
 export const StudioWriter: React.FC = () => {
   const { 
@@ -11,8 +15,13 @@ export const StudioWriter: React.FC = () => {
     createChapter, updateChapter, deleteChapter, setSelectedEntityId, setActiveTab 
   } = useWorldStore()
 
+  const { addToast } = useToastStore()
+
   const [codexSearch, setCodexSearch] = useState('')
   const [showCodexDrawer, setShowCodexDrawer] = useState(true)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [hoveredEntity, setHoveredEntity] = useState<LoreEntity | null>(null)
 
   const worldChapters = activeWorldId ? manuscripts[activeWorldId] || [] : []
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
@@ -25,14 +34,22 @@ export const StudioWriter: React.FC = () => {
     e.tags.some(t => t.toLowerCase().includes(codexSearch.toLowerCase()))
   )
 
-  const handleCreateChapter = () => {
-    const title = prompt('Enter Chapter Title:')
-    if (!title?.trim()) return
-    createChapter(title.trim())
+  const handleCreateSubmit = (title: string) => {
+    createChapter(title)
+    setShowCreateModal(false)
+    addToast(`Created chapter: ${title}`, 'success')
+  }
+
+  const handleDeleteConfirm = () => {
+    if (!currentChapter) return
+    const title = currentChapter.title
+    deleteChapter(currentChapter.id)
+    setShowDeleteModal(false)
+    addToast(`Deleted chapter: ${title}`, 'info')
   }
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-oros-950">
+    <div className="flex-1 flex overflow-hidden bg-oros-950 relative">
       {/* Chapter Outline Navigation */}
       <aside className="w-64 bg-oros-950/80 border-r border-oros-800/40 flex flex-col justify-between shrink-0 select-none">
         <div>
@@ -42,8 +59,8 @@ export const StudioWriter: React.FC = () => {
               Manuscript Chapters
             </div>
             <button
-              onClick={handleCreateChapter}
-              className="p-1 px-2 rounded-md bg-gold-500/20 hover:bg-gold-500/30 text-gold-400 text-xs font-semibold flex items-center gap-1"
+              onClick={() => setShowCreateModal(true)}
+              className="p-1 px-2 rounded-md bg-gold-500/20 hover:bg-gold-500/30 text-gold-400 text-xs font-semibold flex items-center gap-1 transition-colors"
             >
               <Plus className="w-3 h-3" />
               <span>Chapter</span>
@@ -51,7 +68,7 @@ export const StudioWriter: React.FC = () => {
           </div>
 
           <div className="p-2 space-y-1 overflow-y-auto">
-            {worldChapters.map((ch, idx) => {
+            {worldChapters.map((ch) => {
               const isSelected = ch.id === currentChapter?.id
               return (
                 <button
@@ -95,7 +112,7 @@ export const StudioWriter: React.FC = () => {
               />
 
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-mono text-oros-400">
+                <span className="text-xs font-mono text-oros-400 px-2 py-1 rounded bg-oros-900 border border-oros-800">
                   {currentChapter.wordCount || 0} words
                 </span>
                 <button
@@ -110,12 +127,9 @@ export const StudioWriter: React.FC = () => {
                   <span>Codex</span>
                 </button>
                 <button
-                  onClick={() => {
-                    if (confirm(`Delete "${currentChapter.title}"?`)) {
-                      deleteChapter(currentChapter.id)
-                    }
-                  }}
-                  className="p-1.5 rounded-lg bg-oros-900/60 text-oros-400 hover:text-red-400 border border-oros-800"
+                  onClick={() => setShowDeleteModal(true)}
+                  className="p-1.5 rounded-lg bg-oros-900/60 text-oros-400 hover:text-red-400 border border-oros-800 transition-colors"
+                  title="Delete chapter"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -125,7 +139,7 @@ export const StudioWriter: React.FC = () => {
             <WikiEditor
               content={currentChapter.content}
               onChange={(newHtml) => updateChapter(currentChapter.id, newHtml)}
-              placeholder="Draft your story, campaign log, or lore chronicle..."
+              placeholder="Draft your story, campaign log, or lore chronicle... (Type @ to mention lore cards)"
             />
           </div>
         ) : (
@@ -158,7 +172,7 @@ export const StudioWriter: React.FC = () => {
                 value={codexSearch}
                 onChange={(e) => setCodexSearch(e.target.value)}
                 placeholder="Search lore references..."
-                className="w-full bg-oros-900 border border-oros-800 rounded-md pl-7 pr-2 py-1 text-[11px] text-slate-200"
+                className="w-full bg-oros-900 border border-oros-800 rounded-lg pl-7 pr-2 py-1 text-[11px] text-slate-200 placeholder-oros-500 focus:outline-none focus:border-gold-400"
               />
             </div>
           </div>
@@ -167,7 +181,9 @@ export const StudioWriter: React.FC = () => {
             {filteredEntities.map((ent) => (
               <div
                 key={ent.id}
-                className="p-2.5 rounded-lg bg-oros-900/60 border border-oros-800/60 text-xs space-y-1 hover:border-oros-700 transition-colors"
+                onMouseEnter={() => setHoveredEntity(ent)}
+                onMouseLeave={() => setHoveredEntity(null)}
+                className="p-2.5 rounded-xl bg-oros-900/60 border border-oros-800/60 text-xs space-y-1 hover:border-gold-400/50 transition-colors"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-serif font-bold text-slate-200">{ent.title}</span>
@@ -177,7 +193,9 @@ export const StudioWriter: React.FC = () => {
                   {ent.summary || 'No summary'}
                 </p>
                 <div className="pt-1 flex items-center justify-between border-t border-oros-800/40 text-[10px]">
-                  <span className="text-oros-500">{ent.infobox.sections[0]?.fields[0]?.label}: {ent.infobox.sections[0]?.fields[0]?.value}</span>
+                  <span className="text-oros-500 truncate max-w-[140px]">
+                    {ent.infobox.sections[0]?.fields[0]?.label}: {ent.infobox.sections[0]?.fields[0]?.value}
+                  </span>
                   <button
                     onClick={() => {
                       setSelectedEntityId(ent.id)
@@ -193,6 +211,34 @@ export const StudioWriter: React.FC = () => {
           </div>
         </aside>
       )}
+
+      {/* Hover QuickPeek Card */}
+      {hoveredEntity && (
+        <div className="absolute top-20 right-84 z-50 pointer-events-none">
+          <QuickPeekCard entity={hoveredEntity} />
+        </div>
+      )}
+
+      {/* Accessible Modals */}
+      <PromptModal
+        isOpen={showCreateModal}
+        title="Forge New Manuscript Chapter"
+        description="Enter the chapter or scene title for your story."
+        placeholder="e.g. Chapter 2: The Starlight Conclave"
+        confirmLabel="Create Chapter"
+        onConfirm={handleCreateSubmit}
+        onCancel={() => setShowCreateModal(false)}
+      />
+
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        title="Delete Chapter"
+        message={`Are you sure you want to permanently delete "${currentChapter?.title}"?`}
+        confirmLabel="Delete"
+        isDestructive={true}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </div>
   )
 }

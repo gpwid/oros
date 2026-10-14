@@ -8,6 +8,8 @@ import { InteractiveMapViewer } from './components/maps/InteractiveMapViewer'
 import { RelationGraphCanvas } from './components/graph/RelationGraphCanvas'
 import { TimelineView } from './components/timeline/TimelineView'
 import { StudioWriter } from './components/writer/StudioWriter'
+import { CommandPalette } from './components/common/CommandPalette'
+import { ToastContainer } from './components/common/ToastContainer'
 
 export const App: React.FC = () => {
   const { activeTab, initStore } = useWorldStore()
@@ -44,6 +46,8 @@ export const App: React.FC = () => {
           {renderActiveView()}
         </div>
       </div>
+      <CommandPalette />
+      <ToastContainer />
     </div>
   )
 }

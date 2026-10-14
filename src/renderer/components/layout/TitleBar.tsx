@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
+import { useToastStore } from '../../store/useToastStore'
 import { 
-  Compass, Shield, Download, Plus, Check, Loader2, Sparkles, ChevronDown 
+  Compass, Shield, Download, Plus, Check, Loader2, Sparkles, 
+  ChevronDown, Search, FolderOpen 
 } from 'lucide-react'
 
 export const TitleBar: React.FC = () => {
@@ -9,6 +11,8 @@ export const TitleBar: React.FC = () => {
     worlds, activeWorldId, setActiveWorldId, createWorld, 
     exportWorld, isSaving, gmMode, toggleGmMode 
   } = useWorldStore()
+
+  const { addToast } = useToastStore()
 
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [showNewModal, setShowNewModal] = useState(false)
@@ -25,11 +29,25 @@ export const TitleBar: React.FC = () => {
     setShowNewModal(false)
     setNewWorldName('')
     setNewWorldTagline('')
+    addToast(`Initialized world vault: ${newWorldName}`, 'success')
+  }
+
+  const handleOpenFolder = async () => {
+    if (window.oros) {
+      await window.oros.openVaultFolder()
+      addToast('Opened vault directory in Explorer', 'info')
+    } else {
+      addToast('Vault folder only available in desktop app', 'warning')
+    }
+  }
+
+  const triggerCommandPalette = () => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))
   }
 
   return (
     <>
-      <header className="h-10 bg-oros-950 border-b border-oros-800/40 flex items-center justify-between px-3 z-50 select-none">
+      <header className="h-10 bg-oros-950 border-b border-oros-800/40 flex items-center justify-between px-3 z-40 select-none">
         {/* Left: Brand & World Switcher */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 pr-2 border-r border-oros-800/60">
@@ -57,7 +75,7 @@ export const TitleBar: React.FC = () => {
 
             {dropdownOpen && (
               <div 
-                className="absolute left-0 mt-1.5 w-64 bg-oros-900 border border-oros-700 rounded-lg shadow-2xl py-1 z-50"
+                className="absolute left-0 mt-1.5 w-64 bg-oros-900 border border-oros-700 rounded-xl shadow-2xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100"
                 onClick={() => setDropdownOpen(false)}
               >
                 <div className="px-3 py-1.5 text-[11px] font-semibold text-oros-400 uppercase tracking-wider">
@@ -66,7 +84,10 @@ export const TitleBar: React.FC = () => {
                 {worlds.map((w) => (
                   <button
                     key={w.id}
-                    onClick={() => setActiveWorldId(w.id)}
+                    onClick={() => {
+                      setActiveWorldId(w.id)
+                      addToast(`Switched to world: ${w.name}`, 'info')
+                    }}
                     className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-oros-800/60 transition-colors ${
                       w.id === activeWorldId ? 'text-gold-400 font-semibold bg-oros-800/40' : 'text-slate-300'
                     }`}
@@ -91,9 +112,20 @@ export const TitleBar: React.FC = () => {
           </div>
         </div>
 
-        {/* Center: Window Dragging Area */}
-        <div className="flex-1 text-center text-xs text-oros-400 font-mono tracking-tight opacity-70">
-          {activeWorld?.genre ? `[${activeWorld.genre}]` : ''}
+        {/* Center: Command Palette Trigger Bar */}
+        <div className="flex-1 max-w-sm mx-4">
+          <button
+            onClick={triggerCommandPalette}
+            className="w-full py-1 px-3 rounded-lg bg-oros-900/60 hover:bg-oros-900 border border-oros-800 text-xs text-oros-400 flex items-center justify-between transition-colors shadow-inner"
+          >
+            <div className="flex items-center gap-2 truncate">
+              <Search className="w-3 h-3 text-gold-400" />
+              <span className="truncate">Search lore, maps, chapters...</span>
+            </div>
+            <kbd className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-oros-950 text-oros-400 border border-oros-800">
+              Ctrl+K
+            </kbd>
+          </button>
         </div>
 
         {/* Right: Actions & Indicators */}
@@ -113,6 +145,15 @@ export const TitleBar: React.FC = () => {
             )}
           </div>
 
+          {/* Open Vault Folder */}
+          <button
+            onClick={handleOpenFolder}
+            title="Open Local Vault Folder in Explorer"
+            className="p-1.5 rounded hover:bg-oros-800 text-oros-300 hover:text-slate-100 transition-colors"
+          >
+            <FolderOpen className="w-3.5 h-3.5" />
+          </button>
+
           {/* GM Secret Mode Toggle */}
           <button
             onClick={toggleGmMode}
@@ -129,7 +170,10 @@ export const TitleBar: React.FC = () => {
 
           {/* Export World */}
           <button
-            onClick={exportWorld}
+            onClick={async () => {
+              await exportWorld()
+              addToast('World exported as standalone archive', 'success')
+            }}
             title="Export World Archive (.oros.json)"
             className="p-1.5 rounded hover:bg-oros-800 text-oros-300 hover:text-slate-100 transition-colors"
           >
@@ -141,7 +185,7 @@ export const TitleBar: React.FC = () => {
       {/* New World Modal */}
       {showNewModal && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-700 w-full max-w-md rounded-xl shadow-2xl p-6">
+          <div className="bg-oros-900 border border-oros-700 w-full max-w-md rounded-2xl shadow-2xl p-6">
             <h3 className="font-serif text-lg font-bold text-slate-100 mb-1 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-gold-400" />
               Forge a New Realm

@@ -1,75 +1,81 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useCallback } from 'react'
 import { 
-  ReactFlow, Controls, Background, MiniMap, Node, Edge, 
+  ReactFlow, Background, MiniMap, Node, Edge, 
   MarkerType, Handle, Position, useNodesState, useEdgesState,
-  BaseEdge, EdgeLabelRenderer, EdgeProps, getStraightPath, useInternalNode
+  EdgeLabelRenderer, EdgeProps, getSmoothStepPath, ReactFlowProvider, useReactFlow,
+  BackgroundVariant
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
 import { 
-  Users, Plus, Trash2, Edit3, ArrowRightLeft, X, Filter, Search, 
-  ExternalLink, HeartHandshake, Crown, Sparkles, SlidersHorizontal, Check
+  Plus, Trash2, Edit3, ArrowRightLeft, X, Filter, Search, 
+  Heart, HeartCrack, Baby, HeartHandshake, Users, Crown, Shield, 
+  Sparkles, Swords, ZoomIn, ZoomOut, Maximize2, Check, UserPlus, SlidersHorizontal
 } from 'lucide-react'
 import { RelationEdge, LoreEntity } from '@shared/types'
 import { QuickPeekCard } from '../common/QuickPeekCard'
 
-// Calculate exact outer rectangle intersection for pristine direct straight-line graph vectors
-function getNodeIntersection(sourceNode: any, targetNode: any) {
-  const w1 = sourceNode.measured?.width || 224
-  const h1 = sourceNode.measured?.height || 180
-  const pos1 = sourceNode.internals?.positionAbsolute || sourceNode.position || { x: 0, y: 0 }
-  const cx1 = pos1.x + w1 / 2
-  const cy1 = pos1.y + h1 / 2
-
-  const w2 = targetNode.measured?.width || 224
-  const h2 = targetNode.measured?.height || 180
-  const pos2 = targetNode.internals?.positionAbsolute || targetNode.position || { x: 0, y: 0 }
-  const cx2 = pos2.x + w2 / 2
-  const cy2 = pos2.y + h2 / 2
-
-  const dx = cx2 - cx1
-  const dy = cy2 - cy1
-  if (dx === 0 && dy === 0) return { sourceX: cx1, sourceY: cy1, targetX: cx2, targetY: cy2 }
-
-  const scaleX1 = (w1 / 2) / (Math.abs(dx) || 1e-9)
-  const scaleY1 = (h1 / 2) / (Math.abs(dy) || 1e-9)
-  const scale1 = Math.min(scaleX1, scaleY1)
-  const sourceX = cx1 + dx * scale1
-  const sourceY = cy1 + dy * scale1
-
-  const scaleX2 = (w2 / 2) / (Math.abs(dx) || 1e-9)
-  const scaleY2 = (h2 / 2) / (Math.abs(dy) || 1e-9)
-  const scale2 = Math.min(scaleX2, scaleY2)
-  const targetX = cx2 - dx * scale2
-  const targetY = cy2 - dy * scale2
-
-  return { sourceX, sourceY, targetX, targetY }
+// Helper for relationship icon based on label / type
+const getRelationIcon = (label: string, type: string) => {
+  const l = label.toLowerCase()
+  if (l.includes('mantan') || l.includes('ex') || l.includes('cerai')) {
+    return <HeartCrack className="w-2.5 h-2.5 text-slate-400" />
+  }
+  if (l.includes('anak angkat') || l.includes('adopted')) {
+    return <HeartHandshake className="w-2.5 h-2.5 text-blue-300" />
+  }
+  if (l.includes('anak') || l.includes('child') || l.includes('heir') || l.includes('putra') || l.includes('putri')) {
+    return <Baby className="w-2.5 h-2.5 text-amber-300" />
+  }
+  if (l.includes('pasangan') || l.includes('spouse') || l.includes('istri') || l.includes('suami') || l.includes('nikah')) {
+    return <Heart className="w-2.5 h-2.5 text-rose-400 fill-rose-400/40" />
+  }
+  if (l.includes('saudara') || l.includes('sibling') || l.includes('kakak') || l.includes('adik')) {
+    return <Users className="w-2.5 h-2.5 text-emerald-300" />
+  }
+  if (type === 'ruler' || l.includes('sovereign') || l.includes('raja') || l.includes('queen') || l.includes('king')) {
+    return <Crown className="w-2.5 h-2.5 text-gold-400" />
+  }
+  if (type === 'vassal' || l.includes('vassal') || l.includes('fealty')) {
+    return <Shield className="w-2.5 h-2.5 text-teal-400" />
+  }
+  if (type === 'rival' || l.includes('musuh') || l.includes('enemy')) {
+    return <Swords className="w-2.5 h-2.5 text-rose-400" />
+  }
+  return <Sparkles className="w-2.5 h-2.5 text-gold-400" />
 }
 
-// Custom Floating Straight Edge that routes border-to-border with arrows & interactive click-to-edit label
-const FloatingStraightEdge = ({ id, source, target, markerEnd, style, label, data }: EdgeProps) => {
-  const sourceNode = useInternalNode(source)
-  const targetNode = useInternalNode(target)
-
-  if (!sourceNode || !targetNode) {
-    return null
-  }
-
-  const { sourceX, sourceY, targetX, targetY } = getNodeIntersection(sourceNode, targetNode)
-
-  const [edgePath, labelX, labelY] = getStraightPath({
+// Custom Auto-Following SmoothStep Edge with Napoleon-style relationship pills
+const GenealogyEdge = ({ 
+  id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, 
+  style, label, data 
+}: EdgeProps) => {
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
+    sourcePosition,
     targetX,
-    targetY
+    targetY,
+    targetPosition,
+    borderRadius: 18
   })
 
   const onEdit = (data as any)?.onEdit
+  const relationType = (data as any)?.relationType || 'family'
+  const isDashed = (data as any)?.isDashed || false
 
   return (
     <>
-      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={style} />
+      <path
+        id={id}
+        d={edgePath}
+        fill="none"
+        stroke={style?.stroke || '#788b7b'}
+        strokeWidth={style?.strokeWidth || 1.75}
+        strokeDasharray={isDashed ? '5 5' : undefined}
+        className="transition-all"
+      />
       {label && (
         <EdgeLabelRenderer>
           <div
@@ -82,11 +88,12 @@ const FloatingStraightEdge = ({ id, source, target, markerEnd, style, label, dat
               e.stopPropagation()
               if (onEdit) onEdit(id)
             }}
-            title="Click to edit relational bond"
-            className="nodrag nopan group px-2.5 py-0.5 rounded-full bg-oros-950/95 border border-oros-700/80 hover:border-gold-400 text-[10px] font-bold text-slate-100 hover:text-gold-300 shadow-md backdrop-blur-sm whitespace-nowrap cursor-pointer transition-all flex items-center gap-1"
+            title="Click to edit bond"
+            className="nodrag nopan group px-2.5 py-0.5 rounded-full bg-[#121a14]/95 border border-[#2b3c2e] hover:border-gold-400 text-[10px] font-sans font-medium text-slate-200 hover:text-gold-300 shadow-md backdrop-blur-sm whitespace-nowrap cursor-pointer transition-all flex items-center gap-1.5"
           >
+            {getRelationIcon(String(label), relationType)}
             <span>{label}</span>
-            <Edit3 className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 text-gold-400 transition-opacity" />
+            <Edit3 className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 text-gold-400 transition-opacity ml-0.5" />
           </div>
         </EdgeLabelRenderer>
       )}
@@ -94,18 +101,113 @@ const FloatingStraightEdge = ({ id, source, target, markerEnd, style, label, dat
   )
 }
 
-// Custom visual Card Node for the Graph Canvas
-const EntityCardNode = ({ data }: { data: { entity: LoreEntity; onSelect: (id: string) => void } }) => {
-  const { entity } = data
+// Napoleon / Reference Style Vertical Portrait Card Node
+const GenealogyCardNode = ({ id, data }: { 
+  id: string; 
+  data: { 
+    entity?: LoreEntity; 
+    isUnassigned?: boolean;
+    onSelect: (id: string) => void;
+    onQuickAdd: (sourceId: string, direction: 'top' | 'bottom' | 'left' | 'right') => void;
+    onAssign: (nodeId: string) => void;
+  } 
+}) => {
+  const { entity, isUnassigned, onSelect, onQuickAdd, onAssign } = data
+
+  if (isUnassigned || !entity) {
+    return (
+      <div 
+        onClick={() => onAssign(id)}
+        className="w-28 h-40 rounded-2xl border-2 border-dashed border-[#344837] hover:border-gold-400 bg-[#111812]/90 flex flex-col items-center justify-center transition-all cursor-pointer group shadow-xl relative select-none"
+      >
+        <Plus className="w-8 h-8 text-[#516f56] group-hover:text-gold-400 transition-colors" />
+        
+        {/* Tambahkan Nama Pill */}
+        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-[#0f1711]/95 border border-[#2b3d2e] text-[#86a88b] group-hover:text-gold-300 text-[10px] font-serif italic whitespace-nowrap shadow-md transition-colors">
+          Tambahkan nama
+        </div>
+
+        {/* 4 Handles for routing */}
+        <Handle type="target" position={Position.Top} id="top" className="!w-2 !h-2 !bg-[#86a88b] !border-none !opacity-0" />
+        <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2 !h-2 !bg-[#86a88b] !border-none !opacity-0" />
+        <Handle type="target" position={Position.Left} id="left" className="!w-2 !h-2 !bg-[#86a88b] !border-none !opacity-0" />
+        <Handle type="source" position={Position.Right} id="right" className="!w-2 !h-2 !bg-[#86a88b] !border-none !opacity-0" />
+      </div>
+    )
+  }
 
   return (
-    <div className="w-56 bg-oros-900/95 border-2 border-oros-700/80 hover:border-gold-400 rounded-2xl shadow-2xl overflow-hidden group transition-all text-left">
-      {/* Invisible Handles for connection hooks */}
-      <Handle type="target" position={Position.Top} className="!opacity-0 !w-1 !h-1 pointer-events-none" />
-      <Handle type="source" position={Position.Bottom} className="!opacity-0 !w-1 !h-1 pointer-events-none" />
+    <div 
+      onClick={() => onSelect(entity.id)}
+      className="w-28 h-40 rounded-2xl border-2 border-[#2b3e2e] bg-[#121a14] hover:border-gold-400/90 shadow-xl group transition-all cursor-pointer relative select-none"
+    >
+      {/* 4 Circular Quick-Add (+) Handles around the Card */}
+      {/* Top (+) */}
+      <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 flex items-center justify-center">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onQuickAdd(id, 'top')
+          }}
+          title="Add relation above (Parent / Ancestor / Liege)"
+          className="w-5 h-5 rounded-full bg-[#1b261d] border border-[#3b533f] text-[#86a88b] hover:text-white hover:border-gold-400 hover:bg-gold-500/30 hover:scale-125 flex items-center justify-center transition-all shadow-md cursor-pointer"
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+        <Handle type="target" position={Position.Top} id="top" className="!w-2 !h-2 !bg-[#86a88b] !border-none !opacity-0 pointer-events-none" />
+      </div>
 
-      {/* Card Artwork Banner */}
-      <div className="h-28 w-full relative bg-oros-950 overflow-hidden">
+      {/* Bottom (+) */}
+      <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-30 flex items-center justify-center">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onQuickAdd(id, 'bottom')
+          }}
+          title="Add relation below (Child / Successor / Vassal)"
+          className="w-5 h-5 rounded-full bg-[#1b261d] border border-[#3b533f] text-[#86a88b] hover:text-white hover:border-gold-400 hover:bg-gold-500/30 hover:scale-125 flex items-center justify-center transition-all shadow-md cursor-pointer"
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+        <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2 !h-2 !bg-[#86a88b] !border-none !opacity-0 pointer-events-none" />
+      </div>
+
+      {/* Left (+) */}
+      <div className="absolute top-1/2 -translate-y-1/2 -left-3 z-30 flex items-center justify-center">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onQuickAdd(id, 'left')
+          }}
+          title="Add relation to left (Spouse / Sibling / Ally)"
+          className="w-5 h-5 rounded-full bg-[#1b261d] border border-[#3b533f] text-[#86a88b] hover:text-white hover:border-gold-400 hover:bg-gold-500/30 hover:scale-125 flex items-center justify-center transition-all shadow-md cursor-pointer"
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+        <Handle type="target" position={Position.Left} id="left" className="!w-2 !h-2 !bg-[#86a88b] !border-none !opacity-0 pointer-events-none" />
+      </div>
+
+      {/* Right (+) */}
+      <div className="absolute top-1/2 -translate-y-1/2 -right-3 z-30 flex items-center justify-center">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onQuickAdd(id, 'right')
+          }}
+          title="Add relation to right (Spouse / Sibling / Ally)"
+          className="w-5 h-5 rounded-full bg-[#1b261d] border border-[#3b533f] text-[#86a88b] hover:text-white hover:border-gold-400 hover:bg-gold-500/30 hover:scale-125 flex items-center justify-center transition-all shadow-md cursor-pointer"
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+        <Handle type="source" position={Position.Right} id="right" className="!w-2 !h-2 !bg-[#86a88b] !border-none !opacity-0 pointer-events-none" />
+      </div>
+
+      {/* Portrait Artwork (fills the entire card) */}
+      <div className="w-full h-full rounded-2xl overflow-hidden bg-black/40 relative">
         {entity.avatar ? (
           <img
             src={entity.avatar}
@@ -113,159 +215,194 @@ const EntityCardNode = ({ data }: { data: { entity: LoreEntity; onSelect: (id: s
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-oros-800 to-oros-950 flex items-center justify-center">
-            <span className="font-serif text-3xl font-bold text-gold-400/50">{entity.title.charAt(0)}</span>
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1a261c] to-[#0e1610] text-[#718c76] font-serif text-2xl font-bold">
+            {entity.title.charAt(0)}
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-oros-900 via-transparent to-transparent pointer-events-none" />
-        <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[9px] uppercase font-mono font-bold tracking-wider bg-oros-950/90 text-gold-400 border border-oros-700/60 backdrop-blur-sm pointer-events-none">
-          {entity.type}
-        </span>
+        <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none rounded-b-2xl" />
       </div>
 
-      {/* Card Metadata */}
-      <div className="p-3 pt-2">
-        <h4 className="font-serif font-bold text-xs text-slate-100 group-hover:text-gold-400 transition-colors truncate">
-          {entity.title}
-        </h4>
-        {entity.summary ? (
-          <p className="text-[10px] text-oros-400 line-clamp-2 mt-0.5 leading-snug">
-            {entity.summary}
-          </p>
-        ) : (
-          <p className="text-[10px] text-oros-500 italic mt-0.5">Codex entry</p>
-        )}
+      {/* Bottom Name Pill (overlapping bottom edge) */}
+      <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-[#0f1711]/95 border border-[#2b3d2e] group-hover:border-gold-400 text-slate-100 group-hover:text-gold-300 font-serif font-bold text-[11px] whitespace-nowrap shadow-lg flex items-center gap-1 transition-all z-20">
+        <span>{entity.title}</span>
       </div>
     </div>
   )
 }
 
 const nodeTypes = {
-  entityCard: EntityCardNode
+  genealogyCard: GenealogyCardNode
 }
 
 const edgeTypes = {
-  floatingStraight: FloatingStraightEdge
+  genealogyEdge: GenealogyEdge
+}
+
+// Custom Floating Zoom Controls in Bottom-Right
+const FloatingZoomControls = () => {
+  const { zoomIn, zoomOut, fitView } = useReactFlow()
+
+  return (
+    <div className="absolute bottom-6 right-6 z-20 flex flex-col items-center gap-2 p-1.5 rounded-2xl bg-[#141d16]/95 border border-[#2b3e2e] shadow-2xl backdrop-blur-md">
+      <button
+        onClick={() => zoomIn({ duration: 300 })}
+        className="p-1.5 rounded-xl text-[#86a88b] hover:text-white hover:bg-[#202e23] transition-colors"
+        title="Zoom In"
+      >
+        <ZoomIn className="w-4 h-4" />
+      </button>
+      <button
+        onClick={() => zoomOut({ duration: 300 })}
+        className="p-1.5 rounded-xl text-[#86a88b] hover:text-white hover:bg-[#202e23] transition-colors"
+        title="Zoom Out"
+      >
+        <ZoomOut className="w-4 h-4" />
+      </button>
+      <button
+        onClick={() => fitView({ padding: 0.25, duration: 400 })}
+        className="p-1.5 rounded-xl text-[#86a88b] hover:text-white hover:bg-[#202e23] transition-colors"
+        title="Fit Full Tree"
+      >
+        <Maximize2 className="w-4 h-4" />
+      </button>
+    </div>
+  )
 }
 
 export const RelationGraphCanvas: React.FC = () => {
+  return (
+    <ReactFlowProvider>
+      <RelationGraphCanvasContent />
+    </ReactFlowProvider>
+  )
+}
+
+const RelationGraphCanvasContent: React.FC = () => {
   const { 
     entities, relations, activeWorldId, setSelectedEntityId, setActiveTab,
-    createRelation, updateRelation, deleteRelation 
+    createRelation, updateRelation, deleteRelation, createEntity 
   } = useWorldStore()
 
   const { addToast } = useToastStore()
 
-  // Modal and drawer controls
+  // Modals & Panels
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showBondsDrawer, setShowBondsDrawer] = useState(false)
+  const [showAssignModal, setShowAssignModal] = useState(false)
+  const [assigningNodeId, setAssigningNodeId] = useState<string | null>(null)
   const [editingRelation, setEditingRelation] = useState<RelationEdge | null>(null)
   const [activeEntityForPeek, setActiveEntityForPeek] = useState<LoreEntity | null>(null)
-  
-  // Filtering & search
-  const [relationFilter, setRelationFilter] = useState<string>('all')
-  const [bondSearchQuery, setBondSearchQuery] = useState('')
+  const [showBondsDrawer, setShowBondsDrawer] = useState(false)
 
-  // Form states for Create Relation
-  const [sourceId, setSourceId] = useState('')
-  const [targetId, setTargetId] = useState('')
-  const [relationLabel, setRelationLabel] = useState('')
+  // Quick Add Context State (spawning from a specific node handle)
+  const [quickAddSourceNodeId, setQuickAddSourceNodeId] = useState<string | null>(null)
+  const [quickAddDirection, setQuickAddDirection] = useState<'top' | 'bottom' | 'left' | 'right'>('bottom')
+
+  // Form states
+  const [targetMode, setTargetMode] = useState<'existing' | 'new' | 'unassigned'>('existing')
+  const [selectedExistingId, setSelectedExistingId] = useState('')
+  const [newCharacterName, setNewCharacterName] = useState('')
+  const [relationLabel, setRelationLabel] = useState('Anak')
   const [relationType, setRelationType] = useState<RelationEdge['relationType']>('family')
+  const [isDashedLine, setIsDashedLine] = useState(false)
   const [relationNotes, setRelationNotes] = useState('')
 
-  // Form states for Edit Relation
+  // Edit form states
   const [editLabel, setEditLabel] = useState('')
   const [editType, setEditType] = useState<RelationEdge['relationType']>('family')
+  const [editIsDashed, setEditIsDashed] = useState(false)
   const [editNotes, setEditNotes] = useState('')
 
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
   const worldRelations = activeWorldId ? relations[activeWorldId] || [] : []
 
-  // Filtered relations based on UI selection
-  const filteredRelations = useMemo(() => {
-    return worldRelations.filter((rel) => {
-      if (relationFilter !== 'all' && rel.relationType !== relationFilter) return false
-      if (bondSearchQuery.trim()) {
-        const q = bondSearchQuery.toLowerCase()
-        const src = worldEntities.find(e => e.id === rel.sourceEntityId)?.title.toLowerCase() || ''
-        const tgt = worldEntities.find(e => e.id === rel.targetEntityId)?.title.toLowerCase() || ''
-        const lbl = rel.label.toLowerCase()
-        if (!src.includes(q) && !tgt.includes(q) && !lbl.includes(q)) return false
-      }
-      return true
-    })
-  }, [worldRelations, relationFilter, bondSearchQuery, worldEntities])
-
-  // Open Edit Modal for a given relation
-  const handleOpenEdit = (relId: string) => {
-    const rel = worldRelations.find(r => r.id === relId)
-    if (rel) {
-      setEditingRelation(rel)
-      setEditLabel(rel.label)
-      setEditType(rel.relationType)
-      setEditNotes(rel.notes || '')
-    }
-  }
-
-  // Generate XYFlow nodes with pictures & radial layout
+  // Pre-calculated position map for the initial family tree (like Napoleon reference)
   const initialNodes: Node[] = useMemo(() => {
-    const total = Math.max(worldEntities.length, 1)
-    const radius = 380
-    const centerX = 600
-    const centerY = 380
+    // Specific ergonomic genealogy coordinates
+    const positions: Record<string, { x: number; y: number }> = {
+      'char-katherine': { x: 220, y: 100 },
+      'char-ronald': { x: 500, y: 100 },
+      'char-vespera': { x: 760, y: 100 },
+      'char-marcus': { x: 1020, y: 100 },
+      'char-aurelius': { x: 630, y: 340 },
+      'char-lyra': { x: 890, y: 340 },
+      'fac-solar': { x: 220, y: 340 },
+      'item-astral-crown': { x: 500, y: -120 }
+    }
 
     return worldEntities.map((ent, idx) => {
-      const angle = (idx / total) * 2 * Math.PI - Math.PI / 2
-      const x = centerX + radius * Math.cos(angle)
-      const y = centerY + radius * Math.sin(angle)
+      const pos = positions[ent.id] || { 
+        x: 200 + (idx % 4) * 260, 
+        y: 100 + Math.floor(idx / 4) * 240 
+      }
 
       return {
         id: ent.id,
-        type: 'entityCard',
-        position: { x, y },
-        data: { 
+        type: 'genealogyCard',
+        position: pos,
+        data: {
           entity: ent,
-          onSelect: (id: string) => setSelectedEntityId(id)
+          onSelect: (id: string) => {
+            const e = worldEntities.find(item => item.id === id)
+            if (e) {
+              setActiveEntityForPeek(e)
+              setSelectedEntityId(e.id)
+            }
+          },
+          onQuickAdd: (sourceId: string, direction: 'top' | 'bottom' | 'left' | 'right') => {
+            handleTriggerQuickAdd(sourceId, direction)
+          },
+          onAssign: (nodeId: string) => {
+            setAssigningNodeId(nodeId)
+            setShowAssignModal(true)
+          }
         }
       }
     })
-  }, [worldEntities, setSelectedEntityId])
+  }, [worldEntities])
 
-  // Generate straight-line edges with directional arrows
+  // Generate smoothstep auto-following edges
   const initialEdges: Edge[] = useMemo(() => {
-    return filteredRelations.map((rel) => {
-      let strokeColor = '#f5c542' // Gold default
-      if (rel.relationType === 'rival') strokeColor = '#f87171' // Red
-      if (rel.relationType === 'family') strokeColor = '#60a5fa' // Blue
-      if (rel.relationType === 'vassal' || rel.relationType === 'ruler') strokeColor = '#34d399' // Green
-      if (rel.relationType === 'creator') strokeColor = '#c084fc' // Purple
-      if (rel.relationType === 'member') strokeColor = '#38bdf8' // Cyan
+    return worldRelations.map((rel) => {
+      const isDashed = rel.notes?.includes('dashed') || 
+        rel.label.toLowerCase().includes('mantan') || 
+        rel.label.toLowerCase().includes('angkat') ||
+        rel.relationType === 'rival'
+
+      // Smart handle selection based on relation type / layout
+      let sourceHandle = 'bottom'
+      let targetHandle = 'top'
+
+      if (
+        rel.label.toLowerCase().includes('pasangan') || 
+        rel.label.toLowerCase().includes('spouse') ||
+        rel.label.toLowerCase().includes('saudara') ||
+        rel.label.toLowerCase().includes('sibling')
+      ) {
+        sourceHandle = 'right'
+        targetHandle = 'left'
+      }
 
       return {
         id: rel.id,
         source: rel.sourceEntityId,
         target: rel.targetEntityId,
+        sourceHandle,
+        targetHandle,
         label: rel.label,
-        type: 'floatingStraight',
-        animated: rel.relationType === 'ally',
-        style: { stroke: strokeColor, strokeWidth: 2 },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color: strokeColor,
-          width: 14,
-          height: 14
-        },
+        type: 'genealogyEdge',
+        style: { stroke: '#7d9280', strokeWidth: 1.75 },
         data: {
-          onEdit: (id: string) => handleOpenEdit(id)
+          relationType: rel.relationType,
+          isDashed,
+          onEdit: (relId: string) => handleOpenEdit(relId)
         }
       }
     })
-  }, [filteredRelations])
+  }, [worldRelations])
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
-  // Sync state if world data updates
   React.useEffect(() => {
     setNodes(initialNodes)
   }, [initialNodes, setNodes])
@@ -274,44 +411,111 @@ export const RelationGraphCanvas: React.FC = () => {
     setEdges(initialEdges)
   }, [initialEdges, setEdges])
 
-  const onNodeClick = (_: React.MouseEvent, node: Node) => {
-    const ent = worldEntities.find(e => e.id === node.id)
-    if (ent) {
-      setActiveEntityForPeek(ent)
-      setSelectedEntityId(ent.id)
+  // Trigger Quick Add from circular handle
+  const handleTriggerQuickAdd = (sourceId: string, direction: 'top' | 'bottom' | 'left' | 'right') => {
+    setQuickAddSourceNodeId(sourceId)
+    setQuickAddDirection(direction)
+
+    // Pre-fill smart defaults based on clicked direction
+    if (direction === 'bottom') {
+      setRelationLabel('Anak')
+      setRelationType('family')
+      setIsDashedLine(false)
+    } else if (direction === 'top') {
+      setRelationLabel('Orang Tua')
+      setRelationType('family')
+      setIsDashedLine(false)
+    } else if (direction === 'right') {
+      setRelationLabel('Pasangan')
+      setRelationType('family')
+      setIsDashedLine(false)
+    } else {
+      setRelationLabel('Saudara Kandung')
+      setRelationType('family')
+      setIsDashedLine(false)
     }
+
+    setTargetMode('existing')
+    setSelectedExistingId('')
+    setNewCharacterName('')
+    setShowAddModal(true)
   }
 
-  const onEdgeClick = (_: React.MouseEvent, edge: Edge) => {
-    handleOpenEdit(edge.id)
-  }
-
-  const handleCreateRelation = (e: React.FormEvent) => {
+  // Handle saving the Quick-Add or Manual Relation
+  const handleConfirmAddRelation = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!sourceId || !targetId || !relationLabel.trim()) return
 
+    let targetEntityId = selectedExistingId
+
+    // If user typed a new character name, create it in codex!
+    if (targetMode === 'new') {
+      if (!newCharacterName.trim()) return
+      const created = createEntity('character', newCharacterName.trim())
+      targetEntityId = created.id
+      addToast(`Created character "${created.title}" in Codex`, 'success')
+    }
+
+    if (!targetEntityId) return
+
+    const sourceEntityId = quickAddSourceNodeId || worldEntities[0]?.id
+    if (!sourceEntityId) return
+
+    // Position the new node relative to parent
+    const parentNode = nodes.find(n => n.id === sourceEntityId)
+    let newX = 500
+    let newY = 300
+
+    if (parentNode) {
+      if (quickAddDirection === 'bottom') {
+        newX = parentNode.position.x
+        newY = parentNode.position.y + 220
+      } else if (quickAddDirection === 'top') {
+        newX = parentNode.position.x
+        newY = parentNode.position.y - 220
+      } else if (quickAddDirection === 'right') {
+        newX = parentNode.position.x + 240
+        newY = parentNode.position.y
+      } else if (quickAddDirection === 'left') {
+        newX = parentNode.position.x - 240
+        newY = parentNode.position.y
+      }
+    }
+
+    // Save relation
+    const notesStr = isDashedLine ? 'dashed' : (relationNotes.trim() || undefined)
     createRelation({
-      sourceEntityId: sourceId,
-      targetEntityId: targetId,
+      sourceEntityId,
+      targetEntityId,
       relationType,
-      label: relationLabel.trim(),
-      notes: relationNotes.trim() || undefined
+      label: relationLabel.trim() || 'Connected',
+      notes: notesStr
     })
 
     setShowAddModal(false)
-    setRelationLabel('')
-    setRelationNotes('')
-    addToast('Created relational bond', 'success')
+    addToast(`Connected with bond "${relationLabel}"`, 'success')
+  }
+
+  // Open Edit Modal
+  const handleOpenEdit = (relId: string) => {
+    const rel = worldRelations.find(r => r.id === relId)
+    if (rel) {
+      setEditingRelation(rel)
+      setEditLabel(rel.label)
+      setEditType(rel.relationType)
+      setEditIsDashed(rel.notes?.includes('dashed') || false)
+      setEditNotes(rel.notes || '')
+    }
   }
 
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingRelation || !editLabel.trim()) return
 
+    const notesStr = editIsDashed ? 'dashed' : (editNotes.trim() || undefined)
     updateRelation(editingRelation.id, {
       label: editLabel.trim(),
       relationType: editType,
-      notes: editNotes.trim() || undefined
+      notes: notesStr
     })
 
     addToast('Updated relational bond', 'success')
@@ -351,69 +555,51 @@ export const RelationGraphCanvas: React.FC = () => {
     return worldEntities.find(e => e.id === id)?.avatar
   }
 
+  const sourceEntity = quickAddSourceNodeId ? worldEntities.find(e => e.id === quickAddSourceNodeId) : null
+
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-oros-950 relative select-none">
-      {/* Top Header & Action Controls */}
-      <div className="h-12 bg-oros-900/90 border-b border-oros-800/60 px-4 flex items-center justify-between z-20 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <div className="p-1 rounded-md bg-gold-500/10 text-gold-400 border border-gold-500/20">
-            <Users className="w-4 h-4" />
-          </div>
-          <div>
-            <h2 className="font-serif text-sm font-bold text-slate-100 flex items-center gap-2">
-              Character & Social Relations
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-oros-800 text-gold-400 font-normal">
-                Familial & Social Tree
-              </span>
-            </h2>
-          </div>
+    <div className="flex-1 flex flex-col overflow-hidden bg-[#121913] relative select-none">
+      {/* Top Bar with Minimalist Title & Actions */}
+      <div className="h-11 bg-[#141d16]/90 border-b border-[#253628] px-4 flex items-center justify-between z-20 backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <h2 className="font-serif text-sm font-bold text-slate-100 flex items-center gap-2">
+            Familial & Character Relations
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#1c291f] text-[#86a88b] font-normal border border-[#2d4030]">
+              Napoleon Tree Style
+            </span>
+          </h2>
         </div>
 
-        {/* Center / Right Toolbar Controls */}
         <div className="flex items-center gap-2">
-          {/* Filter Dropdown */}
-          <div className="flex items-center gap-1 bg-oros-950 border border-oros-800 rounded-lg px-2.5 py-1 text-xs">
-            <Filter className="w-3.5 h-3.5 text-oros-400" />
-            <select
-              value={relationFilter}
-              onChange={(e) => setRelationFilter(e.target.value)}
-              className="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer"
-            >
-              <option value="all">All Bonds ({worldRelations.length})</option>
-              <option value="family">Family & Marriage</option>
-              <option value="ally">Alliances</option>
-              <option value="rival">Rivals & Enemies</option>
-              <option value="vassal">Vassals & Fealty</option>
-              <option value="ruler">Sovereigns & Rulers</option>
-              <option value="creator">Creators & Artifacts</option>
-            </select>
-          </div>
-
-          {/* Manage All Bonds Toggle */}
+          {/* Manage All Bonds Drawer */}
           <button
             onClick={() => setShowBondsDrawer(!showBondsDrawer)}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+            className={`px-3 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
               showBondsDrawer 
-                ? 'bg-oros-800 border-gold-400 text-gold-300' 
-                : 'bg-oros-900/80 border-oros-700/80 text-slate-300 hover:bg-oros-800'
+                ? 'bg-[#223326] border-gold-400 text-gold-300' 
+                : 'bg-[#18231a] border-[#2b3e2e] text-[#86a88b] hover:text-white hover:bg-[#202e23]'
             }`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Manage Bonds ({worldRelations.length})</span>
+            <span>All Bonds ({worldRelations.length})</span>
           </button>
 
-          {/* Connect Entities Button */}
+          {/* New Relation Button */}
           <button
-            onClick={() => setShowAddModal(true)}
-            className="px-3.5 py-1.5 rounded-lg bg-gold-500 hover:bg-gold-400 text-oros-950 font-bold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+            onClick={() => {
+              setQuickAddSourceNodeId(worldEntities[0]?.id || null)
+              setQuickAddDirection('right')
+              setShowAddModal(true)
+            }}
+            className="px-3 py-1 rounded-lg bg-gold-500 hover:bg-gold-400 text-oros-950 font-bold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Connect Entities</span>
+            <span>Add Relation</span>
           </button>
         </div>
       </div>
 
-      {/* Main Flow Canvas Viewport */}
+      {/* Main Graph Canvas with Dot Grid Background */}
       <div className="flex-1 h-full w-full relative">
         <ReactFlow
           nodes={nodes}
@@ -422,122 +608,33 @@ export const RelationGraphCanvas: React.FC = () => {
           edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
-          onNodeClick={onNodeClick}
-          onEdgeClick={onEdgeClick}
           fitView
+          fitViewOptions={{ padding: 0.2 }}
+          minZoom={0.2}
+          maxZoom={2}
           attributionPosition="bottom-left"
         >
-          <Background color="#1e2936" gap={24} size={1} />
-          <Controls className="bg-oros-900 border border-oros-700 text-slate-200 fill-slate-200" />
-          <MiniMap 
-            nodeColor="#3e5b74" 
-            maskColor="rgba(14, 20, 28, 0.85)"
-            className="bg-oros-950 border border-oros-800 rounded-xl overflow-hidden" 
+          {/* Dark Forest Dot Grid matching reference */}
+          <Background 
+            variant={BackgroundVariant.Dots}
+            color="#2a3d2e" 
+            gap={20} 
+            size={1.5} 
           />
+          
+          {/* Floating Napoleon Zoom Controls Widget */}
+          <FloatingZoomControls />
         </ReactFlow>
 
-        {/* Floating Instruction Pill */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-3.5 py-1.5 rounded-full bg-oros-900/90 border border-oros-700/80 text-[11px] text-oros-300 shadow-xl backdrop-blur-md pointer-events-none flex items-center gap-2">
-          <Sparkles className="w-3 h-3 text-gold-400" />
-          <span>Click any <strong>relationship label</strong> or vector line to edit or delete the bond</span>
+        {/* Minimalist Floating Guide */}
+        <div className="absolute bottom-4 left-6 z-10 px-3 py-1.5 rounded-full bg-[#141d16]/90 border border-[#2b3e2e] text-[11px] text-[#86a88b] shadow-xl backdrop-blur-md pointer-events-none flex items-center gap-2">
+          <span>Click any <strong>(+) handle</strong> on a card to quickly spawn & connect a relation</span>
         </div>
       </div>
 
-      {/* Slide-out Drawer: All Active Bonds */}
-      {showBondsDrawer && (
-        <aside className="absolute top-12 right-0 bottom-0 w-80 bg-oros-900/95 border-l border-oros-800/80 shadow-2xl z-30 flex flex-col backdrop-blur-md animate-in slide-in-from-right duration-200">
-          <div className="p-3.5 border-b border-oros-800/80 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-gold-400" />
-              <h3 className="font-serif font-bold text-xs text-slate-100">
-                Active Relational Bonds ({worldRelations.length})
-              </h3>
-            </div>
-            <button 
-              onClick={() => setShowBondsDrawer(false)}
-              className="p-1 rounded-md text-oros-400 hover:text-slate-100 hover:bg-oros-800"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Search inside drawer */}
-          <div className="p-3 border-b border-oros-800/60">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-oros-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={bondSearchQuery}
-                onChange={(e) => setBondSearchQuery(e.target.value)}
-                placeholder="Search characters or bonds..."
-                className="w-full bg-oros-950 border border-oros-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-oros-500 focus:outline-none focus:border-gold-400"
-              />
-            </div>
-          </div>
-
-          {/* Bonds List */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
-            {filteredRelations.length === 0 ? (
-              <div className="text-center py-10 text-xs text-oros-500">
-                No relational bonds match criteria
-              </div>
-            ) : (
-              filteredRelations.map((rel) => {
-                const srcAvatar = getEntityAvatar(rel.sourceEntityId)
-                const tgtAvatar = getEntityAvatar(rel.targetEntityId)
-                return (
-                  <div
-                    key={rel.id}
-                    className="p-2.5 rounded-xl bg-oros-950/80 border border-oros-800/80 hover:border-gold-500/50 transition-colors group"
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-oros-900 text-gold-400 border border-oros-700/60">
-                        {rel.relationType}
-                      </span>
-                      <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
-                        <button
-                          onClick={() => handleOpenEdit(rel.id)}
-                          className="p-1 rounded text-oros-400 hover:text-gold-400 hover:bg-oros-800"
-                          title="Edit Bond"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteRelation(rel.id)}
-                          className="p-1 rounded text-oros-400 hover:text-rose-400 hover:bg-oros-800"
-                          title="Delete Bond"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="text-xs font-serif font-bold text-slate-200 mb-1 flex items-center gap-1.5">
-                      <span className="truncate max-w-[90px]">{getEntityTitle(rel.sourceEntityId)}</span>
-                      <span className="text-gold-400">→</span>
-                      <span className="truncate max-w-[90px]">{getEntityTitle(rel.targetEntityId)}</span>
-                    </div>
-
-                    <div className="text-[11px] text-oros-300 font-medium">
-                      "{rel.label}"
-                    </div>
-
-                    {rel.notes && (
-                      <p className="text-[10px] text-oros-400 mt-1 italic line-clamp-1">
-                        {rel.notes}
-                      </p>
-                    )}
-                  </div>
-                )
-              })
-            )}
-          </div>
-        </aside>
-      )}
-
-      {/* Floating QuickPeek Drawer when a node is selected */}
+      {/* QuickPeek Drawer when entity clicked */}
       {activeEntityForPeek && !showBondsDrawer && (
-        <div className="absolute top-16 right-5 z-30 animate-in fade-in slide-in-from-right-3 duration-200">
+        <div className="absolute top-14 right-5 z-30 animate-in fade-in slide-in-from-right-3 duration-200">
           <div className="relative">
             <button
               onClick={() => setActiveEntityForPeek(null)}
@@ -553,38 +650,264 @@ export const RelationGraphCanvas: React.FC = () => {
         </div>
       )}
 
-      {/* Edit Relation Modal */}
-      {editingRelation && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-700 w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-serif text-lg font-bold text-slate-100 flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-gold-400" />
-                Edit Relational Bond
+      {/* Slide-out Drawer: All Active Bonds */}
+      {showBondsDrawer && (
+        <aside className="absolute top-11 right-0 bottom-0 w-80 bg-[#141e17]/98 border-l border-[#27382a] shadow-2xl z-30 flex flex-col backdrop-blur-md animate-in slide-in-from-right duration-200">
+          <div className="p-3.5 border-b border-[#27382a] flex items-center justify-between">
+            <h3 className="font-serif font-bold text-xs text-slate-100 flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4 text-gold-400" />
+              <span>Active Relational Bonds ({worldRelations.length})</span>
+            </h3>
+            <button 
+              onClick={() => setShowBondsDrawer(false)}
+              className="p-1 rounded-md text-[#86a88b] hover:text-white hover:bg-[#202e23]"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            {worldRelations.map((rel) => (
+              <div
+                key={rel.id}
+                className="p-2.5 rounded-xl bg-[#0f1711] border border-[#253628] hover:border-gold-400/50 transition-colors group"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-sans font-semibold text-slate-300 flex items-center gap-1">
+                    {getRelationIcon(rel.label, rel.relationType)}
+                    <span>{rel.label}</span>
+                  </span>
+                  <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
+                    <button
+                      onClick={() => handleOpenEdit(rel.id)}
+                      className="p-1 rounded text-[#86a88b] hover:text-gold-300 hover:bg-[#1a261c]"
+                      title="Edit Bond"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteRelation(rel.id)}
+                      className="p-1 rounded text-[#86a88b] hover:text-rose-400 hover:bg-[#1a261c]"
+                      title="Delete Bond"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-xs font-serif font-bold text-slate-200 flex items-center gap-1.5">
+                  <span className="truncate max-w-[100px]">{getEntityTitle(rel.sourceEntityId)}</span>
+                  <span className="text-gold-400">→</span>
+                  <span className="truncate max-w-[100px]">{getEntityTitle(rel.targetEntityId)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+      )}
+
+      {/* Quick Add / Spawn Relation Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#141e17] border border-[#2d4030] w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-serif text-base font-bold text-slate-100 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-gold-400" />
+                <span>Add Connected Relation</span>
               </h3>
               <button
-                onClick={() => setEditingRelation(null)}
-                className="p-1 rounded-lg text-oros-400 hover:text-slate-100 hover:bg-oros-800"
+                onClick={() => setShowAddModal(false)}
+                className="p-1 rounded-lg text-[#86a88b] hover:text-white hover:bg-[#202e23]"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-3 bg-oros-950 rounded-xl border border-oros-800 mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="font-serif font-bold text-xs text-slate-200">
-                  {getEntityTitle(editingRelation.sourceEntityId)}
-                </span>
-                <span className="text-gold-400 font-mono text-xs">→</span>
-                <span className="font-serif font-bold text-xs text-slate-200">
-                  {getEntityTitle(editingRelation.targetEntityId)}
-                </span>
+            {/* Connecting Origin Header */}
+            {sourceEntity && (
+              <div className="p-2.5 rounded-xl bg-[#0e1610] border border-[#253628] mb-4 flex items-center gap-3">
+                <div className="w-9 h-12 rounded-lg overflow-hidden bg-black flex-shrink-0">
+                  {sourceEntity.avatar ? (
+                    <img src={sourceEntity.avatar} alt={sourceEntity.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs font-serif font-bold text-gold-400">
+                      {sourceEntity.title.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="text-[10px] text-[#86a88b] uppercase font-mono">Connecting from</div>
+                  <div className="text-xs font-serif font-bold text-slate-100">{sourceEntity.title}</div>
+                  <div className="text-[10px] text-gold-400 capitalize">Direction: {quickAddDirection}</div>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmAddRelation} className="space-y-4">
+              {/* Step 1: Assign or Create Target Character */}
+              <div>
+                <label className="block text-xs font-semibold text-[#86a88b] mb-1.5">
+                  1. Target Character
+                </label>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setTargetMode('existing')}
+                    className={`py-1.5 px-3 rounded-lg text-xs font-semibold border transition-all ${
+                      targetMode === 'existing'
+                        ? 'bg-gold-500/20 border-gold-400 text-gold-300'
+                        : 'bg-[#18231a] border-[#2b3e2e] text-[#86a88b]'
+                    }`}
+                  >
+                    Select Existing
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTargetMode('new')}
+                    className={`py-1.5 px-3 rounded-lg text-xs font-semibold border transition-all ${
+                      targetMode === 'new'
+                        ? 'bg-gold-500/20 border-gold-400 text-gold-300'
+                        : 'bg-[#18231a] border-[#2b3e2e] text-[#86a88b]'
+                    }`}
+                  >
+                    Create New
+                  </button>
+                </div>
+
+                {targetMode === 'existing' ? (
+                  <select
+                    required
+                    value={selectedExistingId}
+                    onChange={(e) => setSelectedExistingId(e.target.value)}
+                    className="w-full bg-[#0e1610] border border-[#2b3e2e] rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  >
+                    <option value="">Choose character from codex...</option>
+                    {worldEntities.filter(e => e.id !== quickAddSourceNodeId).map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.title} ({e.type})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    value={newCharacterName}
+                    onChange={(e) => setNewCharacterName(e.target.value)}
+                    placeholder="Enter character name (e.g. Napoleon II, Hortense)..."
+                    className="w-full bg-[#0e1610] border border-[#2b3e2e] rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  />
+                )}
+              </div>
+
+              {/* Step 2: Relationship Presets (Napoleon Style) */}
+              <div>
+                <label className="block text-xs font-semibold text-[#86a88b] mb-1.5">
+                  2. Relationship Preset
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: 'Pasangan', type: 'family', dashed: false },
+                    { label: 'Mantan', type: 'family', dashed: true },
+                    { label: 'Anak', type: 'family', dashed: false },
+                    { label: 'Anak Angkat', type: 'family', dashed: true },
+                    { label: 'Saudara Kandung', type: 'family', dashed: false },
+                    { label: 'Sekutu', type: 'ally', dashed: false },
+                    { label: 'Musuh', type: 'rival', dashed: true }
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => {
+                        setRelationLabel(preset.label)
+                        setRelationType(preset.type as any)
+                        setIsDashedLine(preset.dashed)
+                      }}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-sans border transition-all flex items-center gap-1 ${
+                        relationLabel === preset.label
+                          ? 'bg-gold-500 text-oros-950 font-bold border-gold-400'
+                          : 'bg-[#0f1711] border-[#2b3e2e] text-slate-200 hover:border-gold-400/60'
+                      }`}
+                    >
+                      {getRelationIcon(preset.label, preset.type)}
+                      <span>{preset.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom Label and Line Style */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-semibold text-[#86a88b] mb-1">Custom Label</label>
+                  <input
+                    type="text"
+                    value={relationLabel}
+                    onChange={(e) => setRelationLabel(e.target.value)}
+                    className="w-full bg-[#0e1610] border border-[#2b3e2e] rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-[#86a88b] mb-1">Line Style</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsDashedLine(!isDashedLine)}
+                    className="w-full h-8 bg-[#0e1610] border border-[#2b3e2e] rounded-lg px-2.5 text-xs text-slate-200 flex items-center justify-between hover:border-gold-400"
+                  >
+                    <span>{isDashedLine ? 'Dashed Line' : 'Solid Line'}</span>
+                    <span className="text-[10px] text-[#86a88b]">{isDashedLine ? '- - -' : '───'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-[#253628]">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-3.5 py-1.5 rounded-lg text-xs text-[#86a88b] hover:bg-[#1a261c]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gold-500 hover:bg-gold-400 text-oros-950 shadow-md"
+                >
+                  Connect Card
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Relation Modal */}
+      {editingRelation && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#141e17] border border-[#2d4030] w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-serif text-base font-bold text-slate-100 flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-gold-400" />
+                <span>Edit Relational Bond</span>
+              </h3>
+              <button
+                onClick={() => setEditingRelation(null)}
+                className="p-1 rounded-lg text-[#86a88b] hover:text-white hover:bg-[#202e23]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-[#0e1610] rounded-xl border border-[#253628] mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-serif font-bold text-slate-200">
+                <span>{getEntityTitle(editingRelation.sourceEntityId)}</span>
+                <span className="text-gold-400 font-mono">→</span>
+                <span>{getEntityTitle(editingRelation.targetEntityId)}</span>
               </div>
               <button
                 type="button"
                 onClick={handleReverseDirection}
-                className="px-2 py-1 rounded-md bg-oros-900 border border-oros-700 text-oros-300 hover:text-gold-400 text-[10px] font-semibold flex items-center gap-1 transition-colors"
-                title="Swap source and target direction"
+                className="px-2 py-1 rounded-md bg-[#18231a] border border-[#2b3e2e] text-[#86a88b] hover:text-gold-300 text-[10px] font-semibold flex items-center gap-1 transition-colors"
+                title="Swap source and target"
               >
                 <ArrowRightLeft className="w-3 h-3" />
                 <span>Reverse</span>
@@ -593,61 +916,66 @@ export const RelationGraphCanvas: React.FC = () => {
 
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">Relationship Type</label>
-                <select
-                  value={editType}
-                  onChange={(e) => setEditType(e.target.value as any)}
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
-                >
-                  <option value="family">Family / Bloodline / Marriage</option>
-                  <option value="ally">Alliance / Friendly</option>
-                  <option value="rival">Enemy / Conflict / Rivalry</option>
-                  <option value="vassal">Vassal / Fealty / Underling</option>
-                  <option value="ruler">Ruler / Sovereign / Liege</option>
-                  <option value="creator">Creator / Wielder / Artisan</option>
-                  <option value="member">Member / Allegiance</option>
-                  <option value="custom">Custom Bond</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">Relationship Label</label>
+                <label className="block text-xs font-semibold text-[#86a88b] mb-1">Relationship Label</label>
                 <input
                   type="text"
                   required
                   value={editLabel}
                   onChange={(e) => setEditLabel(e.target.value)}
-                  placeholder="e.g. Spouse & Confidante, Blood Oath, Sworn Liege"
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-[#0e1610] border border-[#2b3e2e] rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">Lore Notes / Historical Context</label>
-                <textarea
-                  rows={2}
-                  value={editNotes}
-                  onChange={(e) => setEditNotes(e.target.value)}
-                  placeholder="Background treaties, vows, lore context..."
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400 resize-none"
-                />
+                <label className="block text-xs font-semibold text-[#86a88b] mb-1.5">Presets</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Pasangan', 'Mantan', 'Anak', 'Anak Angkat', 'Saudara Kandung', 'Sekutu', 'Musuh'].map((lbl) => (
+                    <button
+                      key={lbl}
+                      type="button"
+                      onClick={() => {
+                        setEditLabel(lbl)
+                        if (lbl === 'Mantan' || lbl === 'Anak Angkat' || lbl === 'Musuh') {
+                          setEditIsDashed(true)
+                        } else {
+                          setEditIsDashed(false)
+                        }
+                      }}
+                      className="px-2.5 py-0.5 rounded-full text-[10px] bg-[#0e1610] border border-[#2b3e2e] hover:border-gold-400 text-slate-300"
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-oros-800">
+              <div>
+                <label className="block text-xs font-semibold text-[#86a88b] mb-1">Line Style</label>
+                <button
+                  type="button"
+                  onClick={() => setEditIsDashed(!editIsDashed)}
+                  className="w-full h-8 bg-[#0e1610] border border-[#2b3e2e] rounded-lg px-2.5 text-xs text-slate-200 flex items-center justify-between hover:border-gold-400"
+                >
+                  <span>{editIsDashed ? 'Dashed Line (Mantan / Angkat)' : 'Solid Line'}</span>
+                  <span className="text-[10px] text-[#86a88b]">{editIsDashed ? '- - -' : '───'}</span>
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-[#253628]">
                 <button
                   type="button"
                   onClick={() => handleDeleteRelation(editingRelation.id)}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 border border-rose-500/30 flex items-center gap-1.5 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete Bond</span>
+                  <span>Delete</span>
                 </button>
 
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setEditingRelation(null)}
-                    className="px-3.5 py-1.5 rounded-lg text-xs text-oros-300 hover:bg-oros-800"
+                    className="px-3 py-1.5 rounded-lg text-xs text-[#86a88b] hover:bg-[#1a261c]"
                   >
                     Cancel
                   </button>
@@ -656,115 +984,9 @@ export const RelationGraphCanvas: React.FC = () => {
                     className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gold-500 hover:bg-gold-400 text-oros-950 shadow-md flex items-center gap-1"
                   >
                     <Check className="w-3.5 h-3.5" />
-                    <span>Save Changes</span>
+                    <span>Save</span>
                   </button>
                 </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Add Relation Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-700 w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-150">
-            <h3 className="font-serif text-lg font-bold text-slate-100 mb-1">
-              Forge Relational Bond
-            </h3>
-            <p className="text-xs text-oros-300 mb-4">
-              Link two characters or entities together with an explicit straight directional vector.
-            </p>
-            <form onSubmit={handleCreateRelation} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">Source Entity</label>
-                <select
-                  required
-                  value={sourceId}
-                  onChange={(e) => setSourceId(e.target.value)}
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100"
-                >
-                  <option value="">Select origin...</option>
-                  {worldEntities.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.title} ({e.type})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">Target Entity</label>
-                <select
-                  required
-                  value={targetId}
-                  onChange={(e) => setTargetId(e.target.value)}
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100"
-                >
-                  <option value="">Select destination...</option>
-                  {worldEntities.filter(e => e.id !== sourceId).map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.title} ({e.type})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">Relationship Type</label>
-                <select
-                  value={relationType}
-                  onChange={(e) => setRelationType(e.target.value as any)}
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100"
-                >
-                  <option value="family">Family / Bloodline / Marriage</option>
-                  <option value="ally">Alliance / Friendly</option>
-                  <option value="rival">Enemy / Conflict / Rivalry</option>
-                  <option value="vassal">Vassal / Fealty / Underling</option>
-                  <option value="ruler">Ruler / Sovereign / Liege</option>
-                  <option value="creator">Creator / Wielder</option>
-                  <option value="member">Member / Allegiance</option>
-                  <option value="custom">Custom Bond</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">Relationship Label</label>
-                <input
-                  type="text"
-                  required
-                  value={relationLabel}
-                  onChange={(e) => setRelationLabel(e.target.value)}
-                  placeholder="e.g. Spouse & Confidante, Blood Oath, Sworn Liege"
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-oros-300 mb-1">Lore Notes (Optional)</label>
-                <textarea
-                  rows={2}
-                  value={relationNotes}
-                  onChange={(e) => setRelationNotes(e.target.value)}
-                  placeholder="Notes, treaty date, lore justification..."
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-400 resize-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-3.5 py-1.5 rounded-lg text-xs text-oros-300 hover:bg-oros-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gold-500 hover:bg-gold-400 text-oros-950 shadow-md"
-                >
-                  Create Edge
-                </button>
               </div>
             </form>
           </div>

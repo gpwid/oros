@@ -74,6 +74,74 @@ export const sampleEntities: LoreEntity[] = [
     updatedAt: new Date().toISOString()
   },
   {
+    id: 'char-katherine',
+    worldId: 'world-aethelgard',
+    title: 'Queen Katherine II',
+    type: 'character',
+    summary: 'The 13th Sovereign and mother of High King Ronald III.',
+    content: `<p>Queen Katherine II reigned during the Great Consolidation. Her mysterious disappearance during a survey of the Radiant Abyss remains the kingdom's greatest unsolved enigma.</p>`,
+    tags: ['Royalty', 'Ancestor', 'Monarch'],
+    aliases: ['The Vanished Queen'],
+    avatar: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=400&q=80',
+    infobox: {
+      subtitle: 'Dowager Queen',
+      sections: []
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'char-marcus',
+    worldId: 'world-aethelgard',
+    title: 'Lord Marcus',
+    type: 'character',
+    summary: 'Estranged brother of Ronald III and commander of the Northern Outcasts.',
+    content: `<p>Banished to the Frost Marches following his refusal to accept Ronald's coronation. Maintains a bitter claim to the throne.</p>`,
+    tags: ['Royalty', 'Exile', 'Rival'],
+    aliases: ['The Disinherited'],
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+    infobox: {
+      subtitle: 'Exiled Scion',
+      sections: []
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'char-aurelius',
+    worldId: 'world-aethelgard',
+    title: 'Prince Aurelius',
+    type: 'character',
+    summary: 'Crown Prince and heir of High King Ronald III and Lady Vespera.',
+    content: `<p>Trained in both swordcraft and star-weaving, Aurelius is the recognized heir to the Sunken Throne.</p>`,
+    tags: ['Royalty', 'Crown Prince', 'Heir'],
+    aliases: ['The Golden Heir'],
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+    infobox: {
+      subtitle: 'Heir Apparent',
+      sections: []
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'char-lyra',
+    worldId: 'world-aethelgard',
+    title: 'Lady Lyra',
+    type: 'character',
+    summary: 'Adopted daughter of Queen Vespera, discovered in the astral ruins.',
+    content: `<p>A prodigy with intuitive knowledge of forgotten glyphs, taken under Vespera's personal wardship.</p>`,
+    tags: ['Ward', 'Scholar'],
+    aliases: ['The Star Ward'],
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
+    infobox: {
+      subtitle: 'Royal Ward',
+      sections: []
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
     id: 'loc-sunken-bastion',
     worldId: 'world-aethelgard',
     title: 'Citadel of Sunken Gold',
@@ -210,40 +278,67 @@ export const sampleMap: WorldMap = {
 
 export const sampleRelations: RelationEdge[] = [
   {
-    id: 'rel-1',
+    id: 'rel-katherine-ronald',
+    worldId: 'world-aethelgard',
+    sourceEntityId: 'char-katherine',
+    targetEntityId: 'char-ronald',
+    relationType: 'family',
+    label: 'Anak',
+    notes: 'Queen Katherine II gave birth to Ronald during the Solar Eclipse'
+  },
+  {
+    id: 'rel-ronald-vespera',
     worldId: 'world-aethelgard',
     sourceEntityId: 'char-ronald',
     targetEntityId: 'char-vespera',
     relationType: 'family',
-    label: 'Spouse & Confidante',
+    label: 'Pasangan',
     notes: 'Bound by the Golden Concord of 830 AC'
   },
   {
-    id: 'rel-2',
+    id: 'rel-ronald-marcus',
+    worldId: 'world-aethelgard',
+    sourceEntityId: 'char-ronald',
+    targetEntityId: 'char-marcus',
+    relationType: 'rival',
+    label: 'Saudara Kandung',
+    notes: 'dashed'
+  },
+  {
+    id: 'rel-vespera-aurelius',
+    worldId: 'world-aethelgard',
+    sourceEntityId: 'char-vespera',
+    targetEntityId: 'char-aurelius',
+    relationType: 'family',
+    label: 'Anak',
+    notes: 'Crown Prince and biological heir'
+  },
+  {
+    id: 'rel-vespera-lyra',
+    worldId: 'world-aethelgard',
+    sourceEntityId: 'char-vespera',
+    targetEntityId: 'char-lyra',
+    relationType: 'family',
+    label: 'Anak Angkat',
+    notes: 'dashed'
+  },
+  {
+    id: 'rel-ronald-solar',
     worldId: 'world-aethelgard',
     sourceEntityId: 'char-ronald',
     targetEntityId: 'fac-solar',
     relationType: 'ruler',
     label: 'High Sovereign',
-    notes: 'Supreme Commander of Concord Legions'
+    notes: 'Supreme Commander'
   },
   {
-    id: 'rel-3',
+    id: 'rel-ronald-crown',
     worldId: 'world-aethelgard',
     sourceEntityId: 'char-ronald',
     targetEntityId: 'item-astral-crown',
     relationType: 'creator',
     label: 'Wields Artifact',
     notes: 'Attuned during coronation ritual'
-  },
-  {
-    id: 'rel-4',
-    worldId: 'world-aethelgard',
-    sourceEntityId: 'char-ronald',
-    targetEntityId: 'loc-sunken-bastion',
-    relationType: 'vassal',
-    label: 'Seats Court in',
-    notes: 'Primary capital residence'
   }
 ]
 

@@ -1,7 +1,7 @@
 import React from 'react'
 import { useWorldStore, ActiveNavTab } from '../../store/useWorldStore'
 import { 
-  BookOpen, Layers, Map, Network, Clock, Feather, Search, Sparkles
+  BookOpen, Layers, Map, Network, Users, Clock, Feather, Search, Sparkles
 } from 'lucide-react'
 
 interface NavItem {
@@ -14,8 +14,9 @@ interface NavItem {
 const navItems: NavItem[] = [
   { id: 'wiki', label: 'Encyclopedia', sublabel: 'Wikipedia layout', icon: BookOpen },
   { id: 'cards', label: 'Lore Cards', sublabel: 'Entities & schemas', icon: Layers },
+  { id: 'relations', label: 'Relations', sublabel: 'People & social ties', icon: Users },
+  { id: 'wiki-network', label: 'Wiki Network', sublabel: 'Cross-links & mentions', icon: Network },
   { id: 'maps', label: 'Cartography', sublabel: 'Deep-zoom & pins', icon: Map },
-  { id: 'graph', label: 'Relations', sublabel: 'Entity graph & webs', icon: Network },
   { id: 'timeline', label: 'Chronology', sublabel: 'Eras & timelines', icon: Clock },
   { id: 'writer', label: 'Studio Writer', sublabel: 'Manuscript & lore', icon: Feather },
 ]
@@ -52,7 +53,7 @@ export const Sidebar: React.FC = () => {
         <nav className="px-2 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon
-            const isActive = activeTab === item.id
+            const isActive = activeTab === item.id || (item.id === 'relations' && activeTab === 'graph')
             return (
               <button
                 key={item.id}

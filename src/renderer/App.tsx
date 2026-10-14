@@ -6,6 +6,7 @@ import { WikiArticleView } from './components/wiki/WikiArticleView'
 import { CardGallery } from './components/cards/CardGallery'
 import { InteractiveMapViewer } from './components/maps/InteractiveMapViewer'
 import { RelationGraphCanvas } from './components/graph/RelationGraphCanvas'
+import { WikiNetworkGraph } from './components/graph/WikiNetworkGraph'
 import { TimelineView } from './components/timeline/TimelineView'
 import { StudioWriter } from './components/writer/StudioWriter'
 import { CommandPalette } from './components/common/CommandPalette'
@@ -24,10 +25,13 @@ export const App: React.FC = () => {
         return <WikiArticleView />
       case 'cards':
         return <CardGallery />
-      case 'maps':
-        return <InteractiveMapViewer />
+      case 'relations':
       case 'graph':
         return <RelationGraphCanvas />
+      case 'wiki-network':
+        return <WikiNetworkGraph />
+      case 'maps':
+        return <InteractiveMapViewer />
       case 'timeline':
         return <TimelineView />
       case 'writer':

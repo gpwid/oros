@@ -8,7 +8,7 @@ import {
   sampleTimelines, sampleManuscript 
 } from '../sample/sampleWorld'
 
-export type ActiveNavTab = 'wiki' | 'cards' | 'maps' | 'graph' | 'timeline' | 'writer';
+export type ActiveNavTab = 'wiki' | 'cards' | 'relations' | 'wiki-network' | 'maps' | 'timeline' | 'writer' | 'graph';
 
 interface WorldState {
   // Navigation & UI state
@@ -58,6 +58,7 @@ interface WorldState {
 
   // Relations CRUD
   createRelation: (relation: Omit<RelationEdge, 'id' | 'worldId'>) => void;
+  updateRelation: (relationId: string, updates: Partial<RelationEdge>) => void;
   deleteRelation: (relationId: string) => void;
 
   // Timeline CRUD
@@ -341,6 +342,18 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     set((state) => {
       const list = state.relations[worldId] || [];
       return { relations: { ...state.relations, [worldId]: [...list, newRelation] } };
+    });
+    get().persistStore();
+  },
+
+  updateRelation: (relationId, updates) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    set((state) => {
+      const list = (state.relations[worldId] || []).map((r) =>
+        r.id === relationId ? { ...r, ...updates } : r
+      );
+      return { relations: { ...state.relations, [worldId]: list } };
     });
     get().persistStore();
   },

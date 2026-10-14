@@ -3,7 +3,7 @@ import { useWorldStore, ActiveNavTab } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
 import { 
   Search, BookOpen, Map, Feather, Shield, Plus, FolderOpen, 
-  Download, Sparkles, Layers, ArrowRight, Clock 
+  Download, Sparkles, Layers, ArrowRight, Clock, Users, Network 
 } from 'lucide-react'
 
 interface PaletteItem {
@@ -60,6 +60,26 @@ export const CommandPalette: React.FC = () => {
   const items: PaletteItem[] = []
 
   // 1. Quick Actions
+  items.push({
+    id: 'act-nav-relations',
+    category: 'Actions',
+    title: 'Open Character & Social Relations',
+    subtitle: 'View and edit familial bonds, alliances, and fealties',
+    icon: Users,
+    onSelect: () => {
+      setActiveTab('relations')
+    }
+  })
+  items.push({
+    id: 'act-nav-wiki-network',
+    category: 'Actions',
+    title: 'Open Wiki Cross-Link Network',
+    subtitle: 'Inspect knowledge graph, article mentions, and backlinks',
+    icon: Network,
+    onSelect: () => {
+      setActiveTab('wiki-network')
+    }
+  })
   items.push({
     id: 'act-new-char',
     category: 'Actions',

@@ -88,6 +88,8 @@ const NodeScalingToolbar: React.FC<{
 // ==========================================
 // CUSTOM NODES (Fully Responsive Dimension Scaling)
 // ==========================================
+// CUSTOM NODES (Hardware-Accelerated Responsive Scaling)
+// ==========================================
 
 // 1. Draggable Character / Lore Card Node
 const BASE_CARD_WIDTH = 180
@@ -149,33 +151,18 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const fallbackAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
 
   return (
-    <div 
-      style={{ width: currentW, height: currentH }}
-      className="relative select-none w-full h-full"
-    >
+    <div className="relative select-none w-full h-full">
       <NodeResizer
         isVisible={selected}
         minWidth={110}
         minHeight={150}
-        onResize={(_, { width, height }) => {
+        onResizeEnd={(_, { x, y, width, height }) => {
           reactFlow.setNodes((nds) =>
             nds.map((n) =>
               n.id === id
                 ? {
                     ...n,
-                    style: { ...n.style, width: Math.round(width), height: Math.round(height) },
-                    data: { ...n.data, width: Math.round(width), height: Math.round(height) }
-                  }
-                : n
-            )
-          )
-        }}
-        onResizeEnd={(_, { width, height }) => {
-          reactFlow.setNodes((nds) =>
-            nds.map((n) =>
-              n.id === id
-                ? {
-                    ...n,
+                    position: { x: Math.round(x), y: Math.round(y) },
                     style: { ...n.style, width: Math.round(width), height: Math.round(height) },
                     data: { ...n.data, width: Math.round(width), height: Math.round(height) }
                   }
@@ -196,7 +183,7 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         />
       )}
 
-      <div className={`relative w-full h-full flex flex-col rounded-2xl bg-oros-950/95 border transition-all duration-150 overflow-hidden shadow-2xl select-none group cursor-move ${
+      <div className={`relative w-full h-full flex flex-col rounded-2xl bg-oros-950/95 border transition-colors duration-150 overflow-hidden shadow-2xl select-none group cursor-move ${
         selected ? 'border-gold-400 ring-2 ring-gold-400/40' : 'border-oros-800/80 hover:border-oros-700'
       }`}>
         {/* 4 Cardinal Handles */}
@@ -288,33 +275,18 @@ const StickyNoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   }
 
   return (
-    <div 
-      style={{ width: currentW, height: currentH }}
-      className="relative select-none w-full h-full"
-    >
+    <div className="relative select-none w-full h-full">
       <NodeResizer
         isVisible={selected}
         minWidth={140}
         minHeight={110}
-        onResize={(_, { width, height }) => {
+        onResizeEnd={(_, { x, y, width, height }) => {
           reactFlow.setNodes((nds) =>
             nds.map((n) =>
               n.id === id
                 ? {
                     ...n,
-                    style: { ...n.style, width: Math.round(width), height: Math.round(height) },
-                    data: { ...n.data, width: Math.round(width), height: Math.round(height) }
-                  }
-                : n
-            )
-          )
-        }}
-        onResizeEnd={(_, { width, height }) => {
-          reactFlow.setNodes((nds) =>
-            nds.map((n) =>
-              n.id === id
-                ? {
-                    ...n,
+                    position: { x: Math.round(x), y: Math.round(y) },
                     style: { ...n.style, width: Math.round(width), height: Math.round(height) },
                     data: { ...n.data, width: Math.round(width), height: Math.round(height) }
                   }
@@ -335,7 +307,7 @@ const StickyNoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         />
       )}
 
-      <div className={`relative w-full h-full flex flex-col rounded-xl bg-[#fefae0] text-amber-950 border border-amber-300/80 shadow-2xl transition-all duration-150 p-3 select-none cursor-move ${
+      <div className={`relative w-full h-full flex flex-col rounded-xl bg-[#fefae0] text-amber-950 border border-amber-300/80 shadow-2xl transition-colors duration-150 p-3 select-none cursor-move ${
         selected ? 'ring-2 ring-amber-500 shadow-amber-900/40' : 'hover:shadow-xl'
       }`}>
         {/* 4 Cardinal Handles */}
@@ -444,33 +416,18 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   }
 
   return (
-    <div 
-      style={{ width: currentW, height: currentH }}
-      className="relative select-none w-full h-full"
-    >
+    <div className="relative select-none w-full h-full">
       <NodeResizer
         isVisible={selected}
         minWidth={60}
         minHeight={45}
-        onResize={(_, { width, height }) => {
+        onResizeEnd={(_, { x, y, width, height }) => {
           reactFlow.setNodes((nds) =>
             nds.map((n) =>
               n.id === id
                 ? {
                     ...n,
-                    style: { ...n.style, width: Math.round(width), height: Math.round(height) },
-                    data: { ...n.data, width: Math.round(width), height: Math.round(height) }
-                  }
-                : n
-            )
-          )
-        }}
-        onResizeEnd={(_, { width, height }) => {
-          reactFlow.setNodes((nds) =>
-            nds.map((n) =>
-              n.id === id
-                ? {
-                    ...n,
+                    position: { x: Math.round(x), y: Math.round(y) },
                     style: { ...n.style, width: Math.round(width), height: Math.round(height) },
                     data: { ...n.data, width: Math.round(width), height: Math.round(height) }
                   }
@@ -502,7 +459,7 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         />
       )}
 
-      <div className={`relative w-full h-full select-none cursor-move flex items-center justify-center ${
+      <div className={`relative w-full h-full select-none cursor-move flex items-center justify-center transition-colors duration-150 ${
         selected ? 'ring-2 ring-gold-400 rounded-lg' : ''
       }`}>
         {/* 4 Cardinal Handles */}
@@ -640,33 +597,18 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   }
 
   return (
-    <div 
-      style={{ width: currentW, height: currentH }}
-      className="relative select-none w-full h-full"
-    >
+    <div className="relative select-none w-full h-full">
       <NodeResizer
         isVisible={selected}
         minWidth={100}
         minHeight={30}
-        onResize={(_, { width, height }) => {
+        onResizeEnd={(_, { x, y, width, height }) => {
           reactFlow.setNodes((nds) =>
             nds.map((n) =>
               n.id === id
                 ? {
                     ...n,
-                    style: { ...n.style, width: Math.round(width), height: Math.round(height) },
-                    data: { ...n.data, width: Math.round(width), height: Math.round(height) }
-                  }
-                : n
-            )
-          )
-        }}
-        onResizeEnd={(_, { width, height }) => {
-          reactFlow.setNodes((nds) =>
-            nds.map((n) =>
-              n.id === id
-                ? {
-                    ...n,
+                    position: { x: Math.round(x), y: Math.round(y) },
                     style: { ...n.style, width: Math.round(width), height: Math.round(height) },
                     data: { ...n.data, width: Math.round(width), height: Math.round(height) }
                   }
@@ -687,7 +629,7 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         />
       )}
 
-      <div className={`relative w-full h-full px-3 py-1.5 rounded-lg select-none transition-all cursor-move flex items-center ${
+      <div className={`relative w-full h-full px-3 py-1.5 rounded-lg select-none transition-colors duration-150 cursor-move flex items-center ${
         selected ? 'ring-1 ring-gold-400 bg-oros-900/40' : 'hover:bg-oros-900/20'
       }`}>
         {/* 4 Cardinal Handles */}
@@ -714,17 +656,20 @@ const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     color?: string;
     width?: number;
     height?: number;
+    initialWidth?: number;
+    initialHeight?: number;
     strokeWidth?: number;
   }
 
   const reactFlow = useReactFlow()
-  const baseW = Math.max(40, drawingData.width || 120)
-  const baseH = Math.max(40, drawingData.height || 120)
+  // Stroke coordinate frame is locked to initial stroke bounds so path scales with box
+  const strokeBoxW = Math.max(20, Number(drawingData.initialWidth) || Number(drawingData.width) || 540)
+  const strokeBoxH = Math.max(20, Number(drawingData.initialHeight) || Number(drawingData.height) || 420)
   const [color, setColor] = useState(drawingData.color || '#ffffff')
 
-  const currentW = Math.round(Number(drawingData.width) || baseW)
-  const currentH = Math.round(Number(drawingData.height) || baseH)
-  const scalePercent = Math.round((currentW / baseW) * 100)
+  const currentW = Math.round(Number(drawingData.width) || strokeBoxW)
+  const currentH = Math.round(Number(drawingData.height) || strokeBoxH)
+  const scalePercent = Math.round((currentW / strokeBoxW) * 100)
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -741,7 +686,13 @@ const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           ? {
               ...n,
               style: { ...n.style, width: nextW, height: nextH },
-              data: { ...n.data, width: nextW, height: nextH }
+              data: { 
+                ...n.data, 
+                width: nextW, 
+                height: nextH,
+                initialWidth: strokeBoxW,
+                initialHeight: strokeBoxH
+              }
             }
           : n
       )
@@ -755,8 +706,14 @@ const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         n.id === id
           ? {
               ...n,
-              style: { ...n.style, width: baseW, height: baseH },
-              data: { ...n.data, width: baseW, height: baseH }
+              style: { ...n.style, width: strokeBoxW, height: strokeBoxH },
+              data: { 
+                ...n.data, 
+                width: strokeBoxW, 
+                height: strokeBoxH,
+                initialWidth: strokeBoxW,
+                initialHeight: strokeBoxH
+              }
             }
           : n
       )
@@ -775,7 +732,6 @@ const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
   return (
     <div
-      style={{ width: currentW, height: currentH }}
       className={`relative select-none cursor-move group w-full h-full ${
         selected ? 'ring-2 ring-gold-400 ring-dashed rounded-xl bg-gold-400/5' : ''
       }`}
@@ -784,27 +740,21 @@ const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         isVisible={selected}
         minWidth={40}
         minHeight={40}
-        onResize={(_, { width, height }) => {
+        onResizeEnd={(_, { x, y, width, height }) => {
           reactFlow.setNodes((nds) =>
             nds.map((n) =>
               n.id === id
                 ? {
                     ...n,
+                    position: { x: Math.round(x), y: Math.round(y) },
                     style: { ...n.style, width: Math.round(width), height: Math.round(height) },
-                    data: { ...n.data, width: Math.round(width), height: Math.round(height) }
-                  }
-                : n
-            )
-          )
-        }}
-        onResizeEnd={(_, { width, height }) => {
-          reactFlow.setNodes((nds) =>
-            nds.map((n) =>
-              n.id === id
-                ? {
-                    ...n,
-                    style: { ...n.style, width: Math.round(width), height: Math.round(height) },
-                    data: { ...n.data, width: Math.round(width), height: Math.round(height) }
+                    data: { 
+                      ...n.data, 
+                      width: Math.round(width), 
+                      height: Math.round(height),
+                      initialWidth: strokeBoxW,
+                      initialHeight: strokeBoxH
+                    }
                   }
                 : n
             )
@@ -841,12 +791,12 @@ const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         />
       )}
 
-      {/* SVG Path - scales dynamically via viewBox and width 100% */}
+      {/* SVG Path - scales dynamically via viewBox and 100% width/height */}
       <svg
         style={{ width: '100%', height: '100%' }}
-        viewBox={`0 0 ${baseW} ${baseH}`}
+        viewBox={`0 0 ${strokeBoxW} ${strokeBoxH}`}
         preserveAspectRatio="none"
-        className="overflow-visible pointer-events-auto"
+        className="w-full h-full overflow-visible pointer-events-auto"
       >
         <path
           d={drawingData.path}
@@ -855,6 +805,7 @@ const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
         />
       </svg>
     </div>
@@ -867,6 +818,50 @@ const nodeTypes = {
   shape: ShapeNode,
   canvasText: CanvasTextNode,
   canvasDrawing: CanvasDrawingNode
+}
+
+// Helper to guarantee every node has valid dimensions on mount
+const getDefaultDimensions = (type?: string, data?: any) => {
+  switch (type) {
+    case 'canvasCard': return { width: BASE_CARD_WIDTH, height: BASE_CARD_HEIGHT }
+    case 'stickyNote': return { width: BASE_NOTE_WIDTH, height: BASE_NOTE_HEIGHT }
+    case 'shape': return { width: BASE_SHAPE_WIDTH, height: BASE_SHAPE_HEIGHT }
+    case 'canvasText': return { width: BASE_TEXT_WIDTH, height: BASE_TEXT_HEIGHT }
+    case 'canvasDrawing': return { 
+      width: Math.max(40, Number(data?.initialWidth) || Number(data?.width) || 540), 
+      height: Math.max(40, Number(data?.initialHeight) || Number(data?.height) || 420) 
+    }
+    default: return { width: 200, height: 150 }
+  }
+}
+
+export const ensureNodeDimensions = (nodeList: Node[] = []): Node[] => {
+  return nodeList.map((n) => {
+    const defaults = getDefaultDimensions(n.type, n.data)
+    const w = n.style?.width ?? n.data?.width ?? defaults.width
+    const h = n.style?.height ?? n.data?.height ?? defaults.height
+    const numW = typeof w === 'number' ? w : parseInt(String(w)) || defaults.width
+    const numH = typeof h === 'number' ? h : parseInt(String(h)) || defaults.height
+
+    const isDrawing = n.type === 'canvasDrawing'
+    const initialW = isDrawing ? (n.data?.initialWidth || n.data?.width || numW) : undefined
+    const initialH = isDrawing ? (n.data?.initialHeight || n.data?.height || numH) : undefined
+
+    return {
+      ...n,
+      style: {
+        ...n.style,
+        width: numW,
+        height: numH
+      },
+      data: {
+        ...n.data,
+        width: numW,
+        height: numH,
+        ...(isDrawing ? { initialWidth: initialW, initialHeight: initialH } : {})
+      }
+    }
+  })
 }
 
 // ==========================================
@@ -892,14 +887,14 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
   const currentCanvasId = canvasId || selectedCanvasId || worldCanvases[0]?.id || 'canvas-main'
   const currentCanvas = worldCanvases.find((c) => c.id === currentCanvasId) || worldCanvases[0]
 
-  // Flow nodes and edges state
-  const [nodes, setNodes, onNodesChange] = useNodesState(currentCanvas?.nodes || [])
+  // Flow nodes and edges state initialized with validated dimensions
+  const [nodes, setNodes, onNodesChange] = useNodesState(ensureNodeDimensions(currentCanvas?.nodes || []))
   const [edges, setEdges, onEdgesChange] = useEdgesState(currentCanvas?.edges || [])
 
   // Sync when canvas changes
   useEffect(() => {
     if (currentCanvas) {
-      setNodes(currentCanvas.nodes || [])
+      setNodes(ensureNodeDimensions(currentCanvas.nodes || []))
       setEdges(currentCanvas.edges || [])
     }
   }, [currentCanvas?.id])

@@ -488,6 +488,8 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
           color: '#ffffff',
           width: 540,
           height: 420,
+          initialWidth: 540,
+          initialHeight: 420,
           strokeWidth: 3.5
         }
       }

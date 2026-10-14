@@ -85,24 +85,24 @@ export const Sidebar: React.FC = () => {
       return (
         <IconComp 
           className="w-3.5 h-3.5 shrink-0" 
-          style={{ color: meta.color || '#eab308' }} 
+          style={{ color: meta.color || '#94a3b8' }} 
         />
       )
     }
 
     switch (item.type) {
       case 'canvas':
-        return <LayoutGrid className="w-3.5 h-3.5 text-gold-400 shrink-0" />
+        return <LayoutGrid className="w-3.5 h-3.5 text-oros-400 group-hover:text-oros-200 shrink-0 transition-colors" />
       case 'map':
-        return <MapIcon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+        return <MapIcon className="w-3.5 h-3.5 text-oros-400 group-hover:text-oros-200 shrink-0 transition-colors" />
       case 'relations':
-        return <Users className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+        return <Users className="w-3.5 h-3.5 text-oros-400 group-hover:text-oros-200 shrink-0 transition-colors" />
       case 'timeline':
-        return <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+        return <Clock className="w-3.5 h-3.5 text-oros-400 group-hover:text-oros-200 shrink-0 transition-colors" />
       case 'writer':
-        return <Feather className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+        return <Feather className="w-3.5 h-3.5 text-oros-400 group-hover:text-oros-200 shrink-0 transition-colors" />
       default:
-        return <Layers className="w-3.5 h-3.5 text-gold-400 shrink-0" />
+        return <Layers className="w-3.5 h-3.5 text-oros-400 group-hover:text-oros-200 shrink-0 transition-colors" />
     }
   }
 
@@ -266,8 +266,8 @@ export const Sidebar: React.FC = () => {
             addToast(`Moved folder into "${folder.name}"`, 'info')
           }
         }}
-        className={`select-none text-xs rounded-lg transition-colors ${
-          isDragTarget ? 'bg-gold-500/15 ring-1 ring-gold-400/60' : ''
+        className={`select-none text-xs rounded-[3px] transition-colors ${
+          isDragTarget ? 'bg-oros-850 ring-1 ring-oros-600' : ''
         }`}
       >
         {/* Folder Header Row */}
@@ -278,7 +278,7 @@ export const Sidebar: React.FC = () => {
             setDraggedFolderId(folder.id)
           }}
           onDragEnd={() => setDraggedFolderId(null)}
-          className="group flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-oros-900/70 text-slate-300 hover:text-white transition-colors cursor-pointer"
+          className="group flex items-center justify-between px-2 py-1 rounded-[3px] hover:bg-oros-900 text-oros-300 hover:text-oros-100 transition-colors cursor-pointer"
           style={{ paddingLeft: `${Math.max(8, depth * 14 + 8)}px` }}
           onClick={() => toggleFolderOpen(folder.id)}
         >
@@ -288,7 +288,7 @@ export const Sidebar: React.FC = () => {
                 e.stopPropagation()
                 toggleFolderOpen(folder.id)
               }}
-              className="text-oros-400 hover:text-slate-100 p-0.5"
+              className="text-oros-400 hover:text-oros-100 p-0.5"
             >
               {folder.isOpen ? (
                 <ChevronDown className="w-3.5 h-3.5" />
@@ -297,9 +297,9 @@ export const Sidebar: React.FC = () => {
               )}
             </button>
             {folder.isOpen ? (
-              <FolderOpen className="w-3.5 h-3.5 text-gold-400 shrink-0" />
+              <FolderOpen className="w-3.5 h-3.5 text-oros-300 shrink-0" />
             ) : (
-              <Folder className="w-3.5 h-3.5 text-gold-400/80 shrink-0" />
+              <Folder className="w-3.5 h-3.5 text-oros-400 shrink-0" />
             )}
 
             {isEditing ? (
@@ -384,7 +384,7 @@ export const Sidebar: React.FC = () => {
                 onDragEnd={() => setDraggedItemId(null)}
                 onClick={() => handleItemClick(item)}
                 style={{ paddingLeft: `${Math.max(16, (depth + 1) * 14 + 10)}px` }}
-                className={`group flex items-center justify-between py-1.5 pr-2 rounded-lg hover:bg-oros-900/60 text-oros-300 hover:text-slate-100 transition-colors cursor-pointer text-xs ${
+                className={`group flex items-center justify-between py-1 pr-2 rounded-[3px] hover:bg-oros-900 text-oros-300 hover:text-oros-100 transition-colors cursor-pointer text-xs ${
                   draggedItemId === item.id ? 'opacity-40' : ''
                 }`}
               >
@@ -403,7 +403,7 @@ export const Sidebar: React.FC = () => {
                       setMovingItemId(item.id)
                       setTargetMoveFolderId(item.folderId || null)
                     }}
-                    className="p-1 rounded hover:bg-oros-800 text-oros-400 hover:text-gold-400"
+                    className="p-1 rounded-[2px] hover:bg-oros-800 text-oros-400 hover:text-oros-200"
                     title="Move to another folder"
                   >
                     <FolderTree className="w-3 h-3" />
@@ -448,16 +448,16 @@ export const Sidebar: React.FC = () => {
   return (
     <aside className="w-64 bg-oros-950/95 border-r border-oros-800/40 flex flex-col justify-between select-none h-full">
       {/* TOP SEARCH & ACTION HEADER */}
-      <div className="p-2.5 border-b border-oros-800/40">
+      <div className="p-2 border-b border-oros-800/60">
         <div className="flex items-center gap-1.5">
           <div className="relative flex-1">
-            <Search className="w-3.5 h-3.5 text-oros-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-oros-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
-              placeholder="Search vault..."
-              className="w-full bg-oros-900/80 border border-oros-800/80 rounded-lg pl-8 pr-2.5 py-1 text-xs text-slate-200 placeholder-oros-500 focus:outline-none focus:border-gold-400/80 transition-colors"
+              placeholder="Filter vault..."
+              className="w-full bg-oros-900 border border-oros-800 rounded-[3px] pl-8 pr-2 py-1 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-600 transition-colors font-sans"
             />
           </div>
 
@@ -467,7 +467,7 @@ export const Sidebar: React.FC = () => {
               setNewFolderParentId(null)
               setShowNewFolderModal(true)
             }}
-            className="p-1.5 rounded-lg bg-oros-900/60 hover:bg-oros-800 border border-oros-800/60 text-oros-300 hover:text-gold-400 transition-colors"
+            className="p-1 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-800 text-oros-400 hover:text-oros-100 transition-colors"
             title="Create New Folder"
           >
             <FolderPlus className="w-3.5 h-3.5" />
@@ -476,7 +476,7 @@ export const Sidebar: React.FC = () => {
           {/* New Element Button */}
           <button
             onClick={() => openNewElementForFolder(null, 'card')}
-            className="p-1.5 rounded-lg bg-oros-900/60 hover:bg-oros-800 border border-oros-800/60 text-oros-300 hover:text-amber-400 transition-colors"
+            className="p-1 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-800 text-oros-400 hover:text-oros-100 transition-colors"
             title="Create New Element in Vault"
           >
             <FilePlus className="w-3.5 h-3.5" />
@@ -504,8 +504,8 @@ export const Sidebar: React.FC = () => {
             addToast('Moved folder to root', 'info')
           }
         }}
-        className={`flex-1 overflow-y-auto px-2 py-2 space-y-0.5 transition-colors ${
-          isDragOverRoot ? 'bg-gold-500/5' : ''
+        className={`flex-1 overflow-y-auto px-1.5 py-1.5 space-y-0.5 transition-colors ${
+          isDragOverRoot ? 'bg-oros-800/30' : ''
         }`}
       >
         {/* Root Level Folders */}
@@ -522,7 +522,7 @@ export const Sidebar: React.FC = () => {
             }}
             onDragEnd={() => setDraggedItemId(null)}
             onClick={() => handleItemClick(item)}
-            className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-oros-900/70 text-slate-300 hover:text-white transition-colors cursor-pointer text-xs ${
+            className={`group flex items-center justify-between px-2 py-1 rounded-[3px] hover:bg-oros-900 text-oros-300 hover:text-oros-100 transition-colors cursor-pointer text-xs ${
               draggedItemId === item.id ? 'opacity-40' : ''
             }`}
           >
@@ -541,7 +541,7 @@ export const Sidebar: React.FC = () => {
                   setMovingItemId(item.id)
                   setTargetMoveFolderId(null)
                 }}
-                className="p-1 rounded hover:bg-oros-800 text-oros-400 hover:text-gold-400"
+                className="p-1 rounded-[2px] hover:bg-oros-800 text-oros-400 hover:text-oros-200"
                 title="Move to folder"
               >
                 <FolderTree className="w-3 h-3" />
@@ -555,7 +555,7 @@ export const Sidebar: React.FC = () => {
                     addToast(`Removed "${item.name}" from vault`, 'info')
                   }
                 }}
-                className="p-1 rounded hover:bg-rose-950 text-oros-400 hover:text-rose-400 transition-colors"
+                className="p-1 rounded-[2px] hover:bg-rose-950 text-oros-400 hover:text-rose-400 transition-colors"
                 title="Delete element"
               >
                 <Trash2 className="w-3 h-3" />
@@ -566,82 +566,82 @@ export const Sidebar: React.FC = () => {
 
         {rootItems.length === 0 && rootFolders.length === 0 && (
           <div className="text-center py-8 text-oros-500 text-xs px-4">
-            <LayoutGrid className="w-6 h-6 mx-auto mb-2 opacity-40 text-gold-400" />
-            No elements in vault. Click above or below to create cards, maps, or canvases.
+            <LayoutGrid className="w-5 h-5 mx-auto mb-2 opacity-30 text-oros-500" />
+            No records in vault ledger. Use the actions above or below to create cards, maps, or canvases.
           </div>
         )}
       </div>
 
       {/* BOTTOM FEATURE DOCK */}
-      <div className="p-2 border-t border-oros-800/40 bg-oros-950/90 backdrop-blur-sm">
-        <div className="flex items-center justify-around bg-oros-900/80 border border-oros-800/80 rounded-xl px-1.5 py-1 shadow-inner">
+      <div className="p-1.5 border-t border-oros-800/60 bg-oros-950">
+        <div className="flex items-center justify-around bg-oros-900 border border-oros-800/80 rounded-[3px] px-1 py-0.5 shadow-sm">
           {/* Card / Wiki */}
           <button
             onClick={() => openNewElementForFolder(null, 'card')}
             title="Create Lore Card"
-            className="p-1.5 rounded-lg text-oros-400 hover:text-gold-400 hover:bg-oros-800/80 transition-all"
+            className="p-1.5 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
           >
-            <Layers className="w-4 h-4" />
+            <Layers className="w-3.5 h-3.5" />
           </button>
 
           {/* Canvas */}
           <button
             onClick={() => openNewElementForFolder(null, 'canvas')}
             title="Create Whiteboard Canvas"
-            className="p-1.5 rounded-lg text-oros-400 hover:text-gold-400 hover:bg-oros-800/80 transition-all"
+            className="p-1.5 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
           >
-            <LayoutGrid className="w-4 h-4" />
+            <LayoutGrid className="w-3.5 h-3.5" />
           </button>
 
           {/* Cartography Map */}
           <button
             onClick={() => openNewElementForFolder(null, 'map')}
             title="Create Cartography Map"
-            className="p-1.5 rounded-lg text-oros-400 hover:text-gold-400 hover:bg-oros-800/80 transition-all"
+            className="p-1.5 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
           >
-            <MapIcon className="w-4 h-4" />
+            <MapIcon className="w-3.5 h-3.5" />
           </button>
 
           {/* Lineage Relations */}
           <button
             onClick={() => openNewElementForFolder(null, 'relations')}
             title="Create Lineage Tree"
-            className="p-1.5 rounded-lg text-oros-400 hover:text-gold-400 hover:bg-oros-800/80 transition-all"
+            className="p-1.5 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
           >
-            <Users className="w-4 h-4" />
+            <Users className="w-3.5 h-3.5" />
           </button>
 
           {/* Timeline */}
           <button
             onClick={() => openNewElementForFolder(null, 'timeline')}
             title="Create Timeline"
-            className="p-1.5 rounded-lg text-oros-400 hover:text-gold-400 hover:bg-oros-800/80 transition-all"
+            className="p-1.5 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
           >
-            <Clock className="w-4 h-4" />
+            <Clock className="w-3.5 h-3.5" />
           </button>
 
           {/* Studio Writer */}
           <button
             onClick={() => openNewElementForFolder(null, 'writer')}
             title="Create Manuscript Chapter"
-            className="p-1.5 rounded-lg text-oros-400 hover:text-gold-400 hover:bg-oros-800/80 transition-all"
+            className="p-1.5 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
           >
-            <Feather className="w-4 h-4" />
+            <Feather className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
       {/* NEW FOLDER MODAL */}
       {showNewFolderModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-700 w-full max-w-xs rounded-xl shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-150">
-            <h4 className="text-xs font-semibold text-slate-100 mb-2 flex items-center gap-1.5">
-              <FolderPlus className="w-3.5 h-3.5 text-gold-400" />
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-xs rounded-md shadow-2xl p-4 animate-in fade-in duration-100">
+            <h4 className="text-xs font-sans font-semibold text-oros-100 mb-2 flex items-center gap-1.5">
+              <FolderPlus className="w-3.5 h-3.5 text-oros-300" />
               <span>New Directory Folder</span>
             </h4>
             <form onSubmit={handleCreateFolderSubmit} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-medium text-oros-400 mb-1">Folder Name</label>
+                <label className="block text-[10px] font-mono uppercase font-medium text-oros-400 mb-1">Folder Name</label>
                 <input
                   type="text"
                   autoFocus
@@ -649,16 +649,16 @@ export const Sidebar: React.FC = () => {
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
                   placeholder="e.g. Royal Lineage, Factions"
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-800 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-500 font-sans"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-oros-400 mb-1">Parent Folder (Optional)</label>
+                <label className="block text-[10px] font-mono uppercase font-medium text-oros-400 mb-1">Parent Folder (Optional)</label>
                 <select
                   value={newFolderParentId || ''}
                   onChange={(e) => setNewFolderParentId(e.target.value || null)}
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-800 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 >
                   <option value="">Root (No parent)</option>
                   {allFolderHierarchy.map(({ folder, depth }) => (
@@ -673,13 +673,13 @@ export const Sidebar: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowNewFolderModal(false)}
-                  className="px-2.5 py-1 rounded text-xs text-oros-400 hover:bg-oros-800"
+                  className="px-2.5 py-1 rounded-[3px] text-xs text-oros-400 hover:text-oros-200 hover:bg-oros-850"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1 rounded text-xs font-medium bg-gold-500 hover:bg-gold-400 text-oros-950 transition-colors shadow"
+                  className="px-3 py-1 rounded-[3px] text-xs font-medium bg-oros-200 hover:bg-white text-oros-950 transition-colors shadow-sm"
                 >
                   Create Folder
                 </button>
@@ -691,21 +691,21 @@ export const Sidebar: React.FC = () => {
 
       {/* CREATE NEW ELEMENT MODAL */}
       {showNewElementModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-700 w-full max-w-sm rounded-xl shadow-2xl p-5 animate-in fade-in zoom-in-95 duration-150">
-            <h4 className="text-sm font-serif font-bold text-slate-100 mb-1 flex items-center gap-2">
-              <FilePlus className="w-4 h-4 text-gold-400" />
-              <span>Create New Vault Element</span>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-md shadow-2xl p-4 animate-in fade-in duration-100">
+            <h4 className="text-sm font-sans font-semibold text-oros-100 mb-1 flex items-center gap-2">
+              <FilePlus className="w-4 h-4 text-oros-300" />
+              <span>Create Vault Record</span>
             </h4>
-            <p className="text-[11px] text-oros-400 mb-4">
+            <p className="text-[11px] text-oros-400 mb-3.5 font-sans">
               Add a card, canvas, map, or timeline directly into your local database.
             </p>
 
-            <form onSubmit={handleCreateElementSubmit} className="space-y-3.5">
+            <form onSubmit={handleCreateElementSubmit} className="space-y-3">
               {/* Element Type Picker */}
               <div>
-                <label className="block text-[11px] font-semibold text-oros-300 mb-1">Element Type</label>
-                <div className="grid grid-cols-3 gap-1.5">
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">Record Type</label>
+                <div className="grid grid-cols-3 gap-1">
                   {[
                     { id: 'card', label: 'Lore Card', icon: Layers },
                     { id: 'canvas', label: 'Canvas', icon: LayoutGrid },
@@ -721,14 +721,14 @@ export const Sidebar: React.FC = () => {
                         key={t.id}
                         type="button"
                         onClick={() => setNewElementType(t.id as DirectoryItemType)}
-                        className={`p-2 rounded-lg text-xs font-medium flex flex-col items-center gap-1 border transition-all ${
+                        className={`p-1.5 rounded-[3px] text-xs font-medium flex flex-col items-center gap-1 border transition-colors ${
                           isSelected
-                            ? 'bg-gold-500/20 text-gold-300 border-gold-400/60 shadow-sm'
-                            : 'bg-oros-950/70 border-oros-800 text-oros-400 hover:text-slate-200 hover:bg-oros-800/50'
+                            ? 'bg-oros-800 text-oros-100 border-oros-500 shadow-sm'
+                            : 'bg-oros-950/70 border-oros-800 text-oros-400 hover:text-oros-200 hover:bg-oros-850'
                         }`}
                       >
                         <IconComp className="w-3.5 h-3.5" />
-                        <span className="text-[10px]">{t.label}</span>
+                        <span className="text-[10px] font-mono">{t.label}</span>
                       </button>
                     )
                   })}
@@ -738,11 +738,11 @@ export const Sidebar: React.FC = () => {
               {/* Subtype for Cards */}
               {newElementType === 'card' && (
                 <div>
-                  <label className="block text-[11px] font-semibold text-oros-300 mb-1">Card Category</label>
+                  <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">Category Label</label>
                   <select
                     value={newCardSubtype}
                     onChange={(e) => setNewCardSubtype(e.target.value)}
-                    className="w-full bg-oros-950 border border-oros-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                    className="w-full bg-oros-950 border border-oros-800 rounded-[3px] px-2 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                   >
                     {worldCategories.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -755,7 +755,7 @@ export const Sidebar: React.FC = () => {
 
               {/* Element Name */}
               <div>
-                <label className="block text-[11px] font-semibold text-oros-300 mb-1">Title / Name</label>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">Title / Name</label>
                 <input
                   type="text"
                   autoFocus
@@ -771,17 +771,17 @@ export const Sidebar: React.FC = () => {
                       ? 'Battle Planning Board'
                       : 'New Element'
                   }`}
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-800 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-500 font-sans"
                 />
               </div>
 
               {/* Target Folder */}
               <div>
-                <label className="block text-[11px] font-semibold text-oros-300 mb-1">Place Inside Folder</label>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">Place Inside Folder</label>
                 <select
                   value={newElementFolderId || ''}
                   onChange={(e) => setNewElementFolderId(e.target.value || null)}
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-800 rounded-[3px] px-2 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 >
                   <option value="">Root (No folder)</option>
                   {allFolderHierarchy.map(({ folder, depth }) => (
@@ -796,15 +796,15 @@ export const Sidebar: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowNewElementModal(false)}
-                  className="px-3 py-1.5 rounded-lg text-xs text-oros-400 hover:bg-oros-800"
+                  className="px-2.5 py-1.5 rounded-[3px] text-xs text-oros-400 hover:text-oros-200 hover:bg-oros-850"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gold-500 hover:bg-gold-400 text-oros-950 shadow transition-colors"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-medium bg-oros-200 hover:bg-white text-oros-950 transition-colors shadow-sm"
                 >
-                  Create Element
+                  Create Record
                 </button>
               </div>
             </form>
@@ -814,19 +814,19 @@ export const Sidebar: React.FC = () => {
 
       {/* MOVE ITEM MODAL */}
       {movingItemId && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-700 w-full max-w-xs rounded-xl shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-150">
-            <h4 className="text-xs font-semibold text-slate-100 mb-2 flex items-center gap-1.5">
-              <Move className="w-3.5 h-3.5 text-gold-400" />
-              <span>Move Element to Folder</span>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-xs rounded-md shadow-2xl p-4 animate-in fade-in duration-100">
+            <h4 className="text-xs font-sans font-semibold text-oros-100 mb-2 flex items-center gap-1.5">
+              <Move className="w-3.5 h-3.5 text-oros-300" />
+              <span>Move Record to Folder</span>
             </h4>
             <form onSubmit={handleMoveItemSubmit} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-medium text-oros-400 mb-1">Select Destination</label>
+                <label className="block text-[10px] font-mono uppercase font-medium text-oros-400 mb-1">Destination</label>
                 <select
                   value={targetMoveFolderId || ''}
                   onChange={(e) => setTargetMoveFolderId(e.target.value || null)}
-                  className="w-full bg-oros-950 border border-oros-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-gold-400"
+                  className="w-full bg-oros-950 border border-oros-800 rounded-[3px] px-2 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 >
                   <option value="">Root Directory</option>
                   {allFolderHierarchy.map(({ folder, depth }) => (
@@ -841,15 +841,15 @@ export const Sidebar: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setMovingItemId(null)}
-                  className="px-2.5 py-1 rounded text-xs text-oros-400 hover:bg-oros-800"
+                  className="px-2.5 py-1 rounded-[3px] text-xs text-oros-400 hover:text-oros-200 hover:bg-oros-850"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1 rounded text-xs font-medium bg-gold-500 hover:bg-gold-400 text-oros-950 transition-colors shadow"
+                  className="px-3 py-1 rounded-[3px] text-xs font-medium bg-oros-200 hover:bg-white text-oros-950 transition-colors shadow-sm"
                 >
-                  Move Element
+                  Move Record
                 </button>
               </div>
             </form>

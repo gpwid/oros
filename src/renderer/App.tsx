@@ -4,7 +4,6 @@ import { WorkspaceTabs } from './components/layout/WorkspaceTabs'
 import { Sidebar } from './components/layout/Sidebar'
 import { CommandPalette } from './components/common/CommandPalette'
 import { ToastContainer } from './components/common/ToastContainer'
-import { Sparkles } from 'lucide-react'
 
 // Code-split heavy views to accelerate launch time and memory footprint
 const WhiteboardCanvas = lazy(() => import('./components/canvas/WhiteboardCanvas').then(m => ({ default: m.WhiteboardCanvas })))
@@ -18,20 +17,26 @@ const StudioWriter = lazy(() => import('./components/writer/StudioWriter').then(
 
 const ViewFallback = () => (
   <div className="flex-1 h-full w-full flex flex-col items-center justify-center bg-oros-950 text-oros-400">
-    <div className="relative">
-      <div className="w-10 h-10 rounded-full border-2 border-oros-800 border-t-gold-400 animate-spin" />
-      <Sparkles className="w-4 h-4 text-gold-400 absolute inset-0 m-auto opacity-75" />
-    </div>
-    <span className="font-serif text-xs text-oros-400 mt-3 tracking-wider">Loading View...</span>
+    <div className="w-7 h-7 rounded-full border border-oros-800 border-t-oros-200 animate-spin" />
+    <span className="font-mono text-[10px] tracking-widest text-oros-500 mt-3 uppercase">
+      Loading Codex...
+    </span>
   </div>
 )
 
 export const App: React.FC = () => {
-  const { activeTab, openTabs, activeTabId, initStore } = useWorldStore()
+  const { activeTab, openTabs, activeTabId, initStore, worlds, activeWorldId } = useWorldStore()
 
   useEffect(() => {
     initStore()
   }, [initStore])
+
+  const activeWorld = worlds.find((w) => w.id === activeWorldId) || worlds[0]
+
+  useEffect(() => {
+    const theme = activeWorld?.theme || 'sovereign'
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [activeWorld?.theme])
 
   const activeTabObj = openTabs.find((t) => t.id === activeTabId)
   const currentTabType = activeTabObj?.type || activeTab

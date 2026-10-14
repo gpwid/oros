@@ -82,7 +82,8 @@ interface WorldState {
   clearCanvasStrokes: (canvasId: string) => void;
 
   // World CRUD
-  createWorld: (name: string, tagline: string, genre: string) => void;
+  createWorld: (name: string, tagline: string, genre: string, theme?: World['theme']) => void;
+  setWorldTheme: (worldId: string, theme: World['theme']) => void;
   
   // Entity CRUD
   createEntity: (type: LoreEntity['type'], title: string, folderId?: string | null) => LoreEntity;
@@ -863,13 +864,14 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     get().persistStore();
   },
 
-  createWorld: (name, tagline, genre) => {
+  createWorld: (name, tagline, genre, theme = 'sovereign') => {
     const newWorld: World = {
       id: `world-${Date.now()}`,
       name,
       tagline,
       description: '',
       genre,
+      theme,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -881,6 +883,13 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       relations: { ...state.relations, [newWorld.id]: [] },
       timelines: { ...state.timelines, [newWorld.id]: [] },
       manuscripts: { ...state.manuscripts, [newWorld.id]: [] }
+    }));
+    get().persistStore();
+  },
+
+  setWorldTheme: (worldId, theme) => {
+    set((state) => ({
+      worlds: state.worlds.map((w) => (w.id === worldId ? { ...w, theme } : w))
     }));
     get().persistStore();
   },

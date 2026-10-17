@@ -174,19 +174,31 @@
    Discord-style Spoilers (Inline text secrets)
    ========================================================================== */
 
-/* In Editor: visible to writer with subtle indicator styling */
+/* In Editor (ProseMirror): ALWAYS 100% visible and editable for the writer */
 .ProseMirror .oros-spoiler {
-  background-color: rgba(39, 39, 42, 0.8);
-  border: 1px dashed rgba(244, 63, 94, 0.6);
-  color: #fda4af;
+  background-color: rgba(244, 63, 94, 0.14) !important;
+  border: 1px dashed rgba(244, 63, 94, 0.6) !important;
+  color: #fda4af !important;
   padding: 1px 6px;
   border-radius: 3px;
   font-family: inherit;
+  user-select: text !important;
+  cursor: text !important;
   transition: all 0.15s ease-in-out;
 }
 
-/* In View Mode (Reading): Discord-style opaque block */
-.oros-wiki-prose .oros-spoiler {
+.ProseMirror .oros-spoiler::selection {
+  background: rgba(244, 63, 94, 0.4) !important;
+  color: #ffffff !important;
+}
+
+.ProseMirror .oros-spoiler:hover {
+  background-color: rgba(244, 63, 94, 0.22) !important;
+  border-color: rgba(244, 63, 94, 0.8) !important;
+}
+
+/* In View Mode (Reading - NOT in editor): Discord-style opaque block */
+.oros-wiki-prose:not(.ProseMirror) .oros-spoiler {
   display: inline;
   background-color: #27272a;
   color: transparent !important;
@@ -198,17 +210,17 @@
   position: relative;
 }
 
-.oros-wiki-prose .oros-spoiler::selection {
+.oros-wiki-prose:not(.ProseMirror) .oros-spoiler::selection {
   background: transparent;
   color: transparent;
 }
 
-.oros-wiki-prose .oros-spoiler:hover:not(.is-revealed) {
+.oros-wiki-prose:not(.ProseMirror) .oros-spoiler:hover:not(.is-revealed) {
   background-color: #3f3f46;
 }
 
-/* Revealed on click */
-.oros-wiki-prose .oros-spoiler.is-revealed {
+/* Revealed on click in View Mode */
+.oros-wiki-prose:not(.ProseMirror) .oros-spoiler.is-revealed {
   background-color: rgba(63, 63, 70, 0.35);
   color: inherit !important;
   user-select: text;
@@ -223,4 +235,5 @@
   cursor: default;
   user-select: text;
 }
+
 

@@ -84,6 +84,8 @@ export interface WorldMap {
   imageUrl: string;
   parentId?: string; // Nested parent map ID
   scaleUnit?: string;
+  scaleDistance?: number;
+  scaleBarPixels?: number;
   pins: MapPin[];
   regions: MapRegion[];
   createdAt: string;

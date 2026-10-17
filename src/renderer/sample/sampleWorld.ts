@@ -330,6 +330,8 @@ export const sampleMap: WorldMap = {
   description: 'Detailed maritime chart of the Grand Duchy of Ostergard, showing sea-lanes, coastal beacons, and pirate waters.',
   imageUrl: 'https://cdna.artstation.com/p/assets/images/images/029/553/824/large/robert-altbauer-brandenland.jpg',
   scaleUnit: 'Leagues',
+  scaleDistance: 50,
+  scaleBarPixels: 140,
   pins: [
     {
       id: 'pin-1',

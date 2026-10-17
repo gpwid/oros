@@ -8,7 +8,7 @@ import {
   Layers, Upload, ChevronRight, CornerDownRight, Hand,
   Hexagon, Magnet, Crown, Building2, Landmark,
   Sword, Tent, Anchor, Flame, Gem, Key, X, Check, Edit3,
-  MapPin as PinIcon, Sparkles
+  MapPin as PinIcon, Sparkles, Ruler
 } from 'lucide-react'
 
 // Fantasy Map Pin Icons
@@ -45,7 +45,7 @@ const PALETTE_COLORS = [
   { name: 'Slate', hex: '#64748b' }
 ]
 
-type ActiveTool = 'pan' | 'territory' | 'pin'
+type ActiveTool = 'pan' | 'territory' | 'pin' | 'ruler'
 
 export const InteractiveMapViewer: React.FC = () => {
   const { 
@@ -53,7 +53,7 @@ export const InteractiveMapViewer: React.FC = () => {
     addPinToMap, updatePinOnMap, removePinFromMap,
     addRegionToMap, updateRegionOnMap, removeRegionFromMap,
     createEntity, setSelectedEntityId, setActiveTab, openTab,
-    createMap 
+    createMap, updateMap 
   } = useWorldStore()
 
   const { addToast } = useToastStore()
@@ -63,6 +63,19 @@ export const InteractiveMapViewer: React.FC = () => {
   const [snappingEnabled, setSnappingEnabled] = useState(true)
   const [showTerritories, setShowTerritories] = useState(true)
   const [showPins, setShowPins] = useState(true)
+
+  // Distance ruler state
+  const [rulerPoints, setRulerPoints] = useState<[number, number][]>([])
+  const [rulerHoverPoint, setRulerHoverPoint] = useState<[number, number] | null>(null)
+  const [isRulerFinished, setIsRulerFinished] = useState(false)
+
+  // Map Scale Calibration Modal state
+  const [isScaleModalOpen, setIsScaleModalOpen] = useState(false)
+  const [scaleForm, setScaleForm] = useState({
+    distance: 50,
+    unit: 'Leagues',
+    barPixels: 140
+  })
 
   // Viewport zoom & pan
   const [zoom, setZoom] = useState(1)
@@ -121,6 +134,45 @@ export const InteractiveMapViewer: React.FC = () => {
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
   const currentMap = worldMaps.find((m) => m.id === selectedMapId) || worldMaps[0]
 
+  // Sync scaleForm when active map changes
+  useEffect(() => {
+    if (currentMap) {
+      setScaleForm({
+        distance: currentMap.scaleDistance ?? 50,
+        unit: currentMap.scaleUnit || 'Leagues',
+        barPixels: currentMap.scaleBarPixels || 140
+      })
+    }
+  }, [currentMap?.id, currentMap?.scaleDistance, currentMap?.scaleUnit, currentMap?.scaleBarPixels])
+
+  // Distance calculation helpers based on calibrated map scale
+  const getDistanceBetweenPoints = useCallback((p1: [number, number], p2: [number, number]) => {
+    const scaleDist = currentMap?.scaleDistance ?? 50
+    const scaleBarPx = currentMap?.scaleBarPixels || 140
+    const pxWidth = 1280
+    const pxHeight = 800
+
+    const dx = ((p2[0] - p1[0]) / 100) * pxWidth
+    const dy = ((p2[1] - p1[1]) / 100) * pxHeight
+    const pixelDistance = Math.hypot(dx, dy)
+
+    const units = (pixelDistance / scaleBarPx) * scaleDist
+    return {
+      pixelDistance,
+      units: Number(units.toFixed(1))
+    }
+  }, [currentMap?.scaleDistance, currentMap?.scaleBarPixels])
+
+  const getTotalRulerDistance = useCallback((points: [number, number][], hover: [number, number] | null) => {
+    const allPts = hover && !isRulerFinished ? [...points, hover] : points
+    if (allPts.length < 2) return 0
+    let total = 0
+    for (let i = 1; i < allPts.length; i++) {
+      total += getDistanceBetweenPoints(allPts[i - 1], allPts[i]).units
+    }
+    return Number(total.toFixed(1))
+  }, [getDistanceBetweenPoints, isRulerFinished])
+
   // Keyboard navigation & shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -142,8 +194,18 @@ export const InteractiveMapViewer: React.FC = () => {
         setDrawingPoints([])
         setSelectedPin(null)
         setSelectedRegion(null)
+      } else if (e.key === 'r' || e.key === 'R' || e.key === 'm' || e.key === 'M') {
+        setActiveTool('ruler')
+        setDrawingPoints([])
+        setSelectedPin(null)
+        setSelectedRegion(null)
       } else if (e.key === 'Escape') {
-        if (drawingPoints.length > 0) {
+        if (rulerPoints.length > 0) {
+          setRulerPoints([])
+          setRulerHoverPoint(null)
+          setIsRulerFinished(false)
+          addToast('Cleared distance measurement', 'info')
+        } else if (drawingPoints.length > 0) {
           setDrawingPoints([])
           addToast('Cancelled territory drawing', 'info')
         } else {
@@ -152,11 +214,17 @@ export const InteractiveMapViewer: React.FC = () => {
           setSelectedRegion(null)
         }
       } else if (e.key === 'Backspace' || e.key === 'Delete') {
-        if (drawingPoints.length > 0) {
+        if (activeTool === 'ruler' && rulerPoints.length > 0) {
+          setRulerPoints((pts) => pts.slice(0, pts.length - 1))
+          setIsRulerFinished(false)
+        } else if (drawingPoints.length > 0) {
           setDrawingPoints((pts) => pts.slice(0, pts.length - 1))
         }
       } else if (e.key === 'Enter') {
-        if (drawingPoints.length >= 3) {
+        if (activeTool === 'ruler' && rulerPoints.length >= 2) {
+          setIsRulerFinished(true)
+          setRulerHoverPoint(null)
+        } else if (drawingPoints.length >= 3) {
           handleFinishPolygon()
         }
       }
@@ -174,7 +242,7 @@ export const InteractiveMapViewer: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [drawingPoints])
+  }, [drawingPoints, rulerPoints, activeTool, isRulerFinished])
 
   // Mouse wheel zoom
   const handleWheel = (e: React.WheelEvent) => {
@@ -251,6 +319,14 @@ export const InteractiveMapViewer: React.FC = () => {
       return
     }
 
+    // Handle ruler drawing hover
+    if (activeTool === 'ruler') {
+      const coords = getMapCoordinates(e.clientX, e.clientY)
+      if (coords && !isRulerFinished) {
+        setRulerHoverPoint([coords.x, coords.y])
+      }
+    }
+
     // Handle territory drawing hover
     if (activeTool === 'territory') {
       const coords = getMapCoordinates(e.clientX, e.clientY)
@@ -279,6 +355,19 @@ export const InteractiveMapViewer: React.FC = () => {
     // Prevent click action if user was dragging a pin
     if (hasDraggedPin.current) {
       hasDraggedPin.current = false
+      return
+    }
+
+    // Ruler tool click
+    if (activeTool === 'ruler') {
+      const coords = getMapCoordinates(e.clientX, e.clientY)
+      if (!coords) return
+      if (isRulerFinished) {
+        setRulerPoints([[coords.x, coords.y]])
+        setIsRulerFinished(false)
+      } else {
+        setRulerPoints((pts) => [...pts, [coords.x, coords.y]])
+      }
       return
     }
 
@@ -326,9 +415,13 @@ export const InteractiveMapViewer: React.FC = () => {
     }
   }
 
-  // Double click map to close territory
+  // Double click map to close territory or finish ruler
   const handleMapDoubleClick = (e: React.MouseEvent) => {
-    if (activeTool === 'territory' && drawingPoints.length >= 3) {
+    if (activeTool === 'ruler' && rulerPoints.length >= 2) {
+      e.stopPropagation()
+      setIsRulerFinished(true)
+      setRulerHoverPoint(null)
+    } else if (activeTool === 'territory' && drawingPoints.length >= 3) {
       e.stopPropagation()
       handleFinishPolygon()
     }
@@ -572,11 +665,28 @@ export const InteractiveMapViewer: React.FC = () => {
           )}
         </div>
 
-        {/* Map Scale Legend Indicator */}
-        <div className="flex items-center gap-2 text-xs font-mono text-oros-400 bg-oros-900 border border-oros-800 px-2 py-0.5 rounded-[2px]">
-          <div className="w-6 h-0.5 bg-oros-300"></div>
-          <span className="text-[11px]">50 {currentMap?.scaleUnit || 'Leagues'}</span>
-        </div>
+        {/* Map Scale Legend Indicator - Interactive button to edit scale distance and unit */}
+        <button
+          onClick={() => {
+            setScaleForm({
+              distance: currentMap?.scaleDistance ?? 50,
+              unit: currentMap?.scaleUnit || 'Leagues',
+              barPixels: currentMap?.scaleBarPixels || 140
+            })
+            setIsScaleModalOpen(true)
+          }}
+          className="flex items-center gap-2 text-xs font-mono text-oros-300 hover:text-oros-100 bg-oros-900 hover:bg-oros-850 border border-oros-800 hover:border-oros-700 px-2 py-0.5 rounded-[2px] transition-all group cursor-pointer shadow-sm"
+          title="Click to edit map scale distance and units"
+        >
+          <div 
+            className="h-1 bg-accent rounded-sm group-hover:bg-accent-bright transition-all"
+            style={{ width: `${Math.min(36, Math.max(14, ((currentMap?.scaleBarPixels || 140) / 1280) * 160))}px` }}
+          />
+          <span className="text-[11px] font-semibold">
+            {currentMap?.scaleDistance ?? 50} {currentMap?.scaleUnit || 'Leagues'}
+          </span>
+          <Edit3 className="w-2.5 h-2.5 text-oros-500 group-hover:text-oros-300" />
+        </button>
       </div>
 
       {/* INTERACTIVE MAP VIEWPORT */}
@@ -593,6 +703,8 @@ export const InteractiveMapViewer: React.FC = () => {
             ? 'cursor-crosshair'
             : activeTool === 'pin'
             ? 'cursor-cell'
+            : activeTool === 'ruler'
+            ? 'cursor-crosshair'
             : 'cursor-default'
         }`}
         style={{ backgroundColor: '#090a0d' }}
@@ -749,6 +861,134 @@ export const InteractiveMapViewer: React.FC = () => {
                   })}
                 </g>
               )}
+
+              {/* DISTANCE RULER SVG OVERLAY */}
+              {(activeTool === 'ruler' || rulerPoints.length > 0) && (
+                <g className="pointer-events-none">
+                  {/* Segment lines between placed waypoints */}
+                  {rulerPoints.map((pt, idx) => {
+                    if (idx === 0) return null
+                    const prev = rulerPoints[idx - 1]
+                    const segDist = getDistanceBetweenPoints(prev, pt).units
+                    const midX = (((prev[0] + pt[0]) / 2) / 100) * 1280
+                    const midY = (((prev[1] + pt[1]) / 2) / 100) * 800
+
+                    return (
+                      <g key={`ruler-seg-${idx}`}>
+                        {/* Soft Outer Glow Line */}
+                        <line
+                          x1={(prev[0] / 100) * 1280}
+                          y1={(prev[1] / 100) * 800}
+                          x2={(pt[0] / 100) * 1280}
+                          y2={(pt[1] / 100) * 800}
+                          stroke="#0284c7"
+                          strokeWidth={5}
+                          strokeOpacity={0.35}
+                        />
+                        {/* High-Contrast Core Measurement Line */}
+                        <line
+                          x1={(prev[0] / 100) * 1280}
+                          y1={(prev[1] / 100) * 800}
+                          x2={(pt[0] / 100) * 1280}
+                          y2={(pt[1] / 100) * 800}
+                          stroke="#38bdf8"
+                          strokeWidth={2.5}
+                          strokeDasharray="6 4"
+                        />
+                        {/* Midpoint Distance Badge */}
+                        <g transform={`translate(${midX}, ${midY})`}>
+                          <rect
+                            x={-34}
+                            y={-10}
+                            width={68}
+                            height={20}
+                            rx={10}
+                            fill="#030712"
+                            fillOpacity={0.92}
+                            stroke="#0284c7"
+                            strokeWidth={1}
+                          />
+                          <text
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            className="fill-sky-200 font-mono text-[10px] font-bold select-none"
+                          >
+                            {segDist} {currentMap?.scaleUnit || 'Lg'}
+                          </text>
+                        </g>
+                      </g>
+                    )
+                  })}
+
+                  {/* Active Guide Line to Mouse Cursor */}
+                  {rulerHoverPoint && rulerPoints.length > 0 && !isRulerFinished && (
+                    <g>
+                      <line
+                        x1={(rulerPoints[rulerPoints.length - 1][0] / 100) * 1280}
+                        y1={(rulerPoints[rulerPoints.length - 1][1] / 100) * 800}
+                        x2={(rulerHoverPoint[0] / 100) * 1280}
+                        y2={(rulerHoverPoint[1] / 100) * 800}
+                        stroke="#38bdf8"
+                        strokeWidth={1.75}
+                        strokeDasharray="4 3"
+                      />
+                      {/* Live Cursor Floating Distance HUD */}
+                      {(() => {
+                        const lastPt = rulerPoints[rulerPoints.length - 1]
+                        const liveSeg = getDistanceBetweenPoints(lastPt, rulerHoverPoint).units
+                        const totalWithLive = getTotalRulerDistance(rulerPoints, rulerHoverPoint)
+                        const curX = (rulerHoverPoint[0] / 100) * 1280
+                        const curY = (rulerHoverPoint[1] / 100) * 800
+
+                        return (
+                          <g transform={`translate(${curX + 14}, ${curY + 14})`}>
+                            <rect
+                              x={0}
+                              y={0}
+                              width={118}
+                              height={34}
+                              rx={4}
+                              fill="#030712"
+                              fillOpacity={0.95}
+                              stroke="#0284c7"
+                              strokeWidth={1}
+                            />
+                            <text x={8} y={14} className="fill-sky-400 font-mono text-[10px] font-bold">
+                              +{liveSeg} {currentMap?.scaleUnit || 'Lg'}
+                            </text>
+                            <text x={8} y={26} className="fill-slate-300 font-mono text-[9px]">
+                              Total: {totalWithLive} {currentMap?.scaleUnit || 'Lg'}
+                            </text>
+                          </g>
+                        )
+                      })()}
+                    </g>
+                  )}
+
+                  {/* Waypoint Markers */}
+                  {rulerPoints.map((pt, idx) => (
+                    <g key={`ruler-node-${idx}`}>
+                      <circle
+                        cx={(pt[0] / 100) * 1280}
+                        cy={(pt[1] / 100) * 800}
+                        r={8}
+                        fill="#0369a1"
+                        stroke="#38bdf8"
+                        strokeWidth={2}
+                      />
+                      <text
+                        x={(pt[0] / 100) * 1280}
+                        y={(pt[1] / 100) * 800}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        className="fill-white font-mono text-[9px] font-bold select-none"
+                      >
+                        {idx + 1}
+                      </text>
+                    </g>
+                  ))}
+                </g>
+              )}
             </svg>
 
             {/* INTERACTIVE PINS LAYER */}
@@ -876,6 +1116,57 @@ export const InteractiveMapViewer: React.FC = () => {
           </div>
         )}
 
+        {/* RULER MEASUREMENT HELPER BANNER */}
+        {(activeTool === 'ruler' || rulerPoints.length > 0) && (
+          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+            <div className="flex items-center gap-3 px-3.5 py-1.5 rounded-[4px] bg-oros-900 border border-sky-800/70 text-xs shadow-2xl text-oros-100 font-sans">
+              <div className="flex items-center gap-2 text-sky-400 font-medium">
+                <Ruler className="w-3.5 h-3.5 text-sky-400 animate-pulse" />
+                <span className="font-semibold text-xs">
+                  {rulerPoints.length === 0
+                    ? 'Click map to place distance waypoints'
+                    : `${getTotalRulerDistance(rulerPoints, rulerHoverPoint)} ${currentMap?.scaleUnit || 'Leagues'}`}
+                </span>
+              </div>
+
+              {rulerPoints.length > 0 && (
+                <div className="flex items-center gap-2 text-[11px] text-oros-300 font-mono border-l border-oros-800 pl-3">
+                  <span>{rulerPoints.length} {rulerPoints.length === 1 ? 'origin' : 'waypoints'}</span>
+                  <span>•</span>
+                  <span title="Travel time estimates">
+                    ~{(getTotalRulerDistance(rulerPoints, rulerHoverPoint) / 35).toFixed(1)}d ride / ~{(getTotalRulerDistance(rulerPoints, rulerHoverPoint) / 18).toFixed(1)}d march
+                  </span>
+                </div>
+              )}
+
+              {rulerPoints.length >= 2 && !isRulerFinished && (
+                <button
+                  onClick={() => {
+                    setIsRulerFinished(true)
+                    setRulerHoverPoint(null)
+                  }}
+                  className="px-2 py-0.5 rounded-[2px] bg-sky-900/60 hover:bg-sky-800 text-sky-200 border border-sky-700/60 text-[11px] font-medium transition-colors"
+                >
+                  Pin Route
+                </button>
+              )}
+
+              <button
+                onClick={() => {
+                  setRulerPoints([])
+                  setRulerHoverPoint(null)
+                  setIsRulerFinished(false)
+                  if (activeTool === 'ruler') setActiveTool('pan')
+                }}
+                className="p-1 rounded-[2px] text-oros-400 hover:text-rose-400 hover:bg-oros-850 transition-colors ml-1"
+                title="Clear route"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* FLOATING BOTTOM CONSOLE DOCK */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 select-none">
           <div className="flex items-center gap-1 px-1.5 py-1 rounded-[4px] bg-oros-900 border border-oros-750 shadow-2xl">
@@ -933,6 +1224,29 @@ export const InteractiveMapViewer: React.FC = () => {
               }`}
             >
               <PinIcon className="w-3.5 h-3.5" />
+            </button>
+
+            {/* 4. Distance Ruler Tool */}
+            <button
+              onClick={() => {
+                setActiveTool('ruler')
+                setDrawingPoints([])
+                setSelectedPin(null)
+                setSelectedRegion(null)
+              }}
+              title="Measure Distance & Travel Time (R or M)"
+              className={`p-1.5 rounded-[3px] relative transition-colors ${
+                activeTool === 'ruler'
+                  ? 'bg-sky-950 text-sky-400 border border-sky-600/60 shadow-sm'
+                  : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
+              }`}
+            >
+              <Ruler className="w-3.5 h-3.5" />
+              {rulerPoints.length > 0 && (
+                <span className="absolute -top-1 -right-1 px-1 rounded-[2px] bg-sky-500 text-white text-[9px] font-mono font-bold leading-none py-0.5 shadow">
+                  {rulerPoints.length}
+                </span>
+              )}
             </button>
 
             <div className="w-[1px] h-4 bg-oros-800 mx-0.5" />
@@ -1259,17 +1573,24 @@ export const InteractiveMapViewer: React.FC = () => {
         </div>
       )}
 
-      {/* TERRITORY POLYGON CREATION / EDIT MODAL */}
+      {/* REDESIGNED TERRITORY POLYGON CREATION / EDIT MODAL */}
       {isRegionModalOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] shadow-2xl flex flex-col max-h-[460px] overflow-hidden select-text text-oros-100 animate-modal-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-lg rounded-[6px] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden select-text text-oros-100 animate-modal-in">
             {/* Header */}
-            <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <Compass className="w-3.5 h-3.5 text-accent" />
-                <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100">
-                  {editingRegionId ? 'Edit Territory' : 'Save Territory Region'}
-                </h3>
+            <div className="px-4 py-3 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-[3px] bg-accent/15 border border-accent/30 flex items-center justify-center text-accent">
+                  <Hexagon className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100">
+                    {editingRegionId ? 'Edit Territory Properties' : 'New Territory Region'}
+                  </h3>
+                  <span className="text-[10px] text-oros-400 font-mono">
+                    {editingRegionId ? 'Update vector boundary & codex link' : `Save closed boundary (${drawingPoints.length} vertices)`} • {currentMap?.name}
+                  </span>
+                </div>
               </div>
               <button
                 onClick={() => setIsRegionModalOpen(false)}
@@ -1280,113 +1601,386 @@ export const InteractiveMapViewer: React.FC = () => {
             </div>
 
             {/* Scrollable Form Body */}
-            <form id="region-form" onSubmit={handleSaveRegion} className="p-3.5 space-y-2.5 overflow-y-auto flex-1">
-              <div className="text-[11px] font-mono text-oros-400 bg-oros-850 px-2 py-1 rounded-[2px] border border-oros-750">
-                {editingRegionId ? 'Update boundary & properties' : `Closed polygon (${drawingPoints.length} vertices)`} on {currentMap?.name}
+            <form id="region-form" onSubmit={handleSaveRegion} className="p-4 space-y-4 overflow-y-auto flex-1">
+              {/* Live Preview Card */}
+              <div 
+                className="p-3.5 rounded-[4px] border-2 border-dashed transition-all relative flex flex-col items-center justify-center min-h-[72px] overflow-hidden shadow-inner"
+                style={{ 
+                  backgroundColor: regionForm.color,
+                  borderColor: regionForm.color,
+                  opacity: Math.max(0.35, regionForm.fillOpacity + 0.15)
+                }}
+              >
+                <div 
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ backgroundColor: '#090a0d', opacity: 1 - regionForm.fillOpacity }}
+                />
+                <span className="relative z-10 font-serif font-bold text-sm text-slate-100 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-wide">
+                  {regionForm.name.trim() || 'Territory Title'}
+                </span>
+                <span className="relative z-10 text-[10px] font-mono text-slate-300 drop-shadow mt-0.5">
+                  {Math.round(regionForm.fillOpacity * 100)}% Fill Opacity • {regionForm.color}
+                </span>
               </div>
 
+              {/* Territory Name Input & Quick Suffix Chips */}
               <div>
-                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Territory Name *</label>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">
+                  Territory Name *
+                </label>
                 <input
                   type="text"
                   required
                   autoFocus
                   value={regionForm.name}
                   onChange={(e) => setRegionForm({ ...regionForm, name: e.target.value })}
-                  placeholder="e.g. Kingdom of the Sunken Reaches"
-                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
+                  placeholder="e.g. Duchy of Dun Carrow, The Bitter Coast..."
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-3 py-1.5 text-xs text-oros-100 font-medium focus:outline-none focus:border-accent"
                 />
+
+                {/* Quick Archetype Suffix Buttons */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                  <span className="text-[10px] font-mono text-oros-500">Quick additions:</span>
+                  {['March', 'Duchy', 'Barony', 'Fens', 'Isles', 'Reaches', 'Haven', 'Wastes'].map((suffix) => (
+                    <button
+                      key={suffix}
+                      type="button"
+                      onClick={() => {
+                        const trimmed = regionForm.name.trim()
+                        if (!trimmed) {
+                          setRegionForm({ ...regionForm, name: suffix })
+                        } else if (!trimmed.toLowerCase().includes(suffix.toLowerCase())) {
+                          setRegionForm({ ...regionForm, name: `${trimmed} ${suffix}` })
+                        }
+                      }}
+                      className="px-1.5 py-0.5 rounded-[2px] bg-oros-850 hover:bg-oros-800 text-oros-400 hover:text-oros-200 border border-oros-750 text-[10px] font-sans transition-colors"
+                    >
+                      +{suffix}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Color Palette Picker */}
+              {/* Color Palette & Custom Hex */}
               <div>
-                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">Color Tint</label>
-                <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-                  {PALETTE_COLORS.map((c) => (
-                    <button
-                      key={c.name}
-                      type="button"
-                      onClick={() => setRegionForm({ ...regionForm, color: c.hex })}
-                      className={`w-5 h-5 rounded-[2px] transition-all ${
-                        regionForm.color === c.hex 
-                          ? 'ring-2 ring-oros-100' 
-                          : 'opacity-80 hover:opacity-100'
-                      }`}
-                      style={{ backgroundColor: c.hex }}
-                      title={c.name}
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1.5">
+                  Heraldic Color Tint
+                </label>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  {PALETTE_COLORS.map((c) => {
+                    const isSelected = regionForm.color.toLowerCase() === c.hex.toLowerCase()
+                    return (
+                      <button
+                        key={c.name}
+                        type="button"
+                        onClick={() => setRegionForm({ ...regionForm, color: c.hex })}
+                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                          isSelected
+                            ? 'ring-2 ring-white ring-offset-2 ring-offset-oros-900 scale-110 shadow-lg'
+                            : 'opacity-80 hover:opacity-100 hover:scale-105'
+                        }`}
+                        style={{ backgroundColor: c.hex }}
+                        title={c.name}
+                      >
+                        {isSelected && <Check className="w-3 h-3 text-white drop-shadow" />}
+                      </button>
+                    )
+                  })}
+
+                  {/* Custom Hex Picker Input */}
+                  <div className="flex items-center gap-1.5 ml-1 bg-oros-850 border border-oros-750 rounded-[3px] px-1.5 py-0.5">
+                    <input
+                      type="color"
+                      value={regionForm.color}
+                      onChange={(e) => setRegionForm({ ...regionForm, color: e.target.value })}
+                      className="w-5 h-5 rounded-full cursor-pointer bg-transparent border-0 p-0"
+                      title="Custom Color Picker"
                     />
-                  ))}
+                    <input
+                      type="text"
+                      value={regionForm.color}
+                      onChange={(e) => setRegionForm({ ...regionForm, color: e.target.value })}
+                      className="w-16 bg-transparent text-[11px] font-mono text-oros-200 focus:outline-none uppercase"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Opacity Slider with Quick Presets */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-[10px] font-mono uppercase font-semibold text-oros-400">
+                    Fill Opacity
+                  </label>
+                  <span className="text-[11px] font-mono font-semibold text-accent">
+                    {Math.round(regionForm.fillOpacity * 100)}%
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 mb-2">
                   <input
-                    type="color"
-                    value={regionForm.color}
-                    onChange={(e) => setRegionForm({ ...regionForm, color: e.target.value })}
-                    className="w-5 h-5 rounded-[2px] cursor-pointer bg-transparent border-0 p-0 ml-1"
+                    type="range"
+                    min="0.05"
+                    max="0.85"
+                    step="0.05"
+                    value={regionForm.fillOpacity}
+                    onChange={(e) => setRegionForm({ ...regionForm, fillOpacity: parseFloat(e.target.value) })}
+                    className="flex-1 cursor-pointer accent-accent h-1.5"
                   />
                 </div>
-              </div>
 
-              {/* Opacity Slider */}
-              <div>
-                <div className="flex justify-between items-center mb-0.5">
-                  <label className="text-[10px] font-mono uppercase font-semibold text-oros-400">Fill Opacity</label>
-                  <span className="text-[10px] font-mono text-oros-300">{Math.round(regionForm.fillOpacity * 100)}%</span>
+                {/* Opacity Quick Presets */}
+                <div className="flex items-center gap-1.5">
+                  {[
+                    { label: '15% Subtle', val: 0.15 },
+                    { label: '25% Standard', val: 0.25 },
+                    { label: '45% Strong', val: 0.45 },
+                    { label: '70% Opaque', val: 0.70 }
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => setRegionForm({ ...regionForm, fillOpacity: preset.val })}
+                      className={`flex-1 py-1 rounded-[2px] text-[10px] font-mono transition-colors border ${
+                        Math.abs(regionForm.fillOpacity - preset.val) < 0.04
+                          ? 'bg-accent/20 text-accent border-accent/40 font-semibold'
+                          : 'bg-oros-850 text-oros-400 border-oros-750 hover:text-oros-200 hover:bg-oros-800'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
                 </div>
-                <input
-                  type="range"
-                  min="0.05"
-                  max="0.80"
-                  step="0.05"
-                  value={regionForm.fillOpacity}
-                  onChange={(e) => setRegionForm({ ...regionForm, fillOpacity: parseFloat(e.target.value) })}
-                  className="w-full cursor-pointer accent-accent h-1.5"
-                />
               </div>
 
               {/* Card Linkage */}
-              <div>
-                <div className="flex items-center justify-between mb-0.5">
-                  <label className="text-[10px] font-mono uppercase font-semibold text-oros-400">Link to Codex Card</label>
+              <div className="p-3 bg-oros-950 rounded-[3px] border border-oros-800">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[10px] font-mono uppercase font-semibold text-oros-300">
+                    Linked Lore Codex Card
+                  </label>
                   <button
                     type="button"
                     onClick={handleCreateLocationCardForRegion}
-                    className="text-[10px] text-accent hover:underline flex items-center gap-0.5"
+                    className="text-[10px] text-accent hover:underline flex items-center gap-1 font-medium"
                   >
-                    <Plus className="w-2.5 h-2.5" />
+                    <Plus className="w-3 h-3" />
                     <span>Create Location Card</span>
                   </button>
                 </div>
                 <select
                   value={regionForm.entityId}
                   onChange={(e) => setRegionForm({ ...regionForm, entityId: e.target.value })}
-                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
+                  className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-accent font-sans"
                 >
-                  <option value="">No entity linked</option>
+                  <option value="">No codex entity linked</option>
                   {worldEntities.map((ent) => (
                     <option key={ent.id} value={ent.id}>
                       {ent.title} ({ent.type})
                     </option>
                   ))}
                 </select>
+                <p className="text-[10px] text-oros-500 font-sans mt-1">
+                  Linking a lore card enables one-click opening and previewing of articles directly from the map.
+                </p>
               </div>
             </form>
 
             {/* Pinned Visible Footer */}
-            <div className="px-4 py-2 border-t border-oros-750 bg-oros-900 flex items-center justify-end gap-2 shrink-0">
+            <div className="px-4 py-2.5 border-t border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
+              <div>
+                {editingRegionId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (currentMap) removeRegionFromMap(currentMap.id, editingRegionId)
+                      setIsRegionModalOpen(false)
+                      setSelectedRegion(null)
+                      addToast('Deleted territory region', 'info')
+                    }}
+                    className="px-2.5 py-1 rounded-[2px] bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-900/50 text-xs font-medium flex items-center gap-1 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Delete</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRegionModalOpen(false)}
+                  className="px-3 py-1 rounded-[3px] text-xs font-semibold text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="region-form"
+                  className="btn-accent px-4 py-1 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
+                >
+                  {editingRegionId ? 'Save Changes' : 'Save Territory'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MAP SCALE & MEASUREMENT CALIBRATION MODAL */}
+      {isScaleModalOpen && currentMap && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[6px] shadow-2xl flex flex-col overflow-hidden select-text text-oros-100 animate-modal-in">
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-[3px] bg-sky-950 border border-sky-700/60 flex items-center justify-center text-sky-400">
+                  <Ruler className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100">
+                    Calibrate Map Scale
+                  </h3>
+                  <span className="text-[10px] text-oros-400 font-mono">
+                    Configure distance units and scale bar for {currentMap.name}
+                  </span>
+                </div>
+              </div>
               <button
-                type="button"
-                onClick={() => setIsRegionModalOpen(false)}
-                className="px-3 py-1 rounded-[3px] text-xs font-semibold text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
+                onClick={() => setIsScaleModalOpen(false)}
+                className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
               >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="region-form"
-                className="btn-accent px-3.5 py-1 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
-              >
-                {editingRegionId ? 'Save Changes' : 'Save Territory'}
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
+
+            {/* Form Body */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                const dist = Math.max(1, Number(scaleForm.distance) || 50)
+                const unit = scaleForm.unit.trim() || 'Leagues'
+                const barPx = Math.max(40, Math.min(400, Number(scaleForm.barPixels) || 140))
+                updateMap(currentMap.id, {
+                  scaleDistance: dist,
+                  scaleUnit: unit,
+                  scaleBarPixels: barPx
+                })
+                addToast(`Calibrated scale: ${dist} ${unit}`, 'success')
+                setIsScaleModalOpen(false)
+              }}
+              className="p-4 space-y-4 flex-1"
+            >
+              {/* Scale Distance & Unit Inputs */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">
+                    Scale Distance *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100000"
+                    required
+                    value={scaleForm.distance}
+                    onChange={(e) => setScaleForm({ ...scaleForm, distance: Number(e.target.value) })}
+                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 font-mono focus:outline-none focus:border-accent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">
+                    Unit of Measurement *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={scaleForm.unit}
+                    onChange={(e) => setScaleForm({ ...scaleForm, unit: e.target.value })}
+                    placeholder="e.g. Leagues"
+                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-accent"
+                  />
+                </div>
+              </div>
+
+              {/* Quick Unit Presets */}
+              <div>
+                <span className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1.5">
+                  Unit Presets
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Leagues', 'Miles', 'Kilometers', 'Nautical Leagues', 'Hexes', 'Days of March'].map((u) => (
+                    <button
+                      key={u}
+                      type="button"
+                      onClick={() => setScaleForm({ ...scaleForm, unit: u })}
+                      className={`px-2 py-0.5 rounded-[2px] text-[11px] font-medium transition-colors border ${
+                        scaleForm.unit.toLowerCase() === u.toLowerCase()
+                          ? 'bg-accent/20 text-accent border-accent/50'
+                          : 'bg-oros-850 text-oros-400 border-oros-750 hover:text-oros-200 hover:bg-oros-800'
+                      }`}
+                    >
+                      {u}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Visual Scale Bar Calibration */}
+              <div className="p-3 bg-oros-950 rounded-[3px] border border-oros-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono uppercase font-semibold text-oros-300">
+                    Reference Bar Length
+                  </span>
+                  <span className="text-[11px] font-mono text-accent font-bold">
+                    {scaleForm.barPixels}px = {scaleForm.distance} {scaleForm.unit || 'Units'}
+                  </span>
+                </div>
+
+                <input
+                  type="range"
+                  min="50"
+                  max="300"
+                  step="10"
+                  value={scaleForm.barPixels}
+                  onChange={(e) => setScaleForm({ ...scaleForm, barPixels: Number(e.target.value) })}
+                  className="w-full cursor-pointer accent-accent h-1.5"
+                />
+
+                {/* Live Visual Scale Bar Preview */}
+                <div className="pt-2 flex flex-col items-center">
+                  <div className="flex items-center justify-between text-[9px] font-mono text-oros-400 w-full mb-1" style={{ maxWidth: `${scaleForm.barPixels}px` }}>
+                    <span>0</span>
+                    <span>{Math.round(scaleForm.distance / 2)}</span>
+                    <span>{scaleForm.distance} {scaleForm.unit}</span>
+                  </div>
+                  <div 
+                    className="h-2 bg-oros-800 border border-oros-600 rounded-sm relative flex overflow-hidden shadow-inner"
+                    style={{ width: `${scaleForm.barPixels}px` }}
+                  >
+                    <div className="w-1/2 h-full bg-accent" />
+                    <div className="w-1/2 h-full bg-oros-300" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-oros-750">
+                <button
+                  type="button"
+                  onClick={() => setIsScaleModalOpen(false)}
+                  className="px-3 py-1 rounded-[3px] text-xs font-semibold text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-accent px-4 py-1 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
+                >
+                  Apply Calibration
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

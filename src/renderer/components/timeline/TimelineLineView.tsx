@@ -402,7 +402,7 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
       {/* Axis Instruction Hint */}
       <div className="absolute top-4 left-4 z-20 pointer-events-none text-[11px] font-mono text-oros-400 bg-oros-900/80 backdrop-blur-md px-2.5 py-1 border border-oros-750/70 rounded-[3px] flex items-center gap-2">
         <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-        <span>Click axis to add event · Drag to create period · Horizon: {firstYear}–{lastYear}</span>
+        <span>Click axis to add event · Drag to create period</span>
       </div>
 
       {/* Virtual Canvas Layer */}

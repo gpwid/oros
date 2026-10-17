@@ -176,7 +176,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   directoryItems: { [sampleWorld.id]: sampleDirectoryItems },
   canvases: { [sampleWorld.id]: sampleCanvases },
   categories: { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES },
-  calendars: { [sampleWorld.id]: DEFAULT_FANTASY_CALENDAR_CONFIG },
+  calendars: { [sampleWorld.id]: sampleWorld.calendarConfig || DEFAULT_FANTASY_CALENDAR_CONFIG },
   relationNodePositions: {},
 
   initStore: async () => {
@@ -191,6 +191,22 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
       if (raw) {
         const parsed: StorageData = JSON.parse(raw);
+        if (parsed.worlds && (parsed.worlds.length === 0 || (parsed.worlds.length === 1 && parsed.worlds[0].id === 'world-aethelgard'))) {
+          // Automatically upgrade legacy mock world to the newly remade Ostergard world
+          parsed.worlds = [sampleWorld];
+          parsed.activeWorldId = sampleWorld.id;
+          parsed.entities = { [sampleWorld.id]: sampleEntities };
+          parsed.maps = { [sampleWorld.id]: [sampleMap] };
+          parsed.relations = { [sampleWorld.id]: sampleRelations };
+          parsed.timelines = { [sampleWorld.id]: sampleTimelines };
+          parsed.manuscripts = { [sampleWorld.id]: sampleManuscript };
+          parsed.folders = { [sampleWorld.id]: sampleFolders };
+          parsed.directoryItems = { [sampleWorld.id]: sampleDirectoryItems };
+          parsed.canvases = { [sampleWorld.id]: sampleCanvases };
+          parsed.categories = { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES };
+          parsed.calendars = { [sampleWorld.id]: sampleWorld.calendarConfig || DEFAULT_FANTASY_CALENDAR_CONFIG };
+        }
+
         set({
           worlds: parsed.worlds || [sampleWorld],
           activeWorldId: parsed.activeWorldId || sampleWorld.id,
@@ -203,10 +219,11 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           directoryItems: parsed.directoryItems || { [sampleWorld.id]: sampleDirectoryItems },
           canvases: parsed.canvases || { [sampleWorld.id]: sampleCanvases },
           categories: parsed.categories || { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES },
-          calendars: parsed.calendars || { [sampleWorld.id]: DEFAULT_FANTASY_CALENDAR_CONFIG },
+          calendars: parsed.calendars || { [sampleWorld.id]: sampleWorld.calendarConfig || DEFAULT_FANTASY_CALENDAR_CONFIG },
           relationNodePositions: parsed.relationNodePositions || {}
         });
         get().syncVaultDirectory();
+        get().persistStore();
         return;
       }
     } catch (err) {

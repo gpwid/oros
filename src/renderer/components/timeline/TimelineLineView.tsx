@@ -39,10 +39,20 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
   const [isPanning, setIsPanning] = useState<boolean>(false)
   const [dragStart, setDragStart] = useState<{ x: number; panX: number } | null>(null)
   const [wheelMode, setWheelMode] = useState<'zoom' | 'pan'>('zoom')
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false)
+
+  // Keep refs in sync for high-frequency wheel and drag callbacks
+  const zoomRef = useRef(zoom)
+  zoomRef.current = zoom
+  const panXRef = useRef(panX)
+  panXRef.current = panX
+  const wheelModeRef = useRef(wheelMode)
+  wheelModeRef.current = wheelMode
 
   // Axis Hover & In-Situ Creation State
   const [hoverYear, setHoverYear] = useState<number | null>(null)
   const [hoverX, setHoverX] = useState<number | null>(null)
+  const [isNearAxis, setIsNearAxis] = useState<boolean>(false)
   const [dragPeriodStartYear, setDragPeriodStartYear] = useState<number | null>(null)
   const [dragPeriodCurrentYear, setDragPeriodCurrentYear] = useState<number | null>(null)
 
@@ -65,8 +75,8 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
   }, [events, lastYear])
 
   const totalYears = Math.max(50, maxYear - minYear)
-  const pxPerYear = Math.max(3, 14 * zoom)
-  const totalWidth = totalYears * pxPerYear + 1200
+  const pxPerYear = Math.max(2, 14 * zoom)
+  const totalWidth = totalYears * pxPerYear + 2000
 
   // Coordinate transforms
   const yearToX = useCallback((yr: number) => {
@@ -77,46 +87,140 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
     return Math.round(minYear + (x - 300) / pxPerYear)
   }, [minYear, pxPerYear])
 
+  // Boundary clamp function so the ruler can NEVER be scrolled into an empty black void
+  const clampPan = useCallback((targetPanX: number, targetZoom: number) => {
+    if (!containerRef.current) return targetPanX
+    const containerW = containerRef.current.clientWidth
+    const curPxPerYear = 14 * targetZoom
+    const rStartX = (firstYear - minYear) * curPxPerYear + 300
+    const rEndX = (lastYear - minYear) * curPxPerYear + 300
+
+    // Keep at least 140px of the ruler visible inside the viewport
+    const minAllowed = 140 - rEndX
+    const maxAllowed = containerW - 140 - rStartX
+
+    if (minAllowed > maxAllowed) {
+      // If the entire horizon fits inside the viewport, center it
+      return (containerW - (rStartX + rEndX)) / 2
+    }
+    return Math.min(maxAllowed, Math.max(minAllowed, targetPanX))
+  }, [firstYear, lastYear, minYear])
+
+  // Zoom keeping the year at the center of the viewport strictly motionless
+  const zoomAroundCenter = useCallback((targetZoom: number) => {
+    if (!containerRef.current) return
+    const containerWidth = containerRef.current.clientWidth
+    const focalX = containerWidth / 2 // Exact screen center
+
+    const curZoom = zoomRef.current
+    const curPanX = panXRef.current
+
+    const clampedZoom = Math.min(6, Math.max(0.1, targetZoom))
+    if (Math.abs(clampedZoom - curZoom) < 0.0001) return
+
+    const zoomRatio = clampedZoom / curZoom
+
+    // Mathematical formula to lock the year at focalX in place:
+    // (centerYear - minYear) * 14 * curZoom = focalX - curPanX - 300
+    // newPanX = focalX - 300 - (focalX - curPanX - 300) * zoomRatio
+    const rawPanX = focalX - 300 - (focalX - curPanX - 300) * zoomRatio
+    const nextPanX = clampPan(rawPanX, clampedZoom)
+
+    setZoom(clampedZoom)
+    setPanX(nextPanX)
+    zoomRef.current = clampedZoom
+    panXRef.current = nextPanX
+  }, [clampPan])
+
   // Center on calendar horizon on initial load or Fit
   const handleFit = useCallback(() => {
     if (!containerRef.current) return
     const containerWidth = containerRef.current.clientWidth
     
-    // Fit the world calendar configuration horizon nicely with 120px padding on each side
+    // Fit the world calendar configuration horizon nicely with 140px padding on each side
     const targetSpan = Math.max(20, lastYear - firstYear)
-    const availableWidth = Math.max(300, containerWidth - 240)
+    const availableWidth = Math.max(300, containerWidth - 280)
     const optimalPxPerYear = availableWidth / targetSpan
-    const nextZoom = Math.min(3, Math.max(0.15, optimalPxPerYear / 14))
-    setZoom(nextZoom)
+    const nextZoom = Math.min(4, Math.max(0.12, optimalPxPerYear / 14))
 
     const centerYear = firstYear + targetSpan / 2
-    const centerX = (centerYear - minYear) * (14 * nextZoom) + 300
-    setPanX(containerWidth / 2 - centerX)
+    const nextPxPerYear = 14 * nextZoom
+    const centerX = (centerYear - minYear) * nextPxPerYear + 300
+    const nextPanX = containerWidth / 2 - centerX
+
+    setIsTransitioning(true)
+    setZoom(nextZoom)
+    setPanX(nextPanX)
+    zoomRef.current = nextZoom
+    panXRef.current = nextPanX
+
+    setTimeout(() => {
+      setIsTransitioning(false)
+    }, 260)
   }, [firstYear, lastYear, minYear])
 
   useEffect(() => {
     handleFit()
   }, [])
 
+  // High-performance, non-passive Native Wheel Listener
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const handleWheelNative = (e: WheelEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      const shouldZoom = wheelModeRef.current === 'zoom' ? !e.shiftKey : (e.ctrlKey || e.metaKey)
+
+      if (shouldZoom) {
+        // Continuous, responsive exponential zoom
+        const delta = Math.abs(e.deltaY) > 0 ? e.deltaY : e.deltaX
+        const zoomSensitivity = 0.002
+        const factor = Math.exp(-delta * zoomSensitivity)
+        const nextZoom = zoomRef.current * factor
+        zoomAroundCenter(nextZoom)
+      } else {
+        const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY
+        const nextPanX = clampPan(panXRef.current - delta, zoomRef.current)
+        setPanX(nextPanX)
+        panXRef.current = nextPanX
+      }
+    }
+
+    el.addEventListener('wheel', handleWheelNative, { passive: false })
+    return () => {
+      el.removeEventListener('wheel', handleWheelNative)
+    }
+  }, [zoomAroundCenter, clampPan])
+
   // Pan interaction
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Only pan on background drag or middle mouse
     if (e.button === 0 && (e.target === containerRef.current || (e.target as HTMLElement).dataset.panTarget)) {
       setIsPanning(true)
-      setDragStart({ x: e.clientX, panX })
+      setIsTransitioning(false)
+      setDragStart({ x: e.clientX, panX: panXRef.current })
     }
   }
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (isPanning && dragStart) {
       const dx = e.clientX - dragStart.x
-      setPanX(dragStart.panX + dx)
+      const nextPanX = clampPan(dragStart.panX + dx, zoomRef.current)
+      setPanX(nextPanX)
+      panXRef.current = nextPanX
     }
 
     if (!containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
-    const mouseX = e.clientX - rect.left - panX
+    const mouseX = e.clientX - rect.left - panXRef.current
+    const mouseY = e.clientY - rect.top
     const computedYear = xToYear(mouseX)
+
+    // Check if mouse is vertically near the timeline ruler (top: 280px ± 50px)
+    const isNear = mouseY >= 230 && mouseY <= 330 && computedYear >= (firstYear - 20) && computedYear <= (lastYear + 20)
+    setIsNearAxis(isNear)
 
     setHoverX(mouseX)
     setHoverYear(computedYear)
@@ -140,28 +244,6 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
       }
       setDragPeriodStartYear(null)
       setDragPeriodCurrentYear(null)
-    }
-  }
-
-  // Mouse wheel zoom centered on cursor or horizontal pan
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault()
-    if (!containerRef.current) return
-    const rect = containerRef.current.getBoundingClientRect()
-    const cursorX = e.clientX - rect.left
-
-    const shouldZoom = wheelMode === 'zoom' ? !e.shiftKey : (e.ctrlKey || e.metaKey)
-
-    if (shouldZoom) {
-      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85
-      const newZoom = Math.min(5, Math.max(0.15, zoom * zoomFactor))
-      const canvasX = (cursorX - panX) / zoom
-      const newPanX = cursorX - (canvasX * newZoom)
-      setZoom(newZoom)
-      setPanX(newPanX)
-    } else {
-      const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY
-      setPanX(prev => prev - delta)
     }
   }
 
@@ -246,7 +328,15 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
-      onWheel={handleWheel}
+      onMouseLeave={() => {
+        setIsNearAxis(false)
+        setHoverX(null)
+        setHoverYear(null)
+        if (isPanning) {
+          setIsPanning(false)
+          setDragStart(null)
+        }
+      }}
       className="flex-1 w-full h-full relative overflow-hidden select-none bg-oros-950 oros-dotted-surface cursor-grab active:cursor-grabbing"
       data-pan-target="true"
     >
@@ -261,7 +351,7 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
                 ? 'bg-oros-750 text-oros-100'
                 : 'text-oros-400 hover:text-oros-200'
             }`}
-            title="Scroll wheel zooms timeline centered at pointer"
+            title="Scroll wheel zooms timeline centered on screen"
           >
             Wheel: Zoom
           </button>
@@ -279,9 +369,9 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
         </div>
 
         <button
-          onClick={() => setZoom(prev => Math.min(5, prev * 1.25))}
+          onClick={() => zoomAroundCenter(zoom * 1.25)}
           className="p-1.5 rounded-[2px] text-oros-300 hover:text-oros-100 hover:bg-oros-800 transition-colors"
-          title="Zoom In"
+          title="Zoom In (Centered on Horizon)"
         >
           <ZoomIn className="w-3.5 h-3.5" />
         </button>
@@ -289,9 +379,9 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
           {Math.round(zoom * 100)}%
         </span>
         <button
-          onClick={() => setZoom(prev => Math.max(0.15, prev * 0.8))}
+          onClick={() => zoomAroundCenter(zoom * 0.8)}
           className="p-1.5 rounded-[2px] text-oros-300 hover:text-oros-100 hover:bg-oros-800 transition-colors"
-          title="Zoom Out"
+          title="Zoom Out (Centered on Horizon)"
         >
           <ZoomOut className="w-3.5 h-3.5" />
         </button>
@@ -318,7 +408,7 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
         style={{
           width: totalWidth,
           transform: `translateX(${panX}px)`,
-          transition: isPanning ? 'none' : 'transform 0.05s ease-out'
+          transition: isTransitioning ? 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : 'none'
         }}
         data-pan-target="true"
       >
@@ -543,10 +633,10 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
             </div>
           )}
 
-          {/* Dynamic Hover Cursor on Timeline Axis */}
-          {hoverX !== null && hoverYear !== null && dragPeriodStartYear === null && (
+          {/* Dynamic Hover Cursor on Timeline Axis (Only visible when hovering near the ruler) */}
+          {hoverX !== null && hoverYear !== null && dragPeriodStartYear === null && isNearAxis && (
             <div
-              className="absolute top-1 pointer-events-none z-20 flex flex-col items-center"
+              className="absolute top-1 pointer-events-none z-20 flex flex-col items-center animate-in fade-in duration-75"
               style={{ left: hoverX, transform: 'translateX(-50%)' }}
             >
               {/* Tooltip Pill */}

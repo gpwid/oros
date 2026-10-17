@@ -2,6 +2,7 @@ import {
   World, LoreEntity, WorldMap, RelationEdge, TimelineEvent, ManuscriptChapter,
   DirectoryFolder, DirectoryItem, WhiteboardCanvasData, WorkspaceTab
 } from '@shared/types'
+import { DEFAULT_FANTASY_CALENDAR_CONFIG } from '../utils/calendarDefaults'
 
 export const sampleWorld: World = {
   id: 'world-aethelgard',
@@ -9,6 +10,7 @@ export const sampleWorld: World = {
   tagline: 'An ancient continent fractured by the Cataclysm of Stars, held together by ley-chains.',
   description: 'Aethelgard was once a unified empire under the Solar Concord. Following the celestial rupture four centuries ago, the land fragmented into levitating archipelago regions and deep crystalline rifts.',
   genre: 'Epic High Fantasy',
+  calendarConfig: DEFAULT_FANTASY_CALENDAR_CONFIG,
   bannerUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1600&q=80',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString()
@@ -371,27 +373,84 @@ export const sampleTimelines: TimelineEvent[] = [
     id: 't-1',
     worldId: 'world-aethelgard',
     era: 'First Age',
+    isPeriod: false,
     year: 420,
+    month: 7,
+    day: 12,
+    category: 'astronomical',
     title: 'The Cataclysm of Stars',
     description: 'A rogue celestial comet fractures the continental mantle into five levitating plates.',
     importance: 'mythic',
     entityIds: []
   },
   {
+    id: 't-period-reconstruction',
+    worldId: 'world-aethelgard',
+    era: 'First Age',
+    isPeriod: true,
+    periodType: 'epoch',
+    year: 425,
+    endYear: 510,
+    category: 'cultural',
+    color: '#818cf8',
+    title: 'The Reconstruction Epoch',
+    description: 'Centuries of rebuilding shattered skylands using adamantine chains and harmonic ley-anchors.',
+    importance: 'mythic',
+    entityIds: []
+  },
+  {
+    id: 't-period-katherine',
+    worldId: 'world-aethelgard',
+    era: 'Age of Concord',
+    isPeriod: true,
+    periodType: 'reign',
+    year: 780,
+    endYear: 827,
+    category: 'political',
+    color: '#facc15',
+    title: 'Reign of Queen Katherine II',
+    description: 'A golden era of consolidation until her mysterious disappearance in the Radiant Abyss.',
+    importance: 'major',
+    entityIds: ['char-katherine']
+  },
+  {
     id: 't-2',
     worldId: 'world-aethelgard',
     era: 'Age of Concord',
+    isPeriod: false,
     year: 812,
+    month: 6,
+    day: 15,
+    category: 'birth-death',
     title: 'Birth of Ronald III',
     description: 'Born during a celestial alignment at the Citadel of Sunken Gold.',
     importance: 'minor',
     entityIds: ['char-ronald', 'loc-sunken-bastion']
   },
   {
+    id: 't-period-obsidian',
+    worldId: 'world-aethelgard',
+    era: 'Age of Concord',
+    isPeriod: true,
+    periodType: 'war',
+    year: 820,
+    endYear: 835,
+    category: 'war',
+    color: '#ef4444',
+    title: 'The Obsidian War',
+    description: 'Fifteen years of bitter border conflict against the Northern Outcasts and Void Infiltrators.',
+    importance: 'major',
+    entityIds: ['char-ronald', 'char-marcus']
+  },
+  {
     id: 't-3',
     worldId: 'world-aethelgard',
     era: 'Age of Concord',
+    isPeriod: false,
     year: 828,
+    month: 1,
+    day: 1,
+    category: 'political',
     title: 'Coronation of the Sunken Throne',
     description: 'Ronald III is crowned High King and assumes stewardship over the Crown of Astral Glass.',
     importance: 'major',
@@ -401,11 +460,30 @@ export const sampleTimelines: TimelineEvent[] = [
     id: 't-4',
     worldId: 'world-aethelgard',
     era: 'Age of Concord',
+    isPeriod: false,
     year: 830,
+    month: 4,
+    day: 20,
+    category: 'political',
     title: 'The Pact of the Astral Loom',
     description: 'Royal union between Ronald III and Lady Vespera, binding arcane guilds with the Crown.',
     importance: 'major',
     entityIds: ['char-ronald', 'char-vespera']
+  },
+  {
+    id: 't-period-ronald',
+    worldId: 'world-aethelgard',
+    era: 'Age of Concord',
+    isPeriod: true,
+    periodType: 'reign',
+    year: 828,
+    endYear: 862,
+    category: 'political',
+    color: '#f59e0b',
+    title: 'Reign of High King Ronald III',
+    description: 'Thirty-four years of disciplined governance, fortress expansion, and astral defense.',
+    importance: 'major',
+    entityIds: ['char-ronald']
   }
 ]
 

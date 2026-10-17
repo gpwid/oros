@@ -3,9 +3,10 @@ import {
   World, LoreEntity, WorldMap, RelationEdge, TimelineEvent, ManuscriptChapter, 
   StorageData, MapPin, MapRegion,
   DirectoryFolder, DirectoryItem, DirectoryItemType, WorkspaceTab, 
-  WhiteboardCanvasData, CanvasStroke, EntityCategory
+  WhiteboardCanvasData, CanvasStroke, EntityCategory, WorldCalendarConfig
 } from '@shared/types'
 import { DEFAULT_PRESET_CATEGORIES } from '../utils/categoryIcons'
+import { DEFAULT_FANTASY_CALENDAR_CONFIG } from '../utils/calendarDefaults'
 import { 
   sampleWorld, sampleEntities, sampleMap, sampleRelations, 
   sampleTimelines, sampleManuscript,
@@ -39,6 +40,7 @@ interface WorldState {
   directoryItems: Record<string, DirectoryItem[]>;
   canvases: Record<string, WhiteboardCanvasData[]>;
   categories: Record<string, EntityCategory[]>;
+  calendars: Record<string, WorldCalendarConfig>;
   relationNodePositions: Record<string, Record<string, { x: number; y: number }>>;
 
   // Actions
@@ -115,10 +117,12 @@ interface WorldState {
   deleteRelation: (relationId: string) => void;
   saveRelationNodePosition: (entityId: string, position: { x: number; y: number }) => void;
 
-  // Timeline CRUD
+  // Timeline & Chronology CRUD
   createTimelineEvent: (event: Omit<TimelineEvent, 'id' | 'worldId'>) => void;
   updateTimelineEvent: (eventId: string, updates: Partial<TimelineEvent>) => void;
   deleteTimelineEvent: (eventId: string) => void;
+  getCalendarConfig: (worldId?: string) => WorldCalendarConfig;
+  updateCalendarConfig: (worldId: string, updates: Partial<WorldCalendarConfig>) => void;
 
   // Manuscript CRUD
   createChapter: (title: string, folderId?: string | null) => void;
@@ -158,6 +162,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   directoryItems: { [sampleWorld.id]: sampleDirectoryItems },
   canvases: { [sampleWorld.id]: sampleCanvases },
   categories: { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES },
+  calendars: { [sampleWorld.id]: DEFAULT_FANTASY_CALENDAR_CONFIG },
   relationNodePositions: {},
 
   initStore: async () => {
@@ -184,6 +189,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           directoryItems: parsed.directoryItems || { [sampleWorld.id]: sampleDirectoryItems },
           canvases: parsed.canvases || { [sampleWorld.id]: sampleCanvases },
           categories: parsed.categories || { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES },
+          calendars: parsed.calendars || { [sampleWorld.id]: DEFAULT_FANTASY_CALENDAR_CONFIG },
           relationNodePositions: parsed.relationNodePositions || {}
         });
         get().syncVaultDirectory();
@@ -215,6 +221,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       directoryItems: s.directoryItems,
       canvases: s.canvases,
       categories: s.categories,
+      calendars: s.calendars,
       relationNodePositions: s.relationNodePositions
     };
     try {
@@ -890,14 +897,17 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   createWorld: (name, tagline, genre, theme = 'sovereign', customAccentColor) => {
+    const newWorldId = `world-${Date.now()}`;
+    const initialCalendar = { ...DEFAULT_FANTASY_CALENDAR_CONFIG, worldId: newWorldId };
     const newWorld: World = {
-      id: `world-${Date.now()}`,
+      id: newWorldId,
       name,
       tagline,
       description: '',
       genre,
       theme,
       customAccentColor,
+      calendarConfig: initialCalendar,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -908,7 +918,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       maps: { ...state.maps, [newWorld.id]: [] },
       relations: { ...state.relations, [newWorld.id]: [] },
       timelines: { ...state.timelines, [newWorld.id]: [] },
-      manuscripts: { ...state.manuscripts, [newWorld.id]: [] }
+      manuscripts: { ...state.manuscripts, [newWorld.id]: [] },
+      calendars: { ...state.calendars, [newWorld.id]: initialCalendar }
     }));
     get().persistStore();
   },
@@ -1280,6 +1291,28 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     get().persistStore();
   },
 
+  getCalendarConfig: (worldId) => {
+    const s = get();
+    const id = worldId || s.activeWorldId || sampleWorld.id;
+    const world = s.worlds.find((w) => w.id === id);
+    if (world?.calendarConfig) return world.calendarConfig;
+    if (s.calendars?.[id]) return s.calendars[id];
+    return { ...DEFAULT_FANTASY_CALENDAR_CONFIG, worldId: id };
+  },
+
+  updateCalendarConfig: (worldId, updates) => {
+    const current = get().getCalendarConfig(worldId);
+    const updated = { ...current, ...updates, worldId };
+    set((state) => ({
+      calendars: {
+        ...state.calendars,
+        [worldId]: updated
+      },
+      worlds: state.worlds.map((w) => (w.id === worldId ? { ...w, calendarConfig: updated } : w))
+    }));
+    get().persistStore();
+  },
+
   createChapter: (title, folderId = null) => {
     const worldId = get().activeWorldId || sampleWorld.id;
     const chapters = get().manuscripts[worldId] || [];
@@ -1585,6 +1618,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       directoryItems: s.directoryItems[s.activeWorldId] || [],
       canvases: s.canvases[s.activeWorldId] || [],
       categories: s.categories[s.activeWorldId] || [],
+      calendar: s.getCalendarConfig(s.activeWorldId),
       relationNodePositions: s.relationNodePositions[s.activeWorldId] || {}
     };
 
@@ -1677,6 +1711,10 @@ export const useWorldStore = create<WorldState>((set, get) => ({
               ...state.categories,
               [targetWorldId]: parsed.categories || DEFAULT_PRESET_CATEGORIES
             },
+            calendars: {
+              ...state.calendars,
+              [targetWorldId]: parsed.calendar || w.calendarConfig || { ...DEFAULT_FANTASY_CALENDAR_CONFIG, worldId: targetWorldId }
+            },
             relationNodePositions: {
               ...state.relationNodePositions,
               [targetWorldId]: parsed.relationNodePositions || {}
@@ -1701,6 +1739,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           directoryItems: parsed.directoryItems || {},
           canvases: parsed.canvases || {},
           categories: parsed.categories || {},
+          calendars: parsed.calendars || {},
           relationNodePositions: parsed.relationNodePositions || {}
         });
 

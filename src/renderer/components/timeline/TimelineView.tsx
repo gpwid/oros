@@ -1,456 +1,321 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
 import { TimelineEvent } from '@shared/types'
 import { 
-  Clock, Plus, Calendar, Trash2, ExternalLink, Bookmark, Edit3 
+  Clock, Plus, Calendar, Settings, List, Activity, 
+  Search, Filter, ChevronDown, Sparkles 
 } from 'lucide-react'
+import { TimelineLineView } from './TimelineLineView'
+import { TimelineCalendarView } from './TimelineCalendarView'
+import { TimelineChronicleView } from './TimelineChronicleView'
+import { TimelineEventModal } from './TimelineEventModal'
+import { TimelineCalendarSettingsModal } from './TimelineCalendarSettingsModal'
+
+export type TimelineViewMode = 'line' | 'calendar' | 'chronicle'
 
 export const TimelineView: React.FC = () => {
   const { 
-    timelines, entities, activeWorldId, setSelectedEntityId, setActiveTab, openTab,
-    createTimelineEvent, updateTimelineEvent, deleteTimelineEvent 
+    timelines, activeWorldId, getCalendarConfig,
+    deleteTimelineEvent 
   } = useWorldStore()
 
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [newTitle, setNewTitle] = useState('')
-  const [newEra, setNewEra] = useState('Age of Concord')
-  const [newYear, setNewYear] = useState<number>(850)
-  const [newDesc, setNewDesc] = useState('')
-  const [newImportance, setNewImportance] = useState<TimelineEvent['importance']>('major')
-  const [selectedEntityIds, setSelectedEntityIds] = useState<string[]>([])
-
-  // Edit Event State
-  const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null)
-  const [editTitle, setEditTitle] = useState('')
-  const [editEra, setEditEra] = useState('')
-  const [editYear, setEditYear] = useState<number>(0)
-  const [editDesc, setEditDesc] = useState('')
-  const [editImportance, setEditImportance] = useState<TimelineEvent['importance']>('major')
-  const [editEntityIds, setEditEntityIds] = useState<string[]>([])
+  const calendarConfig = useMemo(() => {
+    return getCalendarConfig(activeWorldId || undefined)
+  }, [getCalendarConfig, activeWorldId])
 
   const worldEvents = activeWorldId ? timelines[activeWorldId] || [] : []
-  const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
 
-  // Group events by era
-  const eras = Array.from(new Set(worldEvents.map((e) => e.era || 'Universal Era')))
+  // Active View Mode
+  const [viewMode, setViewMode] = useState<TimelineViewMode>('line')
 
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newTitle.trim()) return
+  // Modals State
+  const [showEventModal, setShowEventModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null)
+  const [initialDateForModal, setInitialDateForModal] = useState<{
+    year?: number
+    month?: number
+    day?: number
+    isPeriod?: boolean
+    endYear?: number
+    era?: string
+  } | null>(null)
 
-    createTimelineEvent({
-      era: newEra.trim(),
-      year: Number(newYear),
-      title: newTitle.trim(),
-      description: newDesc.trim(),
-      importance: newImportance,
-      entityIds: selectedEntityIds
+  // Top Filters
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterType, setFilterType] = useState<'all' | 'events' | 'periods'>('all')
+  const [filterEra, setFilterEra] = useState<string>('all')
+  const [filterImportance, setFilterImportance] = useState<string>('all')
+
+  // Eras list
+  const existingEras = useMemo(() => {
+    return Array.from(new Set(worldEvents.map(e => e.era || 'Universal Era'))).filter(Boolean)
+  }, [worldEvents])
+
+  // Filtered events
+  const filteredEvents = useMemo(() => {
+    return worldEvents.filter((evt) => {
+      // Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase()
+        const matchesTitle = evt.title.toLowerCase().includes(q)
+        const matchesDesc = (evt.description || '').toLowerCase().includes(q)
+        const matchesEra = (evt.era || '').toLowerCase().includes(q)
+        if (!matchesTitle && !matchesDesc && !matchesEra) return false
+      }
+
+      // Type filter (single event vs period)
+      if (filterType === 'events' && evt.isPeriod) return false
+      if (filterType === 'periods' && !evt.isPeriod) return false
+
+      // Era filter
+      if (filterEra !== 'all' && (evt.era || 'Universal Era') !== filterEra) return false
+
+      // Importance filter
+      if (filterImportance !== 'all' && evt.importance !== filterImportance) return false
+
+      return true
     })
+  }, [worldEvents, searchQuery, filterType, filterEra, filterImportance])
 
-    setShowAddModal(false)
-    setNewTitle('')
-    setNewDesc('')
-    setSelectedEntityIds([])
-  }
-
-  const openEditModal = (evt: TimelineEvent) => {
-    setEditingEvent(evt)
-    setEditTitle(evt.title)
-    setEditEra(evt.era || 'Universal Era')
-    setEditYear(evt.year)
-    setEditDesc(evt.description)
-    setEditImportance(evt.importance)
-    setEditEntityIds([...evt.entityIds])
-  }
-
-  const handleUpdate = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingEvent || !editTitle.trim()) return
-
-    updateTimelineEvent(editingEvent.id, {
-      era: editEra.trim(),
-      year: Number(editYear),
-      title: editTitle.trim(),
-      description: editDesc.trim(),
-      importance: editImportance,
-      entityIds: editEntityIds
-    })
-
+  // Handlers for in-situ creation
+  const handleAddAtYear = (year: number, isPeriod = false, endYear?: number, era?: string) => {
     setEditingEvent(null)
+    setInitialDateForModal({
+      year,
+      isPeriod,
+      endYear: endYear ?? (isPeriod ? year + 10 : undefined),
+      era
+    })
+    setShowEventModal(true)
   }
 
-  const toggleEntityLink = (entId: string) => {
-    if (selectedEntityIds.includes(entId)) {
-      setSelectedEntityIds(selectedEntityIds.filter(id => id !== entId))
-    } else {
-      setSelectedEntityIds([...selectedEntityIds, entId])
-    }
+  const handleAddAtDate = (year: number, month: number, day: number) => {
+    setEditingEvent(null)
+    setInitialDateForModal({
+      year,
+      month,
+      day,
+      isPeriod: false
+    })
+    setShowEventModal(true)
   }
 
-  const toggleEditEntityLink = (entId: string) => {
-    if (editEntityIds.includes(entId)) {
-      setEditEntityIds(editEntityIds.filter(id => id !== entId))
-    } else {
-      setEditEntityIds([...editEntityIds, entId])
-    }
+  const handleEditEvent = (evt: TimelineEvent) => {
+    setEditingEvent(evt)
+    setInitialDateForModal(null)
+    setShowEventModal(true)
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-oros-950 p-4 sm:p-6 select-text">
-      {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-6 border-b border-oros-800 shrink-0">
-        <div>
-          <h2 className="font-serif text-lg font-bold text-oros-100 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-oros-400" />
-            Timeline
-          </h2>
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-oros-950 relative select-text">
+      {/* Top Filter & Query Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-2.5 border-b border-oros-800 bg-oros-900/80 backdrop-blur-sm shrink-0 z-20">
+        {/* Title & Stats */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-accent" />
+            <h2 className="font-sans font-bold text-sm tracking-wide text-oros-100">
+              World Chronology
+            </h2>
+          </div>
+
+          <span className="font-mono text-[10px] text-oros-400 px-2 py-0.5 rounded-[2px] bg-oros-850 border border-oros-750">
+            {filteredEvents.length} {filteredEvents.length === 1 ? 'record' : 'records'}
+          </span>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="btn-accent px-2.5 sm:px-3 py-1.5 rounded-[3px] font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors shrink-0 whitespace-nowrap"
-        >
-          <Plus className="w-3.5 h-3.5 shrink-0" />
-          <span>Add Event</span>
-        </button>
+        {/* Filter Controls */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-oros-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search historical lore..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-oros-850 border border-oros-750 rounded-[3px] pl-8 pr-3 py-1 text-xs text-oros-100 placeholder-oros-500 focus:border-accent focus:outline-none w-44 sm:w-56"
+            />
+          </div>
+
+          {/* Type Segmented Filter (All | Events | Periods) */}
+          <div className="flex items-center gap-0.5 p-0.5 bg-oros-850 border border-oros-750 rounded-[3px]">
+            <button
+              onClick={() => setFilterType('all')}
+              className={`px-2 py-0.5 rounded-[2px] text-[11px] font-semibold transition-colors ${
+                filterType === 'all' 
+                  ? 'bg-oros-800 text-oros-100 shadow-sm' 
+                  : 'text-oros-400 hover:text-oros-200'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilterType('events')}
+              className={`px-2 py-0.5 rounded-[2px] text-[11px] font-semibold transition-colors ${
+                filterType === 'events' 
+                  ? 'bg-oros-800 text-oros-100 shadow-sm' 
+                  : 'text-oros-400 hover:text-oros-200'
+              }`}
+            >
+              Events
+            </button>
+            <button
+              onClick={() => setFilterType('periods')}
+              className={`px-2 py-0.5 rounded-[2px] text-[11px] font-semibold transition-colors ${
+                filterType === 'periods' 
+                  ? 'bg-oros-800 text-oros-100 shadow-sm' 
+                  : 'text-oros-400 hover:text-oros-200'
+              }`}
+            >
+              Periods
+            </button>
+          </div>
+
+          {/* Era Filter Dropdown */}
+          {existingEras.length > 1 && (
+            <select
+              value={filterEra}
+              onChange={(e) => setFilterEra(e.target.value)}
+              className="bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-200 focus:border-accent focus:outline-none"
+            >
+              <option value="all">All Eras</option>
+              {existingEras.map((er) => (
+                <option key={er} value={er}>{er}</option>
+              ))}
+            </select>
+          )}
+
+          {/* Importance Filter */}
+          <select
+            value={filterImportance}
+            onChange={(e) => setFilterImportance(e.target.value)}
+            className="bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-200 focus:border-accent focus:outline-none"
+          >
+            <option value="all">All Importance</option>
+            <option value="mythic">Mythic</option>
+            <option value="major">Major</option>
+            <option value="minor">Minor</option>
+          </select>
+        </div>
       </div>
 
-      {/* Main Timeline Stream */}
-      <div className="flex-1 overflow-y-auto pr-4 space-y-8">
-        {eras.map((era) => {
-          const eraEvents = worldEvents
-            .filter((e) => (e.era || 'Universal Era') === era)
-            .sort((a, b) => (a.year || 0) - (b.year || 0))
-          return (
-            <div key={era} className="relative">
-              {/* Era Header Banner */}
-              <div className="sticky top-0 z-10 py-1 px-2.5 rounded-[3px] bg-oros-900 border border-oros-750 mb-4 inline-flex items-center gap-2 shadow-sm">
-                <Bookmark className="w-3 h-3 text-oros-400" />
-                <span className="font-sans font-semibold text-xs uppercase tracking-wider text-oros-200">
-                  {era}
-                </span>
-                <span className="text-[10px] text-oros-400 font-mono">
-                  ({eraEvents.length} events)
-                </span>
-              </div>
+      {/* Main View Area */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {viewMode === 'line' && (
+          <TimelineLineView
+            events={filteredEvents}
+            calendarConfig={calendarConfig}
+            onAddAtYear={handleAddAtYear}
+            onEditEvent={handleEditEvent}
+            onDeleteEvent={deleteTimelineEvent}
+          />
+        )}
 
-              {/* Vertical Spine */}
-              <div className="relative pl-6 ml-3 border-l border-oros-800 space-y-5">
-                {eraEvents.map((evt) => {
-                  let badgeColor = 'bg-oros-850 text-oros-300 border-oros-700'
-                  if (evt.importance === 'mythic') {
-                    badgeColor = 'bg-accent-muted text-accent border border-accent/40 font-semibold'
-                  } else if (evt.importance === 'minor') {
-                    badgeColor = 'bg-oros-950 text-oros-400 border-oros-800'
-                  }
+        {viewMode === 'calendar' && (
+          <TimelineCalendarView
+            events={filteredEvents}
+            calendarConfig={calendarConfig}
+            onAddAtDate={handleAddAtDate}
+            onEditEvent={handleEditEvent}
+            onDeleteEvent={deleteTimelineEvent}
+          />
+        )}
 
-                  return (
-                    <div key={evt.id} className="relative group">
-                      {/* Timeline Dot Node */}
-                      <div className="absolute -left-[30px] top-2.5 w-2.5 h-2.5 rounded-[1px] bg-oros-950 border border-oros-600 group-hover:border-accent group-hover:bg-accent transition-colors shadow-sm" />
-
-                      {/* Event Card */}
-                      <div className="bg-oros-900 border border-oros-750 hover:border-oros-600 rounded-[3px] p-3.5 transition-colors">
-                        <div className="flex flex-wrap sm:flex-nowrap items-start justify-between gap-2 sm:gap-4 mb-2">
-                          <div className="flex flex-wrap items-center gap-2 min-w-0">
-                            <span className="font-mono text-[11px] text-oros-300 px-1.5 py-0.5 rounded-[2px] bg-oros-950 border border-oros-750 tracking-wide shrink-0">
-                              Year {evt.year} AC
-                            </span>
-                            <h3 className="font-sans font-semibold text-sm text-oros-100 break-words">
-                              {evt.title}
-                            </h3>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0 self-start">
-                            <span className={`text-[10px] uppercase font-mono px-1.5 py-0.5 rounded-[2px] border ${badgeColor}`}>
-                              {evt.importance}
-                            </span>
-                            <button
-                              onClick={() => openEditModal(evt)}
-                              className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 opacity-0 group-hover:opacity-100 transition-all"
-                              title="Edit event"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => deleteTimelineEvent(evt.id)}
-                              className="p-1 rounded-[2px] text-oros-500 hover:text-rose-400 hover:bg-rose-950/30 opacity-0 group-hover:opacity-100 transition-all"
-                              title="Delete event"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <p className="text-xs text-oros-300 leading-relaxed mb-3">
-                          {evt.description}
-                        </p>
-
-                        {/* Linked Entities */}
-                        {evt.entityIds.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-oros-800">
-                            <span className="text-[10px] text-oros-400 font-mono tracking-wider uppercase mr-1">Involved:</span>
-                            {evt.entityIds.map((entId) => {
-                              const ent = worldEntities.find(e => e.id === entId)
-                              if (!ent) return null
-                              return (
-                                <button
-                                  key={entId}
-                                  onClick={() => {
-                                    setSelectedEntityId(entId)
-                                    openTab({
-                                      title: ent.title,
-                                      type: 'wiki',
-                                      targetId: entId
-                                    })
-                                  }}
-                                  className="text-[11px] px-2 py-0.5 rounded-[2px] bg-oros-950 hover:bg-oros-800 text-oros-200 hover:text-oros-100 border border-oros-750 flex items-center gap-1 transition-colors"
-                                >
-                                  <span>{ent.title}</span>
-                                  <ExternalLink className="w-2.5 h-2.5 opacity-60" />
-                                </button>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })}
-
-        {worldEvents.length === 0 && (
-          <div className="h-64 flex flex-col items-center justify-center text-center text-oros-500">
-            <Clock className="w-8 h-8 mb-2 opacity-40" />
-            <p className="text-xs">No events recorded yet.</p>
-          </div>
+        {viewMode === 'chronicle' && (
+          <TimelineChronicleView
+            events={filteredEvents}
+            calendarConfig={calendarConfig}
+            onAddAtYear={handleAddAtYear}
+            onEditEvent={handleEditEvent}
+            onDeleteEvent={deleteTimelineEvent}
+          />
         )}
       </div>
 
-      {/* Record Event Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-lg rounded-[4px] p-5 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 mb-3">
-              Add Event
-            </h3>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-oros-300 mb-1">Era</label>
-                  <input
-                    type="text"
-                    required
-                    value={newEra}
-                    onChange={(e) => setNewEra(e.target.value)}
-                    placeholder="Era name..."
-                    className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-oros-300 mb-1">Year</label>
-                  <input
-                    type="number"
-                    required
-                    value={newYear}
-                    onChange={(e) => setNewYear(Number(e.target.value))}
-                    className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
-                  />
-                </div>
-              </div>
+      {/* ======================================================== */}
+      {/* FLOATING BOTTOM INSTRUMENT DOCK */}
+      {/* (Matches user reference image specifications) */}
+      {/* ======================================================== */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 p-1 bg-oros-900/95 backdrop-blur-md border border-oros-750/90 shadow-2xl rounded-[4px]">
+        {/* View Mode Switcher */}
+        <div className="flex items-center gap-0.5 p-0.5 bg-oros-850/90 border border-oros-750 rounded-[3px]">
+          <button
+            onClick={() => setViewMode('line')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-[2px] text-xs font-semibold transition-all ${
+              viewMode === 'line'
+                ? 'bg-oros-800 text-oros-50 border border-oros-700/80 shadow-sm'
+                : 'text-oros-400 hover:text-oros-200'
+            }`}
+            title="Interactive Line View (Continuous Timeline Axis)"
+          >
+            <Activity className="w-3.5 h-3.5 text-accent" />
+            <span>Line</span>
+          </button>
 
-              <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1">Event Title</label>
-                <input
-                  type="text"
-                  required
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Event title..."
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
-                />
-              </div>
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-[2px] text-xs font-semibold transition-all ${
+              viewMode === 'calendar'
+                ? 'bg-oros-800 text-oros-50 border border-oros-700/80 shadow-sm'
+                : 'text-oros-400 hover:text-oros-200'
+            }`}
+            title="World Almanac Calendar View"
+          >
+            <Calendar className="w-3.5 h-3.5 text-sky-400" />
+            <span>Calendar</span>
+          </button>
 
-              <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1">Significance</label>
-                <select
-                  value={newImportance}
-                  onChange={(e) => setNewImportance(e.target.value as any)}
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
-                >
-                  <option value="mythic">Mythic</option>
-                  <option value="major">Major</option>
-                  <option value="minor">Minor</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1">Description</label>
-                <textarea
-                  rows={3}
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                  placeholder="Event description..."
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 resize-none font-sans"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1">Involved Entities</label>
-                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto p-1.5 bg-oros-950 border border-oros-750 rounded-[3px]">
-                  {worldEntities.map((ent) => {
-                    const isSelected = selectedEntityIds.includes(ent.id)
-                    return (
-                      <button
-                        type="button"
-                        key={ent.id}
-                        onClick={() => toggleEntityLink(ent.id)}
-                        className={`text-[10px] px-2 py-0.5 rounded-[2px] transition-colors ${
-                          isSelected
-                            ? 'bg-oros-800 border border-oros-500 text-oros-100 font-medium'
-                            : 'bg-oros-900 border border-transparent text-oros-400 hover:text-oros-200'
-                        }`}
-                      >
-                        {ent.title}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-oros-800">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-3 py-1.5 rounded-[3px] text-xs text-oros-300 hover:bg-oros-800 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
-                >
-                  Add Event
-                </button>
-              </div>
-            </form>
-          </div>
+          <button
+            onClick={() => setViewMode('chronicle')}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-[2px] text-xs font-semibold transition-all ${
+              viewMode === 'chronicle'
+                ? 'bg-oros-800 text-oros-50 border border-oros-700/80 shadow-sm'
+                : 'text-oros-400 hover:text-oros-200'
+            }`}
+            title="Narrative Chronicle Stream View"
+          >
+            <List className="w-3.5 h-3.5 text-amber-400" />
+            <span>Chronicle</span>
+          </button>
         </div>
-      )}
 
-      {/* Edit Event Modal */}
-      {editingEvent && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-lg rounded-[4px] p-5 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 mb-3">
-              Edit Event
-            </h3>
-            <form onSubmit={handleUpdate} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-oros-300 mb-1">Era</label>
-                  <input
-                    type="text"
-                    required
-                    value={editEra}
-                    onChange={(e) => setEditEra(e.target.value)}
-                    placeholder="Era name..."
-                    className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-oros-300 mb-1">Year</label>
-                  <input
-                    type="number"
-                    required
-                    value={editYear}
-                    onChange={(e) => setEditYear(Number(e.target.value))}
-                    className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
-                  />
-                </div>
-              </div>
+        {/* Calendar Settings Cog Button */}
+        <button
+          onClick={() => setShowSettingsModal(true)}
+          className="p-1.5 rounded-[3px] bg-oros-850 hover:bg-oros-800 border border-oros-750 text-oros-300 hover:text-oros-100 transition-colors"
+          title="World Chronology & Calendar Settings"
+        >
+          <Settings className="w-3.5 h-3.5" />
+        </button>
 
-              <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1">Event Title</label>
-                <input
-                  type="text"
-                  required
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  placeholder="Event title..."
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
-                />
-              </div>
+        {/* Primary Action Button (Add Event / Period) */}
+        <button
+          onClick={() => {
+            setEditingEvent(null)
+            setInitialDateForModal(null)
+            setShowEventModal(true)
+          }}
+          className="btn-accent px-3 py-1 rounded-[3px] text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>Add to Timeline</span>
+        </button>
+      </div>
 
-              <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1">Significance</label>
-                <select
-                  value={editImportance}
-                  onChange={(e) => setEditImportance(e.target.value as any)}
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
-                >
-                  <option value="mythic">Mythic</option>
-                  <option value="major">Major</option>
-                  <option value="minor">Minor</option>
-                </select>
-              </div>
+      {/* Modals */}
+      <TimelineEventModal
+        isOpen={showEventModal}
+        onClose={() => setShowEventModal(false)}
+        eventToEdit={editingEvent}
+        initialDate={initialDateForModal}
+      />
 
-              <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1">Description</label>
-                <textarea
-                  rows={3}
-                  value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                  placeholder="Event description..."
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 resize-none font-sans"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1">Involved Entities</label>
-                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto p-1.5 bg-oros-950 border border-oros-750 rounded-[3px]">
-                  {worldEntities.map((ent) => {
-                    const isSelected = editEntityIds.includes(ent.id)
-                    return (
-                      <button
-                        type="button"
-                        key={ent.id}
-                        onClick={() => toggleEditEntityLink(ent.id)}
-                        className={`text-[10px] px-2 py-0.5 rounded-[2px] transition-colors ${
-                          isSelected
-                            ? 'bg-oros-800 border border-oros-500 text-oros-100 font-medium'
-                            : 'bg-oros-900 border border-transparent text-oros-400 hover:text-oros-200'
-                        }`}
-                      >
-                        {ent.title}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-oros-800">
-                <button
-                  type="button"
-                  onClick={() => setEditingEvent(null)}
-                  className="px-3 py-1.5 rounded-[3px] text-xs text-oros-300 hover:bg-oros-800 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <TimelineCalendarSettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+      />
     </div>
   )
 }

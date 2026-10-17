@@ -103,17 +103,47 @@ export interface RelationEdge {
   isDashed?: boolean;
 }
 
+export type TimelinePeriodType = 'war' | 'reign' | 'epoch' | 'crisis' | 'dynasty' | 'cultural' | 'custom';
+export type TimelineCategory = 'political' | 'war' | 'astronomical' | 'birth-death' | 'discovery' | 'arcane' | 'cultural';
+
 export interface TimelineEvent {
   id: string;
   worldId: string;
   era: string;
+  isPeriod?: boolean;
+  periodType?: TimelinePeriodType;
   year: number;
   month?: number;
   day?: number;
+  hour?: number;
+  endYear?: number;
+  endMonth?: number;
+  endDay?: number;
+  endHour?: number;
+  category?: TimelineCategory;
+  importance: 'mythic' | 'major' | 'minor';
   title: string;
   description: string;
-  importance: 'mythic' | 'major' | 'minor';
   entityIds: string[];
+  color?: string;
+}
+
+export interface WorldCalendarMonth {
+  id: string;
+  name: string;
+  days: number;
+  season?: string;
+}
+
+export interface WorldCalendarConfig {
+  worldId?: string;
+  firstYear: number;
+  lastYear: number;
+  yearPrefix?: string;
+  yearSuffix?: string;
+  hoursInDay: number;
+  daysOfWeek: string[];
+  months: WorldCalendarMonth[];
 }
 
 export interface ManuscriptChapter {
@@ -134,6 +164,7 @@ export interface World {
   genre: string;
   theme?: 'sovereign' | 'mythic' | 'cyber' | 'crimson' | 'hazard' | 'emerald' | 'custom';
   customAccentColor?: string;
+  calendarConfig?: WorldCalendarConfig;
   bannerUrl?: string;
   createdAt: string;
   updatedAt: string;
@@ -148,6 +179,7 @@ export interface StorageData {
   relations: Record<string, RelationEdge[]>; // key: worldId
   timelines: Record<string, TimelineEvent[]>; // key: worldId
   manuscripts: Record<string, ManuscriptChapter[]>; // key: worldId
+  calendars?: Record<string, WorldCalendarConfig>; // key: worldId
   folders?: Record<string, DirectoryFolder[]>; // key: worldId
   directoryItems?: Record<string, DirectoryItem[]>; // key: worldId
   canvases?: Record<string, WhiteboardCanvasData[]>; // key: worldId

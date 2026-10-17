@@ -1,4 +1,11 @@
-import { WorldCalendarConfig, TimelineEvent } from '@shared/types'
+import { 
+  WorldCalendarConfig, 
+  TimelineEvent, 
+  WorldEraDefinition, 
+  TimelineCategoryDefinition, 
+  TimelinePeriodClassification, 
+  CalendarPreset 
+} from '@shared/types'
 
 export const DEFAULT_FANTASY_CALENDAR_CONFIG: WorldCalendarConfig = {
   firstYear: 400,
@@ -20,6 +27,11 @@ export const DEFAULT_FANTASY_CALENDAR_CONFIG: WorldCalendarConfig = {
     { id: 'm-10', name: 'Mistveil', days: 30, season: 'Autumn' },
     { id: 'm-11', name: 'Gloomfrost', days: 30, season: 'Autumn' },
     { id: 'm-12', name: 'Starveil', days: 30, season: 'Winter' }
+  ],
+  eras: [
+    { id: 'era-1', name: 'Dawn Epoch', startYear: 400, endYear: 650, color: '#6366f1' },
+    { id: 'era-2', name: 'Age of Concord', startYear: 651, endYear: 950, color: '#eab308' },
+    { id: 'era-3', name: 'Twilight Realm', startYear: 951, endYear: 1200, color: '#f97316' }
   ]
 }
 
@@ -43,6 +55,11 @@ export const GREGORIAN_CALENDAR_CONFIG: WorldCalendarConfig = {
     { id: 'g-10', name: 'October', days: 31, season: 'Autumn' },
     { id: 'g-11', name: 'November', days: 30, season: 'Autumn' },
     { id: 'g-12', name: 'December', days: 31, season: 'Winter' }
+  ],
+  eras: [
+    { id: 'era-g1', name: 'Early Modern', startYear: 1500, endYear: 1788, color: '#8b5cf6' },
+    { id: 'era-g2', name: 'Industrial Age', startYear: 1789, endYear: 1945, color: '#0ea5e9' },
+    { id: 'era-g3', name: 'Information Age', startYear: 1946, endYear: 2050, color: '#10b981' }
   ]
 }
 
@@ -60,7 +77,101 @@ export const SCIFI_SOL_CALENDAR_CONFIG: WorldCalendarConfig = {
     { id: 's-4', name: 'Aphelion', days: 36, season: 'Cold' },
     { id: 's-5', name: 'Cryostasis', days: 36, season: 'Cold' },
     { id: 's-6', name: 'Equinox Beta', days: 36, season: 'Temperate' }
+  ],
+  eras: [
+    { id: 'era-s1', name: 'First Expansion', startYear: 2100, endYear: 2450, color: '#38bdf8' },
+    { id: 'era-s2', name: 'Interstellar Union', startYear: 2451, endYear: 2900, color: '#a855f7' },
+    { id: 'era-s3', name: 'Dark Nebula', startYear: 2901, endYear: 3200, color: '#ef4444' }
   ]
+}
+
+export const DEFAULT_TIMELINE_CATEGORIES: TimelineCategoryDefinition[] = [
+  { id: 'political', name: 'Political & Governance', color: '#3b82f6', icon: 'Landmark' },
+  { id: 'war', name: 'Military & War', color: '#ef4444', icon: 'Swords' },
+  { id: 'astronomical', name: 'Astronomical & Celestial', color: '#8b5cf6', icon: 'Sparkles' },
+  { id: 'birth-death', name: 'Birth & Mortality', color: '#10b981', icon: 'Users' },
+  { id: 'discovery', name: 'Scientific / Discovery', color: '#06b6d4', icon: 'Compass' },
+  { id: 'arcane', name: 'Arcane & Magical', color: '#d946ef', icon: 'Zap' },
+  { id: 'cultural', name: 'Cultural & Societal', color: '#f59e0b', icon: 'Crown' }
+]
+
+export const DEFAULT_PERIOD_CLASSIFICATIONS: TimelinePeriodClassification[] = [
+  { id: 'war', name: 'War & Conflict', color: '#f87171', icon: 'Swords' },
+  { id: 'reign', name: 'Reign & Rule', color: '#facc15', icon: 'Crown' },
+  { id: 'epoch', name: 'Epoch / Era', color: '#818cf8', icon: 'Hourglass' },
+  { id: 'crisis', name: 'Crisis / Plague', color: '#fb923c', icon: 'Flame' },
+  { id: 'dynasty', name: 'Dynasty / Age', color: '#a78bfa', icon: 'Shield' },
+  { id: 'cultural', name: 'Cultural Renaissance', color: '#34d399', icon: 'Sparkles' },
+  { id: 'custom', name: 'Period Span', color: '#38bdf8', icon: 'Clock' }
+]
+
+export function findEraForYear(year: number, eras?: WorldEraDefinition[]): WorldEraDefinition | undefined {
+  if (!eras || eras.length === 0) return undefined
+  return eras.find(e => year >= e.startYear && year <= e.endYear)
+}
+
+export const BUILT_IN_PRESETS: CalendarPreset[] = [
+  {
+    id: 'preset-fantasy',
+    name: 'High Fantasy (Ages)',
+    description: '12 months x 30 days, 4 seasons, Dawn / Concord / Twilight eras',
+    isBuiltIn: true,
+    config: DEFAULT_FANTASY_CALENDAR_CONFIG
+  },
+  {
+    id: 'preset-gregorian',
+    name: 'Earth Gregorian',
+    description: '12 standard solar months, 24-hr day, CE notation',
+    isBuiltIn: true,
+    config: GREGORIAN_CALENDAR_CONFIG
+  },
+  {
+    id: 'preset-scifi',
+    name: 'Sci-Fi Sol Orbit',
+    description: '6 orbital periods x 36 days, 28h day, Sol Epoch notation',
+    isBuiltIn: true,
+    config: SCIFI_SOL_CALENDAR_CONFIG
+  }
+]
+
+const CUSTOM_PRESETS_STORAGE_KEY = 'oros_custom_calendar_presets'
+
+export function getAllCalendarPresets(): CalendarPreset[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_PRESETS_STORAGE_KEY)
+    const custom: CalendarPreset[] = raw ? JSON.parse(raw) : []
+    return [...BUILT_IN_PRESETS, ...custom]
+  } catch (err) {
+    console.error('Failed to load custom presets', err)
+    return BUILT_IN_PRESETS
+  }
+}
+
+export function saveCalendarPreset(preset: CalendarPreset): void {
+  try {
+    const raw = localStorage.getItem(CUSTOM_PRESETS_STORAGE_KEY)
+    let custom: CalendarPreset[] = raw ? JSON.parse(raw) : []
+    const existingIndex = custom.findIndex(p => p.id === preset.id)
+    if (existingIndex >= 0) {
+      custom[existingIndex] = preset
+    } else {
+      custom.push(preset)
+    }
+    localStorage.setItem(CUSTOM_PRESETS_STORAGE_KEY, JSON.stringify(custom))
+  } catch (err) {
+    console.error('Failed to save preset', err)
+  }
+}
+
+export function deleteCalendarPreset(presetId: string): void {
+  try {
+    const raw = localStorage.getItem(CUSTOM_PRESETS_STORAGE_KEY)
+    let custom: CalendarPreset[] = raw ? JSON.parse(raw) : []
+    custom = custom.filter(p => p.id !== presetId)
+    localStorage.setItem(CUSTOM_PRESETS_STORAGE_KEY, JSON.stringify(custom))
+  } catch (err) {
+    console.error('Failed to delete preset', err)
+  }
 }
 
 export function formatYear(year: number, config: WorldCalendarConfig): string {
@@ -173,4 +284,41 @@ export const PERIOD_TYPE_CONFIG: Record<string, { label: string; icon: string; c
   dynasty: { label: 'Dynasty / Age', icon: 'Shield', color: '#a78bfa', border: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.12)' },
   cultural: { label: 'Cultural Renaissance', icon: 'Sparkles', color: '#34d399', border: '#10b981', bg: 'rgba(16, 185, 129, 0.12)' },
   custom: { label: 'Period Span', icon: 'Clock', color: '#38bdf8', border: '#0ea5e9', bg: 'rgba(14, 165, 233, 0.12)' }
+}
+
+export function getPeriodTypeConfig(typeId: string, customTypes?: TimelinePeriodClassification[]) {
+  if (customTypes) {
+    const custom = customTypes.find(c => c.id === typeId)
+    if (custom) {
+      return {
+        label: custom.name,
+        icon: custom.icon || 'Clock',
+        color: custom.color,
+        border: custom.color,
+        bg: `${custom.color}1f`
+      }
+    }
+  }
+  return PERIOD_TYPE_CONFIG[typeId] || {
+    label: typeId,
+    icon: 'Clock',
+    color: '#38bdf8',
+    border: '#0ea5e9',
+    bg: 'rgba(14, 165, 233, 0.12)'
+  }
+}
+
+export function getCategoryConfig(categoryId: string, customCategories?: TimelineCategoryDefinition[]) {
+  if (customCategories) {
+    const custom = customCategories.find(c => c.id === categoryId)
+    if (custom) return custom
+  }
+  const def = DEFAULT_TIMELINE_CATEGORIES.find(c => c.id === categoryId)
+  if (def) return def
+  return {
+    id: categoryId,
+    name: categoryId,
+    color: '#64748b',
+    icon: 'Bookmark'
+  }
 }

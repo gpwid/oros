@@ -6,7 +6,11 @@ import {
   WhiteboardCanvasData, CanvasStroke, EntityCategory, WorldCalendarConfig
 } from '@shared/types'
 import { DEFAULT_PRESET_CATEGORIES } from '../utils/categoryIcons'
-import { DEFAULT_FANTASY_CALENDAR_CONFIG } from '../utils/calendarDefaults'
+import { 
+  DEFAULT_FANTASY_CALENDAR_CONFIG,
+  DEFAULT_TIMELINE_CATEGORIES,
+  DEFAULT_PERIOD_CLASSIFICATIONS
+} from '../utils/calendarDefaults'
 import { 
   sampleWorld, sampleEntities, sampleMap, sampleRelations, 
   sampleTimelines, sampleManuscript,
@@ -1295,9 +1299,15 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const s = get();
     const id = worldId || s.activeWorldId || sampleWorld.id;
     const world = s.worlds.find((w) => w.id === id);
-    if (world?.calendarConfig) return world.calendarConfig;
-    if (s.calendars?.[id]) return s.calendars[id];
-    return { ...DEFAULT_FANTASY_CALENDAR_CONFIG, worldId: id };
+    const base = world?.calendarConfig || s.calendars?.[id] || DEFAULT_FANTASY_CALENDAR_CONFIG;
+    return {
+      ...DEFAULT_FANTASY_CALENDAR_CONFIG,
+      ...base,
+      eras: base.eras && base.eras.length > 0 ? base.eras : (DEFAULT_FANTASY_CALENDAR_CONFIG.eras || []),
+      customCategories: base.customCategories && base.customCategories.length > 0 ? base.customCategories : DEFAULT_TIMELINE_CATEGORIES,
+      customPeriodTypes: base.customPeriodTypes && base.customPeriodTypes.length > 0 ? base.customPeriodTypes : DEFAULT_PERIOD_CLASSIFICATIONS,
+      worldId: id
+    };
   },
 
   updateCalendarConfig: (worldId, updates) => {

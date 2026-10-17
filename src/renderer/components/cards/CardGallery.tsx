@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
 import { EntityType, LoreEntity } from '@shared/types'
 import { 
-  Plus, Search, Tag, ExternalLink, Filter, Layers, SlidersHorizontal
+  Plus, Search, Tag, ExternalLink, Filter, Layers, SlidersHorizontal, X
 } from 'lucide-react'
 import { 
   DEFAULT_PRESET_CATEGORIES, 
@@ -250,31 +250,41 @@ export const CardGallery: React.FC = () => {
 
       {/* Modal for Creating Card */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] p-5 shadow-2xl">
-            <h3 className="font-sans text-sm font-semibold text-oros-100 mb-3 tracking-tight">
-              New Card
-            </h3>
-            <form onSubmit={handleCreate} className="space-y-3.5">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-100">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-[4px] shadow-2xl flex flex-col max-h-[320px] overflow-hidden select-text text-oros-100">
+            {/* Header */}
+            <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
+              <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100">
+                New Card
+              </h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <form id="create-card-form" onSubmit={handleCreate} className="p-3.5 space-y-2.5 overflow-y-auto flex-1">
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-medium text-oros-300">Category / Label</label>
+                <div className="flex items-center justify-between mb-0.5">
+                  <label className="text-[10px] font-mono uppercase font-semibold text-oros-400">Category / Label</label>
                   <button
                     type="button"
                     onClick={() => {
                       setShowCreateModal(false)
                       setShowCategoryManager(true)
                     }}
-                    className="text-[11px] text-oros-400 hover:text-oros-200 font-medium flex items-center gap-1"
+                    className="text-[10px] text-accent hover:underline flex items-center gap-0.5"
                   >
-                    <Tag className="w-3 h-3" />
-                    <span>Manage Labels</span>
+                    <Tag className="w-2.5 h-2.5" />
+                    <span>Manage</span>
                   </button>
                 </div>
                 <select
                   value={newType}
                   onChange={(e) => setNewType(e.target.value)}
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500"
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
                 >
                   {worldCategories.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -283,33 +293,38 @@ export const CardGallery: React.FC = () => {
                   ))}
                 </select>
               </div>
+
               <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1">Title</label>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Card Title *</label>
                 <input
                   type="text"
                   required
+                  autoFocus
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Card title..."
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 placeholder-oros-600"
+                  placeholder="e.g. Lord Commander Vael"
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-oros-800">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-3 py-1.5 rounded-[3px] text-xs text-oros-400 hover:text-oros-200 hover:bg-oros-800 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold transition-colors shadow-sm"
-                >
-                  Create Card
-                </button>
-              </div>
             </form>
+
+            {/* Pinned Visible Footer */}
+            <div className="px-4 py-2 border-t border-oros-750 bg-oros-900 flex items-center justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="px-3 py-1 rounded-[3px] text-xs font-semibold text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="create-card-form"
+                className="btn-accent px-3.5 py-1 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
+              >
+                Create Card
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -10,7 +10,7 @@ import {
   formatTimelineDate, 
   formatPeriodDuration, 
   isEventInYearMonth,
-  PERIOD_TYPE_CONFIG 
+  getPeriodTypeConfig 
 } from '../../utils/calendarDefaults'
 
 interface TimelineCalendarViewProps {
@@ -182,7 +182,7 @@ export const TimelineCalendarView: React.FC<TimelineCalendarViewProps> = ({
         {activePeriodsThisMonth.length > 0 && (
           <div className="space-y-1.5 animate-in fade-in duration-150">
             {activePeriodsThisMonth.map((period) => {
-              const cfg = PERIOD_TYPE_CONFIG[period.periodType || 'custom'] || PERIOD_TYPE_CONFIG.custom
+              const cfg = getPeriodTypeConfig(period.periodType || 'custom', calendarConfig.customPeriodTypes)
               const duration = formatPeriodDuration(
                 period.year, 
                 period.endYear ?? period.year, 

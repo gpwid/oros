@@ -1261,20 +1261,32 @@ export const InteractiveMapViewer: React.FC = () => {
 
       {/* TERRITORY POLYGON CREATION / EDIT MODAL */}
       {isRegionModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-750 rounded-[4px] p-5 shadow-2xl max-w-md w-full">
-            <h3 className="font-sans text-sm font-semibold text-oros-100 mb-1 tracking-tight">
-              {editingRegionId ? 'Edit Territory' : 'Save Territory Region'}
-            </h3>
-            <p className="text-xs text-oros-400 mb-3.5 font-sans">
-              {editingRegionId 
-                ? 'Update boundary properties and card connections' 
-                : `Polygon closed with ${drawingPoints.length} vertices on ${currentMap?.name}`}
-            </p>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-100">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] shadow-2xl flex flex-col max-h-[460px] overflow-hidden select-text text-oros-100">
+            {/* Header */}
+            <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <Compass className="w-3.5 h-3.5 text-accent" />
+                <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100">
+                  {editingRegionId ? 'Edit Territory' : 'Save Territory Region'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsRegionModalOpen(false)}
+                className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
-            <form onSubmit={handleSaveRegion} className="space-y-3.5">
+            {/* Scrollable Form Body */}
+            <form id="region-form" onSubmit={handleSaveRegion} className="p-3.5 space-y-2.5 overflow-y-auto flex-1">
+              <div className="text-[11px] font-mono text-oros-400 bg-oros-850 px-2 py-1 rounded-[2px] border border-oros-750">
+                {editingRegionId ? 'Update boundary & properties' : `Closed polygon (${drawingPoints.length} vertices)`} on {currentMap?.name}
+              </div>
+
               <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1 font-sans">Territory Name</label>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Territory Name *</label>
                 <input
                   type="text"
                   required
@@ -1282,51 +1294,42 @@ export const InteractiveMapViewer: React.FC = () => {
                   value={regionForm.name}
                   onChange={(e) => setRegionForm({ ...regionForm, name: e.target.value })}
                   placeholder="e.g. Kingdom of the Sunken Reaches"
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
                 />
               </div>
 
               {/* Color Palette Picker */}
               <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1.5 font-sans">Territory Color</label>
-                <div className="flex flex-wrap gap-1.5 mb-2">
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">Color Tint</label>
+                <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
                   {PALETTE_COLORS.map((c) => (
                     <button
                       key={c.name}
                       type="button"
                       onClick={() => setRegionForm({ ...regionForm, color: c.hex })}
-                      className={`w-6 h-6 rounded-[2px] transition-all ${
+                      className={`w-5 h-5 rounded-[2px] transition-all ${
                         regionForm.color === c.hex 
-                          ? 'ring-2 ring-oros-100 ring-offset-1 ring-offset-oros-950' 
+                          ? 'ring-2 ring-oros-100' 
                           : 'opacity-80 hover:opacity-100'
                       }`}
                       style={{ backgroundColor: c.hex }}
                       title={c.name}
                     />
                   ))}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-oros-400 font-mono">Custom Hex:</span>
                   <input
                     type="color"
                     value={regionForm.color}
                     onChange={(e) => setRegionForm({ ...regionForm, color: e.target.value })}
-                    className="w-6 h-6 rounded-[2px] cursor-pointer bg-transparent border-0"
-                  />
-                  <input
-                    type="text"
-                    value={regionForm.color}
-                    onChange={(e) => setRegionForm({ ...regionForm, color: e.target.value })}
-                    className="w-24 bg-oros-950 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 font-mono"
+                    className="w-5 h-5 rounded-[2px] cursor-pointer bg-transparent border-0 p-0 ml-1"
                   />
                 </div>
               </div>
 
               {/* Opacity Slider */}
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-medium text-oros-300 font-sans">Fill Opacity</label>
-                  <span className="text-xs font-mono text-oros-300">{Math.round(regionForm.fillOpacity * 100)}%</span>
+                <div className="flex justify-between items-center mb-0.5">
+                  <label className="text-[10px] font-mono uppercase font-semibold text-oros-400">Fill Opacity</label>
+                  <span className="text-[10px] font-mono text-oros-300">{Math.round(regionForm.fillOpacity * 100)}%</span>
                 </div>
                 <input
                   type="range"
@@ -1335,27 +1338,27 @@ export const InteractiveMapViewer: React.FC = () => {
                   step="0.05"
                   value={regionForm.fillOpacity}
                   onChange={(e) => setRegionForm({ ...regionForm, fillOpacity: parseFloat(e.target.value) })}
-                  className="w-full cursor-pointer accent-oros-400"
+                  className="w-full cursor-pointer accent-accent h-1.5"
                 />
               </div>
 
               {/* Card Linkage */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-medium text-oros-300 font-sans">Link to Codex Card</label>
+                <div className="flex items-center justify-between mb-0.5">
+                  <label className="text-[10px] font-mono uppercase font-semibold text-oros-400">Link to Codex Card</label>
                   <button
                     type="button"
                     onClick={handleCreateLocationCardForRegion}
-                    className="text-[11px] text-oros-400 hover:text-oros-200 flex items-center gap-1 font-medium"
+                    className="text-[10px] text-accent hover:underline flex items-center gap-0.5"
                   >
-                    <Plus className="w-3 h-3" />
+                    <Plus className="w-2.5 h-2.5" />
                     <span>Create Location Card</span>
                   </button>
                 </div>
                 <select
                   value={regionForm.entityId}
                   onChange={(e) => setRegionForm({ ...regionForm, entityId: e.target.value })}
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
                 >
                   <option value="">No entity linked</option>
                   {worldEntities.map((ent) => (
@@ -1365,41 +1368,57 @@ export const InteractiveMapViewer: React.FC = () => {
                   ))}
                 </select>
               </div>
-
-              <div className="flex justify-end gap-2 pt-2.5 border-t border-oros-800">
-                <button
-                  type="button"
-                  onClick={() => setIsRegionModalOpen(false)}
-                  className="px-3 py-1.5 rounded-[3px] text-xs text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
-                >
-                  {editingRegionId ? 'Save Changes' : 'Save Territory'}
-                </button>
-              </div>
             </form>
+
+            {/* Pinned Visible Footer */}
+            <div className="px-4 py-2 border-t border-oros-750 bg-oros-900 flex items-center justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsRegionModalOpen(false)}
+                className="px-3 py-1 rounded-[3px] text-xs font-semibold text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="region-form"
+                className="btn-accent px-3.5 py-1 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
+              >
+                {editingRegionId ? 'Save Changes' : 'Save Territory'}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* PIN CREATION / EDIT MODAL */}
       {isPinModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-750 rounded-[4px] p-5 shadow-2xl max-w-md w-full">
-            <h3 className="font-sans text-sm font-semibold text-oros-100 mb-1 tracking-tight">
-              {editingPinId ? 'Edit Landmark Pin' : 'Place Cartographic Landmark'}
-            </h3>
-            <p className="text-xs text-oros-400 mb-3.5 font-sans">
-              Coordinates: {pinForm.x}%, {pinForm.y}% on {currentMap?.name}
-            </p>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-100">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] shadow-2xl flex flex-col max-h-[460px] overflow-hidden select-text text-oros-100">
+            {/* Header */}
+            <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <PinIcon className="w-3.5 h-3.5 text-accent" />
+                <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100">
+                  {editingPinId ? 'Edit Landmark Pin' : 'Place Cartographic Landmark'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsPinModalOpen(false)}
+                className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
-            <form onSubmit={handleSavePin} className="space-y-3.5">
+            {/* Scrollable Form Body */}
+            <form id="pin-form" onSubmit={handleSavePin} className="p-3.5 space-y-2.5 overflow-y-auto flex-1">
+              <div className="text-[11px] font-mono text-oros-400 bg-oros-850 px-2 py-1 rounded-[2px] border border-oros-750">
+                Coordinates: {pinForm.x}%, {pinForm.y}% on {currentMap?.name}
+              </div>
+
               <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1 font-sans">Landmark Title</label>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Landmark Title *</label>
                 <input
                   type="text"
                   required
@@ -1407,161 +1426,183 @@ export const InteractiveMapViewer: React.FC = () => {
                   value={pinForm.title}
                   onChange={(e) => setPinForm({ ...pinForm, title: e.target.value })}
                   placeholder="e.g. Ruins of the Sunken Bastion"
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
                 />
               </div>
 
+              {/* Icon & Color Row */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Pin Icon</label>
+                  <div className="grid grid-cols-4 gap-1 p-1 bg-oros-850 rounded-[3px] border border-oros-750 max-h-20 overflow-y-auto">
+                    {PIN_ICONS.map((item) => {
+                      const IconComp = item.icon
+                      const isSelected = pinForm.icon === item.id
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setPinForm({ ...pinForm, icon: item.id })}
+                          title={item.label}
+                          className={`p-1 rounded-[2px] flex items-center justify-center transition-colors ${
+                            isSelected
+                              ? 'bg-oros-750 text-oros-100 border border-oros-600'
+                              : 'text-oros-400 hover:text-oros-200'
+                          }`}
+                        >
+                          <IconComp className="w-3 h-3" />
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Pin Color</label>
+                  <div className="flex flex-wrap gap-1 p-1 bg-oros-850 rounded-[3px] border border-oros-750">
+                    {PALETTE_COLORS.map((c) => (
+                      <button
+                        key={c.name}
+                        type="button"
+                        onClick={() => setPinForm({ ...pinForm, color: c.hex })}
+                        className={`w-4 h-4 rounded-[2px] transition-all ${
+                          pinForm.color === c.hex 
+                            ? 'ring-1 ring-white' 
+                            : 'opacity-80 hover:opacity-100'
+                        }`}
+                        style={{ backgroundColor: c.hex }}
+                        title={c.name}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Linkage & Sub-Map */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <div className="flex items-center justify-between mb-0.5">
+                    <label className="text-[10px] font-mono uppercase font-semibold text-oros-400">Codex Card</label>
+                    <button
+                      type="button"
+                      onClick={handleCreateLocationCardForPin}
+                      className="text-[10px] text-accent hover:underline flex items-center gap-0.5"
+                    >
+                      <Plus className="w-2.5 h-2.5" />
+                      <span>New Card</span>
+                    </button>
+                  </div>
+                  <select
+                    value={pinForm.entityId}
+                    onChange={(e) => setPinForm({ ...pinForm, entityId: e.target.value })}
+                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
+                  >
+                    <option value="">No entity linked</option>
+                    {worldEntities.map((ent) => (
+                      <option key={ent.id} value={ent.id}>
+                        {ent.title} ({ent.type})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">
+                    Drilldown Sub-Map
+                  </label>
+                  <select
+                    value={pinForm.subMapId}
+                    onChange={(e) => setPinForm({ ...pinForm, subMapId: e.target.value })}
+                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
+                  >
+                    <option value="">No nested sub-map</option>
+                    {worldMaps.filter((m) => m.id !== currentMap?.id).map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Description */}
               <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1 font-sans">Description / Lore Notes</label>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Notes</label>
                 <textarea
                   rows={2}
                   value={pinForm.description}
                   onChange={(e) => setPinForm({ ...pinForm, description: e.target.value })}
-                  placeholder="Brief notes or history of this location..."
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                  placeholder="Brief landmark notes or history..."
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent resize-none"
                 />
               </div>
-
-              {/* Icon Selection Grid */}
-              <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1.5 font-sans">Pin Icon</label>
-                <div className="grid grid-cols-8 gap-1 p-2 bg-oros-950 rounded-[3px] border border-oros-800">
-                  {PIN_ICONS.map((item) => {
-                    const IconComp = item.icon
-                    const isSelected = pinForm.icon === item.id
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setPinForm({ ...pinForm, icon: item.id })}
-                        title={item.label}
-                        className={`p-1.5 rounded-[2px] flex items-center justify-center transition-colors ${
-                          isSelected
-                            ? 'bg-oros-800 text-oros-100 border border-oros-600'
-                            : 'text-oros-400 hover:text-oros-200 hover:bg-oros-900'
-                        }`}
-                      >
-                        <IconComp className="w-3.5 h-3.5" />
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Color Palette Picker */}
-              <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1.5 font-sans">Pin Color</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {PALETTE_COLORS.map((c) => (
-                    <button
-                      key={c.name}
-                      type="button"
-                      onClick={() => setPinForm({ ...pinForm, color: c.hex })}
-                      className={`w-6 h-6 rounded-[2px] transition-all ${
-                        pinForm.color === c.hex 
-                          ? 'ring-2 ring-oros-100 ring-offset-1 ring-offset-oros-950' 
-                          : 'opacity-80 hover:opacity-100'
-                      }`}
-                      style={{ backgroundColor: c.hex }}
-                      title={c.name}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Card Linkage */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-medium text-oros-300 font-sans">Link to Codex Card</label>
-                  <button
-                    type="button"
-                    onClick={handleCreateLocationCardForPin}
-                    className="text-[11px] text-oros-400 hover:text-oros-200 flex items-center gap-1 font-medium"
-                  >
-                    <Plus className="w-3 h-3" />
-                    <span>Create Location Card</span>
-                  </button>
-                </div>
-                <select
-                  value={pinForm.entityId}
-                  onChange={(e) => setPinForm({ ...pinForm, entityId: e.target.value })}
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
-                >
-                  <option value="">No entity linked</option>
-                  {worldEntities.map((ent) => (
-                    <option key={ent.id} value={ent.id}>
-                      {ent.title} ({ent.type})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Sub-map Drilldown */}
-              <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1 font-sans">
-                  Connect Sub-Map for Drilldown (Optional)
-                </label>
-                <select
-                  value={pinForm.subMapId}
-                  onChange={(e) => setPinForm({ ...pinForm, subMapId: e.target.value })}
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
-                >
-                  <option value="">No nested sub-map</option>
-                  {worldMaps.filter((m) => m.id !== currentMap?.id).map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2.5 border-t border-oros-800">
-                <button
-                  type="button"
-                  onClick={() => setIsPinModalOpen(false)}
-                  className="px-3 py-1.5 rounded-[3px] text-xs text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
-                >
-                  {editingPinId ? 'Save Changes' : 'Drop Landmark Pin'}
-                </button>
-              </div>
             </form>
+
+            {/* Pinned Visible Footer */}
+            <div className="px-4 py-2 border-t border-oros-750 bg-oros-900 flex items-center justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsPinModalOpen(false)}
+                className="px-3 py-1 rounded-[3px] text-xs font-semibold text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="pin-form"
+                className="btn-accent px-3.5 py-1 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
+              >
+                {editingPinId ? 'Save Changes' : 'Drop Landmark Pin'}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* CREATE MAP MODAL */}
       {showNewMapModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] p-5 shadow-2xl">
-            <h3 className="font-sans text-sm font-semibold text-oros-100 mb-2 tracking-tight">Import or Create Map</h3>
-            <form onSubmit={handleCreateMap} className="space-y-3.5">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-100">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-[4px] shadow-2xl flex flex-col max-h-[380px] overflow-hidden select-text text-oros-100">
+            {/* Header */}
+            <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <Compass className="w-3.5 h-3.5 text-accent" />
+                <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100">
+                  Import or Create Map
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowNewMapModal(false)}
+                className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Form Body */}
+            <form id="create-map-form" onSubmit={handleCreateMap} className="p-3.5 space-y-2.5 overflow-y-auto flex-1">
               <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1 font-sans">Map Title</label>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Map Title *</label>
                 <input
                   type="text"
                   required
+                  autoFocus
                   value={newMapName}
                   onChange={(e) => setNewMapName(e.target.value)}
                   placeholder="e.g. Kingdom of the Western Reaches"
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1 font-sans">Artwork Source</label>
-                <div className="flex gap-2 mb-2">
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Artwork Source</label>
+                <div className="flex gap-1.5 mb-1.5">
                   <button
                     type="button"
                     onClick={handleImportMapArtwork}
-                    className="flex-1 py-1.5 px-3 rounded-[3px] bg-oros-850 hover:bg-oros-800 text-oros-200 text-xs font-medium flex items-center justify-center gap-1.5 border border-oros-750 transition-colors"
+                    className="flex-1 py-1 px-2.5 rounded-[3px] bg-oros-850 hover:bg-oros-800 text-oros-200 text-xs font-medium flex items-center justify-center gap-1.5 border border-oros-750 transition-colors"
                   >
-                    <Upload className="w-3.5 h-3.5 text-oros-400" />
+                    <Upload className="w-3 h-3 text-oros-400" />
                     <span>Choose File from Computer</span>
                   </button>
                 </div>
@@ -1570,26 +1611,28 @@ export const InteractiveMapViewer: React.FC = () => {
                   value={newMapUrl}
                   onChange={(e) => setNewMapUrl(e.target.value)}
                   placeholder="oros-asset://... or https://..."
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
                 />
               </div>
-
-              <div className="flex justify-end gap-2 pt-2.5 border-t border-oros-800">
-                <button
-                  type="button"
-                  onClick={() => setShowNewMapModal(false)}
-                  className="px-3 py-1.5 rounded-[3px] text-xs text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
-                >
-                  Create Map
-                </button>
-              </div>
             </form>
+
+            {/* Pinned Visible Footer */}
+            <div className="px-4 py-2 border-t border-oros-750 bg-oros-900 flex items-center justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowNewMapModal(false)}
+                className="px-3 py-1 rounded-[3px] text-xs font-semibold text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="create-map-form"
+                className="btn-accent px-3.5 py-1 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
+              >
+                Create Map
+              </button>
+            </div>
           </div>
         </div>
       )}

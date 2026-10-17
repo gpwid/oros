@@ -250,7 +250,7 @@ export const TimelineView: React.FC = () => {
             }`}
             title="Interactive Line View (Continuous Timeline Axis)"
           >
-            <Activity className="w-3.5 h-3.5 text-accent" />
+            <Activity className="w-3.5 h-3.5" />
             <span>Line</span>
           </button>
 
@@ -263,7 +263,7 @@ export const TimelineView: React.FC = () => {
             }`}
             title="World Almanac Calendar View"
           >
-            <Calendar className="w-3.5 h-3.5 text-sky-400" />
+            <Calendar className="w-3.5 h-3.5" />
             <span>Calendar</span>
           </button>
 
@@ -276,7 +276,7 @@ export const TimelineView: React.FC = () => {
             }`}
             title="Narrative Chronicle Stream View"
           >
-            <List className="w-3.5 h-3.5 text-amber-400" />
+            <List className="w-3.5 h-3.5" />
             <span>Chronicle</span>
           </button>
         </div>

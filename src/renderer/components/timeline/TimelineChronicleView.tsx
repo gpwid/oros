@@ -7,7 +7,7 @@ import {
 import { 
   formatTimelineDate, 
   formatPeriodDuration,
-  PERIOD_TYPE_CONFIG 
+  getPeriodTypeConfig 
 } from '../../utils/calendarDefaults'
 
 interface TimelineChronicleViewProps {
@@ -80,7 +80,7 @@ export const TimelineChronicleView: React.FC<TimelineChronicleViewProps> = ({
                   const isMythic = evt.importance === 'mythic'
                   const isMajor = evt.importance === 'major'
                   const periodCfg = isPeriod 
-                    ? (PERIOD_TYPE_CONFIG[evt.periodType || 'custom'] || PERIOD_TYPE_CONFIG.custom)
+                    ? getPeriodTypeConfig(evt.periodType || 'custom', calendarConfig.customPeriodTypes)
                     : null
 
                   const borderColor = evt.color 

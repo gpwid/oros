@@ -2,12 +2,16 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { TimelineEvent, TimelinePeriodType, TimelineCategory, WorldCalendarConfig } from '@shared/types'
 import { useWorldStore } from '../../store/useWorldStore'
 import { 
-  X, Zap, Clock, Calendar, Bookmark, ShieldAlert, Sparkles, 
-  Swords, Crown, Hourglass, Flame, Shield, Users 
+  X, Zap, Clock, Bookmark, ShieldAlert, Sparkles, Plus,
+  ChevronDown, Check
 } from 'lucide-react'
 import { 
   formatPeriodDuration, 
-  PERIOD_TYPE_CONFIG 
+  PERIOD_TYPE_CONFIG,
+  DEFAULT_TIMELINE_CATEGORIES,
+  DEFAULT_PERIOD_CLASSIFICATIONS,
+  findEraForYear,
+  getPeriodTypeConfig
 } from '../../utils/calendarDefaults'
 
 interface TimelineEventModalProps {
@@ -24,27 +28,6 @@ interface TimelineEventModalProps {
   } | null
 }
 
-const CATEGORY_OPTIONS: { id: TimelineCategory; label: string }[] = [
-  { id: 'political', label: 'Political & Governance' },
-  { id: 'war', label: 'Military & War' },
-  { id: 'astronomical', label: 'Astronomical & Celestial' },
-  { id: 'birth-death', label: 'Birth & Mortality' },
-  { id: 'discovery', label: 'Scientific / Discovery' },
-  { id: 'arcane', label: 'Arcane & Magical' },
-  { id: 'cultural', label: 'Cultural & Societal' }
-]
-
-const COLOR_PRESETS = [
-  '#f59e0b', // Amber/Gold
-  '#ef4444', // Crimson
-  '#8b5cf6', // Purple
-  '#3b82f6', // Blue
-  '#10b981', // Emerald
-  '#f97316', // Orange
-  '#06b6d4', // Cyan
-  '#ec4899', // Pink
-]
-
 export const TimelineEventModal: React.FC<TimelineEventModalProps> = ({
   isOpen,
   onClose,
@@ -52,7 +35,7 @@ export const TimelineEventModal: React.FC<TimelineEventModalProps> = ({
   initialDate
 }) => {
   const { 
-    activeWorldId, entities, timelines, getCalendarConfig,
+    activeWorldId, entities, getCalendarConfig,
     createTimelineEvent, updateTimelineEvent 
   } = useWorldStore()
 
@@ -60,23 +43,41 @@ export const TimelineEventModal: React.FC<TimelineEventModalProps> = ({
     return getCalendarConfig(activeWorldId || undefined)
   }, [getCalendarConfig, activeWorldId])
 
-  const worldEvents = activeWorldId ? timelines[activeWorldId] || [] : []
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
 
-  // Known eras for autocomplete
-  const existingEras = useMemo(() => {
-    return Array.from(new Set(worldEvents.map(e => e.era || 'Universal Era'))).filter(Boolean)
-  }, [worldEvents])
+  // Combine default categories with custom world categories
+  const categoriesList = useMemo(() => {
+    const list = [...DEFAULT_TIMELINE_CATEGORIES]
+    if (calendarConfig.customCategories) {
+      calendarConfig.customCategories.forEach(custom => {
+        if (!list.some(c => c.id === custom.id)) {
+          list.push(custom)
+        }
+      })
+    }
+    return list
+  }, [calendarConfig.customCategories])
+
+  // Combine default period types with custom world period types
+  const periodTypesList = useMemo(() => {
+    const list = [...DEFAULT_PERIOD_CLASSIFICATIONS]
+    if (calendarConfig.customPeriodTypes) {
+      calendarConfig.customPeriodTypes.forEach(custom => {
+        if (!list.some(p => p.id === custom.id)) {
+          list.push(custom)
+        }
+      })
+    }
+    return list
+  }, [calendarConfig.customPeriodTypes])
 
   // Form State
   const [isPeriod, setIsPeriod] = useState<boolean>(false)
   const [periodType, setPeriodType] = useState<TimelinePeriodType>('custom')
   const [title, setTitle] = useState('')
-  const [era, setEra] = useState('Age of Concord')
   const [year, setYear] = useState<number>(850)
   const [month, setMonth] = useState<number | undefined>(undefined)
   const [day, setDay] = useState<number | undefined>(undefined)
-  const [hour, setHour] = useState<number | undefined>(undefined)
   
   const [endYear, setEndYear] = useState<number>(860)
   const [endMonth, setEndMonth] = useState<number | undefined>(undefined)
@@ -85,9 +86,22 @@ export const TimelineEventModal: React.FC<TimelineEventModalProps> = ({
   const [category, setCategory] = useState<TimelineCategory>('political')
   const [importance, setImportance] = useState<TimelineEvent['importance']>('major')
   const [description, setDescription] = useState('')
-  const [color, setColor] = useState<string>('')
   const [selectedEntityIds, setSelectedEntityIds] = useState<string[]>([])
-  const [entityFilter, setEntityFilter] = useState('')
+  
+  // Historical Era state (auto-detected with manual override)
+  const [isEraOverridden, setIsEraOverridden] = useState<boolean>(false)
+  const [customEra, setCustomEra] = useState<string>('')
+
+  // Auto-detect era from year
+  const detectedEra = useMemo(() => {
+    return findEraForYear(year, calendarConfig.eras)
+  }, [year, calendarConfig.eras])
+
+  const activeEraName = useMemo(() => {
+    if (isEraOverridden && customEra.trim()) return customEra.trim()
+    if (detectedEra) return detectedEra.name
+    return 'Universal Era'
+  }, [isEraOverridden, customEra, detectedEra])
 
   // Sync state on open/edit
   useEffect(() => {
@@ -95,69 +109,76 @@ export const TimelineEventModal: React.FC<TimelineEventModalProps> = ({
       setIsPeriod(Boolean(eventToEdit.isPeriod))
       setPeriodType(eventToEdit.periodType || 'custom')
       setTitle(eventToEdit.title)
-      setEra(eventToEdit.era || existingEras[0] || 'Universal Era')
       setYear(eventToEdit.year)
       setMonth(eventToEdit.month)
       setDay(eventToEdit.day)
-      setHour(eventToEdit.hour)
-      setEndYear(eventToEdit.endYear ?? eventToEdit.year + 5)
+      setEndYear(eventToEdit.endYear ?? eventToEdit.year + 10)
       setEndMonth(eventToEdit.endMonth)
       setEndDay(eventToEdit.endDay)
       setCategory(eventToEdit.category || 'political')
-      setImportance(eventToEdit.importance)
-      setDescription(eventToEdit.description)
-      setColor(eventToEdit.color || '')
-      setSelectedEntityIds([...eventToEdit.entityIds])
-    } else {
-      // New Event / Period with optional initial dates
-      const defEra = initialDate?.era || existingEras[0] || 'Age of Concord'
-      const defYear = initialDate?.year !== undefined ? initialDate.year : 850
-      const defIsPeriod = Boolean(initialDate?.isPeriod)
-      const defEndYear = initialDate?.endYear !== undefined ? initialDate.endYear : defYear + 10
-
-      setIsPeriod(defIsPeriod)
+      setImportance(eventToEdit.importance || 'major')
+      setDescription(eventToEdit.description || '')
+      setSelectedEntityIds(eventToEdit.entityIds || [])
+      
+      // If event era is different from what auto-detection would give for this year, keep it as override
+      const autoEra = findEraForYear(eventToEdit.year, calendarConfig.eras)
+      if (eventToEdit.era && (!autoEra || autoEra.name !== eventToEdit.era)) {
+        setIsEraOverridden(true)
+        setCustomEra(eventToEdit.era)
+      } else {
+        setIsEraOverridden(false)
+        setCustomEra('')
+      }
+    } else if (initialDate) {
+      setIsPeriod(Boolean(initialDate.isPeriod))
       setPeriodType('custom')
       setTitle('')
-      setEra(defEra)
-      setYear(defYear)
-      setMonth(initialDate?.month)
-      setDay(initialDate?.day)
-      setHour(undefined)
-      setEndYear(defEndYear)
-      setEndMonth(initialDate?.month)
-      setEndDay(initialDate?.day)
+      setYear(initialDate.year ?? 850)
+      setMonth(initialDate.month)
+      setDay(initialDate.day)
+      setEndYear(initialDate.endYear ?? (initialDate.year ? initialDate.year + 10 : 860))
+      setEndMonth(undefined)
+      setEndDay(undefined)
       setCategory('political')
       setImportance('major')
       setDescription('')
-      setColor('')
       setSelectedEntityIds([])
+      setIsEraOverridden(false)
+      setCustomEra('')
+    } else {
+      setIsPeriod(false)
+      setPeriodType('custom')
+      setTitle('')
+      setYear(850)
+      setMonth(undefined)
+      setDay(undefined)
+      setEndYear(860)
+      setEndMonth(undefined)
+      setEndDay(undefined)
+      setCategory('political')
+      setImportance('major')
+      setDescription('')
+      setSelectedEntityIds([])
+      setIsEraOverridden(false)
+      setCustomEra('')
     }
-    setEntityFilter('')
-  }, [eventToEdit, initialDate, isOpen])
+  }, [eventToEdit, initialDate, isOpen, calendarConfig.eras])
 
   if (!isOpen) return null
-
-  // Live duration calculation
-  const computedDuration = isPeriod 
-    ? formatPeriodDuration(year, endYear, month, endMonth, day, endDay, calendarConfig)
-    : null
-
-  // Days in selected start and end months
-  const startMonthDays = month ? calendarConfig.months[month - 1]?.days || 30 : 30
-  const endMonthDays = endMonth ? calendarConfig.months[endMonth - 1]?.days || 30 : 30
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
 
+    const periodCfg = getPeriodTypeConfig(periodType, calendarConfig.customPeriodTypes)
+
     const payload: Omit<TimelineEvent, 'id' | 'worldId'> = {
       isPeriod,
       periodType: isPeriod ? periodType : undefined,
-      era: era.trim() || 'Universal Era',
+      era: activeEraName,
       year: Number(year),
       month: month ? Number(month) : undefined,
       day: day ? Number(day) : undefined,
-      hour: hour !== undefined ? Number(hour) : undefined,
       endYear: isPeriod ? Number(endYear) : undefined,
       endMonth: isPeriod && endMonth ? Number(endMonth) : undefined,
       endDay: isPeriod && endDay ? Number(endDay) : undefined,
@@ -166,7 +187,7 @@ export const TimelineEventModal: React.FC<TimelineEventModalProps> = ({
       title: title.trim(),
       description: description.trim(),
       entityIds: selectedEntityIds,
-      color: color || (isPeriod ? PERIOD_TYPE_CONFIG[periodType]?.color : undefined)
+      color: isPeriod ? periodCfg.color : undefined
     }
 
     if (eventToEdit) {
@@ -186,460 +207,364 @@ export const TimelineEventModal: React.FC<TimelineEventModalProps> = ({
     }
   }
 
-  const filteredEntities = worldEntities.filter(ent => 
-    ent.title.toLowerCase().includes(entityFilter.toLowerCase())
-  )
+  const durationStr = isPeriod ? formatPeriodDuration(
+    year,
+    endYear,
+    month,
+    endMonth,
+    day,
+    endDay,
+    calendarConfig
+  ) : ''
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-oros-950/80 backdrop-blur-sm animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-oros-950/80 backdrop-blur-sm animate-in fade-in duration-100">
       <div 
-        className="w-full max-w-2xl bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden select-text text-oros-100"
+        className="w-full max-w-lg bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl flex flex-col max-h-[480px] overflow-hidden select-text text-oros-100"
         role="dialog"
         aria-modal="true"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-oros-750/80 bg-oros-900/90 shrink-0">
+        {/* Header with Mode Toggle */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-oros-750/80 bg-oros-900 shrink-0">
           <div className="flex items-center gap-2">
             {isPeriod ? (
-              <Clock className="w-4 h-4 text-accent" />
+              <Clock className="w-3.5 h-3.5 text-accent" />
             ) : (
-              <Zap className="w-4 h-4 text-accent" />
+              <Zap className="w-3.5 h-3.5 text-accent" />
             )}
-            <h3 className="font-sans font-bold text-sm tracking-wide text-oros-100">
-              {eventToEdit ? (isPeriod ? 'Edit Time Period' : 'Edit Timeline Event') : (isPeriod ? 'Record Time Period' : 'Record Milestone Event')}
+            <h3 className="font-sans font-semibold text-xs uppercase tracking-wider text-oros-100">
+              {eventToEdit ? (isPeriod ? 'Edit Period Span' : 'Edit Timeline Event') : (isPeriod ? 'New Period Span' : 'New Milestone Event')}
             </h3>
           </div>
 
-          <button
-            onClick={onClose}
-            className="text-oros-400 hover:text-oros-100 p-1 rounded-[3px] hover:bg-oros-800 transition-colors"
-            title="Close (Esc)"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Mode Switcher Segmented Control */}
-        <div className="px-5 pt-4 pb-2 border-b border-oros-800/80 bg-oros-950/40">
-          <div className="flex items-center gap-1 p-0.5 bg-oros-850/80 border border-oros-750 rounded-[3px] w-fit">
-            <button
-              type="button"
-              onClick={() => setIsPeriod(false)}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-[2px] text-xs font-semibold transition-all ${
-                !isPeriod 
-                  ? 'bg-oros-800 text-oros-50 border border-oros-700/80 shadow-sm' 
-                  : 'text-oros-400 hover:text-oros-200'
-              }`}
-            >
-              <Zap className="w-3 h-3 text-amber-400" />
-              <span>Single Event (Milestone)</span>
-            </button>
+          <div className="flex items-center gap-2">
+            {/* Compact Mode Switcher */}
+            <div className="flex items-center bg-oros-850 border border-oros-750 rounded-[2px] p-0.5">
+              <button
+                type="button"
+                onClick={() => setIsPeriod(false)}
+                className={`px-2 py-0.5 rounded-[1px] text-[10px] font-sans font-medium transition-colors ${
+                  !isPeriod ? 'bg-oros-750 text-oros-100 shadow-sm' : 'text-oros-400 hover:text-oros-200'
+                }`}
+              >
+                Milestone
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsPeriod(true)}
+                className={`px-2 py-0.5 rounded-[1px] text-[10px] font-sans font-medium transition-colors ${
+                  isPeriod ? 'bg-oros-750 text-oros-100 shadow-sm' : 'text-oros-400 hover:text-oros-200'
+                }`}
+              >
+                Period Span
+              </button>
+            </div>
 
             <button
-              type="button"
-              onClick={() => setIsPeriod(true)}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-[2px] text-xs font-semibold transition-all ${
-                isPeriod 
-                  ? 'bg-oros-800 text-oros-50 border border-oros-700/80 shadow-sm' 
-                  : 'text-oros-400 hover:text-oros-200'
-              }`}
+              onClick={onClose}
+              className="text-oros-400 hover:text-oros-100 p-1 rounded-[2px] hover:bg-oros-800 transition-colors"
+              title="Close (Esc)"
             >
-              <Clock className="w-3 h-3 text-sky-400" />
-              <span>Time Period (Duration Span)</span>
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
         {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        <form id="timeline-event-form" onSubmit={handleSubmit} className="p-4 space-y-3 overflow-y-auto flex-1">
           {/* Title */}
           <div>
-            <label className="block text-[11px] font-semibold text-oros-300 uppercase tracking-wider mb-1.5">
-              {isPeriod ? 'Period Name / Title *' : 'Event Title *'}
+            <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">
+              Title / Designation *
             </label>
             <input
               type="text"
               required
               autoFocus
-              placeholder={isPeriod ? 'e.g. The Obsidian War, Reign of Katherine II' : 'e.g. Coronation of the Sunken Throne'}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-3 py-2 text-xs text-oros-100 placeholder-oros-500 focus:border-accent focus:outline-none transition-colors"
+              placeholder={isPeriod ? "e.g. The War of the Seven Crownlands" : "e.g. Coronation of Emperor Vael"}
+              className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:border-accent focus:outline-none"
             />
           </div>
 
-          {/* Era & Period Classification */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-semibold text-oros-300 uppercase tracking-wider mb-1.5">
-                Historical Era
-              </label>
-              <input
-                type="text"
-                list="timeline-eras-list"
-                value={era}
-                onChange={(e) => setEra(e.target.value)}
-                placeholder="e.g. Age of Concord, First Age"
-                className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-3 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:border-accent focus:outline-none"
-              />
-              <datalist id="timeline-eras-list">
-                {existingEras.map((er) => (
-                  <option key={er} value={er} />
-                ))}
-              </datalist>
-            </div>
-
-            {isPeriod ? (
-              <div>
-                <label className="block text-[11px] font-semibold text-oros-300 uppercase tracking-wider mb-1.5">
-                  Period Classification
-                </label>
-                <select
-                  value={periodType}
-                  onChange={(e) => setPeriodType(e.target.value as TimelinePeriodType)}
-                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-3 py-1.5 text-xs text-oros-100 focus:border-accent focus:outline-none"
-                >
-                  {Object.entries(PERIOD_TYPE_CONFIG).map(([key, cfg]) => (
-                    <option key={key} value={key}>
-                      {cfg.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <div>
-                <label className="block text-[11px] font-semibold text-oros-300 uppercase tracking-wider mb-1.5">
-                  Thematic Category
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as TimelineCategory)}
-                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-3 py-1.5 text-xs text-oros-100 focus:border-accent focus:outline-none"
-                >
-                  {CATEGORY_OPTIONS.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-
-          {/* Temporal Coordinates */}
-          {!isPeriod ? (
-            /* Single Event Date Fields */
-            <div className="p-3 bg-oros-850/50 border border-oros-750/70 rounded-[3px] space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-oros-400">
-                  Milestone Date Coordinates
-                </span>
-                <span className="text-[10px] font-mono text-oros-400">
-                  {calendarConfig.yearPrefix} {year} {calendarConfig.yearSuffix}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <div>
-                  <label className="block text-[10px] font-mono text-oros-400 mb-1">
-                    Year *
-                  </label>
+          {/* Date Row: Start (or Milestone) Date */}
+          <div>
+            <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">
+              {isPeriod ? 'Start Horizon' : 'Chronology Date'}
+            </label>
+            <div className="grid grid-cols-12 gap-2">
+              <div className="col-span-5">
+                <div className="relative flex items-center">
+                  <span className="absolute left-2 font-mono text-[10px] text-oros-400">Yr</span>
                   <input
                     type="number"
                     required
                     value={year}
-                    onChange={(e) => setYear(Number(e.target.value))}
-                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-mono text-oros-400 mb-1">
-                    Month (Optional)
-                  </label>
-                  <select
-                    value={month || ''}
-                    onChange={(e) => setMonth(e.target.value ? Number(e.target.value) : undefined)}
-                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1.5 text-xs text-oros-100 focus:border-accent focus:outline-none"
-                  >
-                    <option value="">-- No Month --</option>
-                    {calendarConfig.months.map((m, idx) => (
-                      <option key={m.id} value={idx + 1}>
-                        {m.name} ({m.days}d)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-mono text-oros-400 mb-1">
-                    Day (1..{startMonthDays})
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={startMonthDays}
-                    placeholder="Day"
-                    value={day || ''}
-                    onChange={(e) => setDay(e.target.value ? Number(e.target.value) : undefined)}
-                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-mono text-oros-400 mb-1">
-                    Hour (0..{calendarConfig.hoursInDay - 1})
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={calendarConfig.hoursInDay - 1}
-                    placeholder="Hour"
-                    value={hour !== undefined ? hour : ''}
-                    onChange={(e) => setHour(e.target.value !== '' ? Number(e.target.value) : undefined)}
-                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
+                    onChange={(e) => setYear(parseInt(e.target.value) || 0)}
+                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] pl-7 pr-2 py-1 text-xs font-mono font-medium text-oros-100 focus:border-accent focus:outline-none"
                   />
                 </div>
               </div>
+
+              <div className="col-span-4">
+                <select
+                  value={month ?? ''}
+                  onChange={(e) => setMonth(e.target.value ? Number(e.target.value) : undefined)}
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-200 focus:border-accent focus:outline-none"
+                >
+                  <option value="">Month...</option>
+                  {calendarConfig.months.map((m, idx) => (
+                    <option key={m.id} value={idx + 1}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="col-span-3">
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  placeholder="Day"
+                  value={day ?? ''}
+                  onChange={(e) => setDay(e.target.value ? Number(e.target.value) : undefined)}
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs font-mono text-oros-100 placeholder-oros-500 focus:border-accent focus:outline-none"
+                />
+              </div>
             </div>
-          ) : (
-            /* Period Duration Fields */
-            <div className="p-3 bg-oros-850/50 border border-oros-750/70 rounded-[3px] space-y-3">
+
+            {/* Inline Historical Era Badge */}
+            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-mono text-oros-400">
+              <span className="text-oros-400">Era:</span>
+              {!isEraOverridden ? (
+                <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] bg-oros-850 border border-oros-750 text-oros-200">
+                  <span 
+                    className="w-1.5 h-1.5 rounded-full" 
+                    style={{ backgroundColor: detectedEra?.color || 'var(--oros-accent)' }} 
+                  />
+                  <span className="font-semibold">{activeEraName}</span>
+                  {detectedEra && <span className="text-[9px] text-oros-400">· {detectedEra.startYear}–{detectedEra.endYear}</span>}
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={customEra}
+                  onChange={(e) => setCustomEra(e.target.value)}
+                  placeholder="Custom Era Name..."
+                  className="bg-oros-850 border border-accent rounded-[2px] px-1.5 py-0.5 text-xs text-oros-100 focus:outline-none w-40"
+                />
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (isEraOverridden) {
+                    setIsEraOverridden(false)
+                    setCustomEra('')
+                  } else {
+                    setIsEraOverridden(true)
+                    setCustomEra(activeEraName)
+                  }
+                }}
+                className="text-[10px] text-accent hover:underline ml-1"
+              >
+                {isEraOverridden ? 'Auto-detect' : 'Override'}
+              </button>
+            </div>
+          </div>
+
+          {/* Period Range Row (Only if isPeriod) */}
+          {isPeriod && (
+            <div className="pt-2 border-t border-oros-800/60 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-oros-400">
-                  Duration Span Coordinates
-                </span>
-                {computedDuration && (
-                  <span className="text-[11px] font-mono font-bold text-accent px-2 py-0.5 bg-accent/10 border border-accent/30 rounded-[2px]">
-                    Span: {computedDuration}
+                <label className="text-[10px] font-mono uppercase font-semibold text-oros-400">
+                  End Horizon & Classification
+                </label>
+                {durationStr && (
+                  <span className="font-mono text-[10px] font-bold text-accent bg-oros-850 px-1.5 py-0.5 rounded-[2px] border border-oros-750">
+                    Duration: {durationStr}
                   </span>
                 )}
               </div>
 
-              {/* Start Date */}
-              <div className="space-y-1.5">
-                <div className="text-[10px] font-semibold text-oros-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span>Start Horizon</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-[9px] font-mono text-oros-400 mb-0.5">Start Year *</label>
-                    <input
-                      type="number"
-                      required
-                      value={year}
-                      onChange={(e) => setYear(Number(e.target.value))}
-                      className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] font-mono text-oros-400 mb-0.5">Start Month</label>
-                    <select
-                      value={month || ''}
-                      onChange={(e) => setMonth(e.target.value ? Number(e.target.value) : undefined)}
-                      className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-1.5 py-1 text-xs text-oros-100 focus:border-accent focus:outline-none"
-                    >
-                      <option value="">Month</option>
-                      {calendarConfig.months.map((m, idx) => (
-                        <option key={m.id} value={idx + 1}>{m.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[9px] font-mono text-oros-400 mb-0.5">Start Day</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={startMonthDays}
-                      placeholder="Day"
-                      value={day || ''}
-                      onChange={(e) => setDay(e.target.value ? Number(e.target.value) : undefined)}
-                      className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* End Date */}
-              <div className="space-y-1.5 pt-1 border-t border-oros-800">
-                <div className="text-[10px] font-semibold text-oros-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                  <span>Conclusion / End Horizon</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-[9px] font-mono text-oros-400 mb-0.5">End Year *</label>
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-5">
+                  <div className="relative flex items-center">
+                    <span className="absolute left-2 font-mono text-[10px] text-oros-400">End</span>
                     <input
                       type="number"
                       required
                       value={endYear}
-                      onChange={(e) => setEndYear(Number(e.target.value))}
-                      className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
+                      onChange={(e) => setEndYear(parseInt(e.target.value) || 0)}
+                      className="w-full bg-oros-850 border border-oros-750 rounded-[3px] pl-8 pr-2 py-1 text-xs font-mono font-medium text-oros-100 focus:border-accent focus:outline-none"
                     />
                   </div>
-                  <div>
-                    <label className="block text-[9px] font-mono text-oros-400 mb-0.5">End Month</label>
-                    <select
-                      value={endMonth || ''}
-                      onChange={(e) => setEndMonth(e.target.value ? Number(e.target.value) : undefined)}
-                      className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-1.5 py-1 text-xs text-oros-100 focus:border-accent focus:outline-none"
-                    >
-                      <option value="">Month</option>
-                      {calendarConfig.months.map((m, idx) => (
-                        <option key={m.id} value={idx + 1}>{m.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[9px] font-mono text-oros-400 mb-0.5">End Day</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={endMonthDays}
-                      placeholder="Day"
-                      value={endDay || ''}
-                      onChange={(e) => setEndDay(e.target.value ? Number(e.target.value) : undefined)}
-                      className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
-                    />
-                  </div>
+                </div>
+
+                <div className="col-span-4">
+                  <select
+                    value={endMonth ?? ''}
+                    onChange={(e) => setEndMonth(e.target.value ? Number(e.target.value) : undefined)}
+                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-200 focus:border-accent focus:outline-none"
+                  >
+                    <option value="">End Mo...</option>
+                    {calendarConfig.months.map((m, idx) => (
+                      <option key={m.id} value={idx + 1}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="col-span-3">
+                  <input
+                    type="number"
+                    min="1"
+                    max="60"
+                    placeholder="End Day"
+                    value={endDay ?? ''}
+                    onChange={(e) => setEndDay(e.target.value ? Number(e.target.value) : undefined)}
+                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs font-mono text-oros-100 placeholder-oros-500 focus:border-accent focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">
+                  Period Classification
+                </label>
+                <div className="flex flex-wrap gap-1">
+                  {periodTypesList.map((pt) => {
+                    const isSelected = periodType === pt.id
+                    return (
+                      <button
+                        key={pt.id}
+                        type="button"
+                        onClick={() => setPeriodType(pt.id as TimelinePeriodType)}
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded-[2px] text-[11px] font-sans border transition-colors ${
+                          isSelected 
+                            ? 'bg-oros-800 text-oros-50 border-accent font-semibold shadow-sm' 
+                            : 'bg-oros-850 text-oros-400 border-oros-750 hover:text-oros-200 hover:border-oros-700'
+                        }`}
+                      >
+                        <span 
+                          className="w-1.5 h-1.5 rounded-full" 
+                          style={{ backgroundColor: pt.color }} 
+                        />
+                        <span>{pt.name}</span>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Importance & Color */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Unified Metadata Row: Category & Significance */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
             <div>
-              <label className="block text-[11px] font-semibold text-oros-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">
+                Thematic Category
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as TimelineCategory)}
+                className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-200 focus:border-accent focus:outline-none"
+              >
+                {categoriesList.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">
                 Historical Significance
               </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {(['mythic', 'major', 'minor'] as const).map((imp) => (
-                  <button
-                    key={imp}
-                    type="button"
-                    onClick={() => setImportance(imp)}
-                    className={`py-1.5 px-2 text-xs font-semibold rounded-[3px] border transition-all text-center capitalize ${
-                      importance === imp
-                        ? imp === 'mythic'
-                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/60 shadow-sm'
-                          : imp === 'major'
-                          ? 'bg-accent/20 text-accent border-accent/50 shadow-sm'
-                          : 'bg-oros-800 text-oros-200 border-oros-650 shadow-sm'
-                        : 'bg-oros-850 text-oros-400 border-oros-750 hover:bg-oros-800/60'
-                    }`}
-                  >
-                    {imp}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-oros-300 uppercase tracking-wider mb-1.5">
-                Accent / Milestone Color
-              </label>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {COLOR_PRESETS.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setColor(preset)}
-                    className={`w-6 h-6 rounded-[2px] transition-transform ${
-                      color === preset ? 'ring-2 ring-oros-100 scale-110 shadow-sm' : 'opacity-70 hover:opacity-100'
-                    }`}
-                    style={{ backgroundColor: preset }}
-                  />
-                ))}
-                {color && (
-                  <button
-                    type="button"
-                    onClick={() => setColor('')}
-                    className="text-[10px] text-oros-400 hover:text-oros-200 underline ml-1"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
+              <select
+                value={importance}
+                onChange={(e) => setImportance(e.target.value as TimelineEvent['importance'])}
+                className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-200 focus:border-accent focus:outline-none"
+              >
+                <option value="major">Major (Standard Epoch)</option>
+                <option value="mythic">Mythic (World-Shaping)</option>
+                <option value="minor">Minor (Local Record)</option>
+              </select>
             </div>
           </div>
 
-          {/* Description */}
+          {/* Connected Lore Entities (Compact Chip Tag Selector) */}
           <div>
-            <label className="block text-[11px] font-semibold text-oros-300 uppercase tracking-wider mb-1.5">
-              Historical Chronicle Entry & Lore Notes
+            <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">
+              Connected Lore Cards ({selectedEntityIds.length})
+            </label>
+            <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-oros-850 border border-oros-750 rounded-[3px] min-h-[32px]">
+              {selectedEntityIds.map(id => {
+                const ent = worldEntities.find(e => e.id === id)
+                if (!ent) return null
+                return (
+                  <span 
+                    key={id} 
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] bg-oros-800 border border-oros-700 text-[11px] text-oros-200"
+                  >
+                    <span>{ent.title}</span>
+                    <button 
+                      type="button" 
+                      onClick={() => toggleEntity(id)} 
+                      className="text-oros-400 hover:text-rose-400 text-xs leading-none ml-0.5"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )
+              })}
+
+              {/* Add Entity Picker */}
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value) toggleEntity(e.target.value)
+                }}
+                className="text-[11px] bg-oros-900 border border-dashed border-oros-700 rounded-[2px] px-1.5 py-0.5 text-oros-300 hover:text-oros-100 cursor-pointer focus:outline-none"
+              >
+                <option value="">+ Link Card...</option>
+                {worldEntities.filter(e => !selectedEntityIds.includes(e.id)).map(e => (
+                  <option key={e.id} value={e.id}>{e.title}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Lore Notes / Description */}
+          <div>
+            <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">
+              Historical Chronicle Notes
             </label>
             <textarea
-              rows={3}
-              placeholder="Describe the diplomatic, military, or metaphysical repercussions..."
+              rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-3 py-2 text-xs text-oros-100 placeholder-oros-500 focus:border-accent focus:outline-none transition-colors"
+              placeholder="Record the consequences, legendary figures, and lasting geopolitical outcomes..."
+              className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:border-accent focus:outline-none resize-none"
             />
           </div>
-
-          {/* Connected Lore Entities */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-[11px] font-semibold text-oros-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-oros-400" />
-                <span>Connected Lore Entities ({selectedEntityIds.length})</span>
-              </label>
-              {worldEntities.length > 6 && (
-                <input
-                  type="text"
-                  placeholder="Filter entities..."
-                  value={entityFilter}
-                  onChange={(e) => setEntityFilter(e.target.value)}
-                  className="bg-oros-850 border border-oros-750 rounded-[2px] px-2 py-0.5 text-[10px] text-oros-200 placeholder-oros-500 focus:outline-none w-32"
-                />
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 bg-oros-850/60 border border-oros-750/80 rounded-[3px]">
-              {filteredEntities.length === 0 ? (
-                <span className="text-[11px] text-oros-500 italic">No matching entities in world archive.</span>
-              ) : (
-                filteredEntities.map((ent) => {
-                  const isSelected = selectedEntityIds.includes(ent.id)
-                  return (
-                    <button
-                      key={ent.id}
-                      type="button"
-                      onClick={() => toggleEntity(ent.id)}
-                      className={`text-[11px] px-2 py-0.5 rounded-[2px] border transition-colors flex items-center gap-1 ${
-                        isSelected 
-                          ? 'bg-accent/20 text-accent border-accent/50 font-semibold' 
-                          : 'bg-oros-800 text-oros-300 border-oros-750 hover:bg-oros-750'
-                      }`}
-                    >
-                      <span>{ent.title}</span>
-                      <span className="text-[9px] text-oros-400 capitalize">({ent.type})</span>
-                    </button>
-                  )
-                })
-              )}
-            </div>
-          </div>
-
-          {/* Modal Actions */}
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-oros-750">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1.5 rounded-[3px] border border-oros-700 bg-oros-850 hover:bg-oros-800 text-oros-300 hover:text-oros-100 text-xs font-semibold transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn-accent px-4 py-1.5 rounded-[3px] text-xs font-bold shadow-sm transition-colors"
-            >
-              {eventToEdit ? 'Save Changes' : (isPeriod ? 'Record Period' : 'Record Event')}
-            </button>
-          </div>
         </form>
+
+        {/* Guaranteed Visible Pinned Footer */}
+        <div className="px-4 py-2.5 border-t border-oros-750/80 bg-oros-900 flex items-center justify-end gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1 rounded-[3px] text-xs font-semibold text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="timeline-event-form"
+            className="btn-accent px-4 py-1 rounded-[3px] text-xs font-bold shadow-sm transition-colors"
+          >
+            {eventToEdit ? 'Save Changes' : (isPeriod ? 'Record Period' : 'Record Event')}
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -103,8 +103,39 @@ export interface RelationEdge {
   isDashed?: boolean;
 }
 
-export type TimelinePeriodType = 'war' | 'reign' | 'epoch' | 'crisis' | 'dynasty' | 'cultural' | 'custom';
-export type TimelineCategory = 'political' | 'war' | 'astronomical' | 'birth-death' | 'discovery' | 'arcane' | 'cultural';
+export type TimelinePeriodType = 'war' | 'reign' | 'epoch' | 'crisis' | 'dynasty' | 'cultural' | 'custom' | (string & {});
+export type TimelineCategory = 'political' | 'war' | 'astronomical' | 'birth-death' | 'discovery' | 'arcane' | 'cultural' | (string & {});
+
+export interface WorldEraDefinition {
+  id: string;
+  name: string;
+  startYear: number;
+  endYear: number;
+  color?: string;
+  description?: string;
+}
+
+export interface TimelineCategoryDefinition {
+  id: string;
+  name: string;
+  color: string;
+  icon?: string;
+}
+
+export interface TimelinePeriodClassification {
+  id: string;
+  name: string;
+  color: string;
+  icon?: string;
+}
+
+export interface CalendarPreset {
+  id: string;
+  name: string;
+  description: string;
+  isBuiltIn?: boolean;
+  config: Omit<WorldCalendarConfig, 'worldId'>;
+}
 
 export interface TimelineEvent {
   id: string;
@@ -144,6 +175,9 @@ export interface WorldCalendarConfig {
   hoursInDay: number;
   daysOfWeek: string[];
   months: WorldCalendarMonth[];
+  eras?: WorldEraDefinition[];
+  customCategories?: TimelineCategoryDefinition[];
+  customPeriodTypes?: TimelinePeriodClassification[];
 }
 
 export interface ManuscriptChapter {

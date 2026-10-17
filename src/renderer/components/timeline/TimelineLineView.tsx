@@ -3,12 +3,14 @@ import { TimelineEvent, WorldCalendarConfig } from '@shared/types'
 import { useWorldStore } from '../../store/useWorldStore'
 import { 
   Plus, ZoomIn, ZoomOut, Maximize2, Calendar, Clock, 
-  Swords, Crown, Hourglass, Flame, Shield, Sparkles, Edit3, Trash2, ExternalLink
+  Swords, Crown, Hourglass, Flame, Shield, Sparkles, Edit3, Trash2, ExternalLink,
+  MousePointer, MoveHorizontal
 } from 'lucide-react'
 import { 
   formatTimelineDate, 
   formatPeriodDuration, 
-  PERIOD_TYPE_CONFIG 
+  PERIOD_TYPE_CONFIG,
+  getPeriodTypeConfig
 } from '../../utils/calendarDefaults'
 
 interface TimelineLineViewProps {
@@ -33,9 +35,10 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
 
   // Zoom & Pan State
   const [zoom, setZoom] = useState<number>(1) // 1x = ~14px per year
-  const [panX, setPanX] = useState<number>(100)
+  const [panX, setPanX] = useState<number>(120)
   const [isPanning, setIsPanning] = useState<boolean>(false)
   const [dragStart, setDragStart] = useState<{ x: number; panX: number } | null>(null)
+  const [wheelMode, setWheelMode] = useState<'zoom' | 'pan'>('zoom')
 
   // Axis Hover & In-Situ Creation State
   const [hoverYear, setHoverYear] = useState<number | null>(null)
@@ -46,55 +49,50 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
   // Selected event for quick inspector card
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
 
-  // Calculate year horizon
+  // Calendar horizons
+  const firstYear = calendarConfig.firstYear ?? 400
+  const lastYear = calendarConfig.lastYear ?? 1200
+
+  // Calculate year horizon with margins
   const minYear = useMemo(() => {
     const eventMin = events.reduce((min, e) => Math.min(min, e.year), Infinity)
-    const base = calendarConfig.firstYear ?? 400
-    return Math.min(base, eventMin === Infinity ? base : eventMin - 20)
-  }, [events, calendarConfig.firstYear])
+    return Math.min(firstYear, eventMin === Infinity ? firstYear : eventMin - 10)
+  }, [events, firstYear])
 
   const maxYear = useMemo(() => {
     const eventMax = events.reduce((max, e) => Math.max(max, e.isPeriod ? (e.endYear ?? e.year) : e.year), -Infinity)
-    const base = calendarConfig.lastYear ?? 1200
-    return Math.max(base, eventMax === -Infinity ? base : eventMax + 20)
-  }, [events, calendarConfig.lastYear])
+    return Math.max(lastYear, eventMax === -Infinity ? lastYear : eventMax + 10)
+  }, [events, lastYear])
 
   const totalYears = Math.max(50, maxYear - minYear)
-  const pxPerYear = Math.max(4, 14 * zoom)
-  const totalWidth = totalYears * pxPerYear + 800
+  const pxPerYear = Math.max(3, 14 * zoom)
+  const totalWidth = totalYears * pxPerYear + 1200
 
   // Coordinate transforms
   const yearToX = useCallback((yr: number) => {
-    return (yr - minYear) * pxPerYear + 200
+    return (yr - minYear) * pxPerYear + 300
   }, [minYear, pxPerYear])
 
   const xToYear = useCallback((x: number) => {
-    return Math.round(minYear + (x - 200) / pxPerYear)
+    return Math.round(minYear + (x - 300) / pxPerYear)
   }, [minYear, pxPerYear])
 
-  // Center on events on initial load or Fit
+  // Center on calendar horizon on initial load or Fit
   const handleFit = useCallback(() => {
     if (!containerRef.current) return
     const containerWidth = containerRef.current.clientWidth
-    if (events.length === 0) {
-      setPanX(50)
-      setZoom(1)
-      return
-    }
-
-    const firstEvtYear = Math.min(...events.map(e => e.year))
-    const lastEvtYear = Math.max(...events.map(e => e.isPeriod ? (e.endYear ?? e.year) : e.year))
-    const span = Math.max(10, lastEvtYear - firstEvtYear)
     
-    // Fit span in container width
-    const optimalPxPerYear = (containerWidth * 0.7) / span
-    const nextZoom = Math.min(3, Math.max(0.3, optimalPxPerYear / 14))
+    // Fit the world calendar configuration horizon nicely with 120px padding on each side
+    const targetSpan = Math.max(20, lastYear - firstYear)
+    const availableWidth = Math.max(300, containerWidth - 240)
+    const optimalPxPerYear = availableWidth / targetSpan
+    const nextZoom = Math.min(3, Math.max(0.15, optimalPxPerYear / 14))
     setZoom(nextZoom)
 
-    const centerYear = firstEvtYear + span / 2
-    const centerX = (centerYear - minYear) * (14 * nextZoom) + 200
+    const centerYear = firstYear + targetSpan / 2
+    const centerX = (centerYear - minYear) * (14 * nextZoom) + 300
     setPanX(containerWidth / 2 - centerX)
-  }, [events, minYear])
+  }, [firstYear, lastYear, minYear])
 
   useEffect(() => {
     handleFit()
@@ -145,15 +143,25 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
     }
   }
 
-  // Wheel zoom with Ctrl or horizontal scroll
+  // Mouse wheel zoom centered on cursor or horizontal pan
   const handleWheel = (e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault()
+    e.preventDefault()
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const cursorX = e.clientX - rect.left
+
+    const shouldZoom = wheelMode === 'zoom' ? !e.shiftKey : (e.ctrlKey || e.metaKey)
+
+    if (shouldZoom) {
       const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85
-      setZoom(prev => Math.min(5, Math.max(0.2, prev * zoomFactor)))
+      const newZoom = Math.min(5, Math.max(0.15, zoom * zoomFactor))
+      const canvasX = (cursorX - panX) / zoom
+      const newPanX = cursorX - (canvasX * newZoom)
+      setZoom(newZoom)
+      setPanX(newPanX)
     } else {
-      // Horizontal pan with normal wheel / trackpad
-      setPanX(prev => prev - e.deltaX - (e.shiftKey ? e.deltaY : 0))
+      const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY
+      setPanX(prev => prev - delta)
     }
   }
 
@@ -161,8 +169,26 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
   const periods = useMemo(() => events.filter(e => e.isPeriod), [events])
   const singleEvents = useMemo(() => events.filter(e => !e.isPeriod), [events])
 
-  // Eras
+  // Era bands: Prioritize configured Eras from calendarConfig with epoch boundaries
   const eraBands = useMemo(() => {
+    if (calendarConfig.eras && calendarConfig.eras.length > 0) {
+      return calendarConfig.eras.map(era => {
+        const count = events.filter(e => {
+          if (e.era && e.era === era.name) return true
+          return e.year >= era.startYear && e.year <= era.endYear
+        }).length
+        return {
+          id: era.id,
+          name: era.name,
+          start: era.startYear,
+          end: era.endYear,
+          color: era.color || '#6366f1',
+          count
+        }
+      })
+    }
+
+    // Fallback: build from existing event eras
     const eraMap = new Map<string, { start: number; end: number; count: number }>()
     events.forEach(e => {
       const era = e.era || 'Universal Era'
@@ -177,13 +203,15 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
         entry.count += 1
       }
     })
-    return Array.from(eraMap.entries()).map(([era, data]) => ({
-      era,
+    return Array.from(eraMap.entries()).map(([era, data], idx) => ({
+      id: `fallback-era-${idx}`,
+      name: era,
       start: data.start,
-      end: Math.max(data.end, data.start + 5),
+      end: Math.max(data.end, data.start + 50),
+      color: '#6366f1',
       count: data.count
     }))
-  }, [events])
+  }, [calendarConfig.eras, events])
 
   // Tick generator
   const ticks = useMemo(() => {
@@ -207,6 +235,11 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
 
   const selectedEvent = events.find(e => e.id === selectedEventId)
 
+  // Ruler boundary coordinates
+  const rulerStartX = yearToX(firstYear)
+  const rulerEndX = yearToX(lastYear)
+  const rulerWidth = Math.max(10, rulerEndX - rulerStartX)
+
   return (
     <div 
       ref={containerRef}
@@ -219,10 +252,36 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
     >
       {/* Zoom / View Instruments Mini Bar (Top Right) */}
       <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 p-1 bg-oros-900/90 backdrop-blur-md border border-oros-750 rounded-[3px] shadow-lg">
+        {/* Wheel Mode Segmented Toggle */}
+        <div className="flex items-center bg-oros-850 border border-oros-750/80 rounded-[2px] p-0.5 mr-1">
+          <button
+            onClick={() => setWheelMode('zoom')}
+            className={`px-1.5 py-0.5 rounded-[1px] text-[10px] font-mono font-medium transition-colors ${
+              wheelMode === 'zoom'
+                ? 'bg-oros-750 text-oros-100'
+                : 'text-oros-400 hover:text-oros-200'
+            }`}
+            title="Scroll wheel zooms timeline centered at pointer"
+          >
+            Wheel: Zoom
+          </button>
+          <button
+            onClick={() => setWheelMode('pan')}
+            className={`px-1.5 py-0.5 rounded-[1px] text-[10px] font-mono font-medium transition-colors ${
+              wheelMode === 'pan'
+                ? 'bg-oros-750 text-oros-100'
+                : 'text-oros-400 hover:text-oros-200'
+            }`}
+            title="Scroll wheel pans timeline horizontally"
+          >
+            Pan
+          </button>
+        </div>
+
         <button
           onClick={() => setZoom(prev => Math.min(5, prev * 1.25))}
           className="p-1.5 rounded-[2px] text-oros-300 hover:text-oros-100 hover:bg-oros-800 transition-colors"
-          title="Zoom In (Ctrl + Wheel)"
+          title="Zoom In"
         >
           <ZoomIn className="w-3.5 h-3.5" />
         </button>
@@ -230,26 +289,27 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
           {Math.round(zoom * 100)}%
         </span>
         <button
-          onClick={() => setZoom(prev => Math.max(0.2, prev * 0.8))}
+          onClick={() => setZoom(prev => Math.max(0.15, prev * 0.8))}
           className="p-1.5 rounded-[2px] text-oros-300 hover:text-oros-100 hover:bg-oros-800 transition-colors"
-          title="Zoom Out (Ctrl + Wheel)"
+          title="Zoom Out"
         >
           <ZoomOut className="w-3.5 h-3.5" />
         </button>
         <div className="w-[1px] h-3.5 bg-oros-750 mx-0.5" />
         <button
           onClick={handleFit}
-          className="p-1.5 rounded-[2px] text-oros-300 hover:text-oros-100 hover:bg-oros-800 transition-colors"
-          title="Fit All Events"
+          className="p-1.5 rounded-[2px] text-oros-300 hover:text-oros-100 hover:bg-oros-800 transition-colors flex items-center gap-1"
+          title="Fit world horizon centered"
         >
           <Maximize2 className="w-3.5 h-3.5" />
+          <span className="text-[10px] font-sans font-medium hidden sm:inline">Center Horizon</span>
         </button>
       </div>
 
       {/* Axis Instruction Hint */}
       <div className="absolute top-4 left-4 z-20 pointer-events-none text-[11px] font-mono text-oros-400 bg-oros-900/80 backdrop-blur-md px-2.5 py-1 border border-oros-750/70 rounded-[3px] flex items-center gap-2">
         <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-        <span>Click axis to add event · Drag axis to create period span</span>
+        <span>Click axis to add event · Drag to create period · Horizon: {firstYear}–{lastYear}</span>
       </div>
 
       {/* Virtual Canvas Layer */}
@@ -262,23 +322,41 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
         }}
         data-pan-target="true"
       >
-        {/* Era Background Bands (Upper Region) */}
+        {/* Era Background Bands (Upper Region spanning epoch boundaries) */}
         {eraBands.map((band) => {
           const left = yearToX(band.start)
           const right = yearToX(band.end)
-          const width = Math.max(60, right - left)
+          const width = Math.max(32, right - left)
+          const isCompact = width < 120
+          const isVeryCompact = width < 60
+
           return (
             <div
-              key={band.era}
-              className="absolute top-10 h-10 border-l border-r border-oros-750/60 bg-oros-900/30 backdrop-blur-[1px] px-2.5 py-1 flex items-center justify-between"
-              style={{ left, width }}
+              key={band.id || band.name}
+              className="absolute top-8 h-10 border-l border-r border-oros-750/80 px-2 py-1 flex items-center justify-between overflow-hidden shadow-sm"
+              style={{ 
+                left, 
+                width,
+                backgroundColor: band.color ? `${band.color}14` : 'rgba(30, 41, 54, 0.4)',
+                borderLeftColor: band.color || '#6366f1',
+                borderRightColor: band.color || '#6366f1'
+              }}
+              title={`${band.name} (${band.start} – ${band.end} · ${band.count} events)`}
             >
-              <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-oros-300 truncate">
-                {band.era}
-              </span>
-              <span className="font-mono text-[9px] text-oros-500">
-                {band.count} entries
-              </span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span 
+                  className="w-1.5 h-1.5 rounded-full shrink-0" 
+                  style={{ backgroundColor: band.color || '#6366f1' }}
+                />
+                <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-oros-200 truncate">
+                  {isVeryCompact ? band.name.slice(0, 3) : band.name}
+                </span>
+              </div>
+              {!isCompact && (
+                <span className="font-mono text-[9px] text-oros-400 shrink-0 ml-2 bg-oros-950/80 px-1 py-0.5 rounded-[2px] border border-oros-800">
+                  {band.count} {band.count === 1 ? 'entry' : 'entries'}
+                </span>
+              )}
             </div>
           )
         })}
@@ -286,14 +364,14 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
         {/* ======================================================== */}
         {/* PERIODS TRACK (Lanes above the main axis) */}
         {/* ======================================================== */}
-        <div className="absolute top-24 left-0 right-0 h-44 pointer-events-none">
+        <div className="absolute top-22 left-0 right-0 h-44 pointer-events-none">
           {periods.map((period, idx) => {
             const startX = yearToX(period.year)
             const endX = yearToX(period.endYear ?? period.year)
             const width = Math.max(28, endX - startX)
             const lane = idx % 3
             const topOffset = lane * 42 + 6
-            const periodCfg = PERIOD_TYPE_CONFIG[period.periodType || 'custom'] || PERIOD_TYPE_CONFIG.custom
+            const periodCfg = getPeriodTypeConfig(period.periodType || 'custom', calendarConfig.customPeriodTypes)
             const barColor = period.color || periodCfg.color
 
             const durationStr = formatPeriodDuration(
@@ -354,18 +432,54 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
         </div>
 
         {/* ======================================================== */}
-        {/* MAIN TIME RULER & AXIS (Center) */}
+        {/* MAIN TIME RULER & AXIS (Center with boundary caps) */}
         {/* ======================================================== */}
         <div className="absolute top-[280px] left-0 right-0 h-16">
-          {/* Continuous Axis Line */}
+          {/* Subtle Horizon Guide Background */}
           <div 
-            className="absolute top-6 left-0 right-0 h-[2px] bg-oros-700/80 group-hover:bg-accent transition-colors" 
+            className="absolute top-6 h-[2px] bg-oros-850/60"
+            style={{
+              left: yearToX(minYear),
+              width: (maxYear - minYear) * pxPerYear
+            }}
+          />
+
+          {/* Active Bounded Ruler Line (firstYear to lastYear) */}
+          <div 
+            className="absolute top-6 h-[2px] bg-oros-600/90 shadow-sm" 
+            style={{
+              left: rulerStartX,
+              width: rulerWidth
+            }}
             data-pan-target="true"
           />
+
+          {/* Left Boundary Cap (Start of Chronology Horizon) */}
+          <div 
+            className="absolute top-2 flex flex-col items-center pointer-events-none z-10"
+            style={{ left: rulerStartX, transform: 'translateX(-50%)' }}
+          >
+            <div className="h-6 w-[2px] bg-accent shadow" />
+            <span className="font-mono text-[9px] font-bold text-accent bg-oros-900 border border-accent/60 px-1.5 py-0.5 rounded-[2px] mt-1 whitespace-nowrap shadow-md">
+              | START: {firstYear} {calendarConfig.yearSuffix}
+            </span>
+          </div>
+
+          {/* Right Boundary Cap (End of Chronology Horizon) */}
+          <div 
+            className="absolute top-2 flex flex-col items-center pointer-events-none z-10"
+            style={{ left: rulerEndX, transform: 'translateX(-50%)' }}
+          >
+            <div className="h-6 w-[2px] bg-accent shadow" />
+            <span className="font-mono text-[9px] font-bold text-accent bg-oros-900 border border-accent/60 px-1.5 py-0.5 rounded-[2px] mt-1 whitespace-nowrap shadow-md">
+              END: {lastYear} {calendarConfig.yearSuffix} |
+            </span>
+          </div>
 
           {/* Axis Ticks */}
           {ticks.map((t) => {
             const x = yearToX(t.year)
+            const isWithinHorizon = t.year >= firstYear && t.year <= lastYear
             return (
               <div
                 key={t.year}
@@ -376,16 +490,18 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
                 <div 
                   className={`w-[1px] transition-colors ${
                     t.isMajor 
-                      ? 'h-4 bg-oros-300' 
+                      ? (isWithinHorizon ? 'h-4 bg-oros-200' : 'h-3 bg-oros-500') 
                       : t.isDecade 
-                      ? 'h-2.5 bg-oros-600' 
-                      : 'h-1.5 bg-oros-750'
+                      ? (isWithinHorizon ? 'h-2.5 bg-oros-500' : 'h-2 bg-oros-700') 
+                      : 'h-1.5 bg-oros-800'
                   }`} 
                 />
 
                 {/* Monospace Year Label */}
                 {(t.isMajor || (pxPerYear > 8 && t.isDecade) || pxPerYear > 30) && (
-                  <span className="font-mono text-[10px] text-oros-400 mt-1 select-none font-medium">
+                  <span className={`font-mono text-[10px] mt-1 select-none font-medium ${
+                    isWithinHorizon ? 'text-oros-300' : 'text-oros-600'
+                  }`}>
                     {t.year}
                   </span>
                 )}
@@ -409,7 +525,7 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
               }
             }}
             className="absolute top-0 left-0 right-0 h-12 cursor-pointer z-10"
-            title="Click to add event here · Drag to create a time period"
+            title="Click axis to add event · Drag to create a time period span"
           />
 
           {/* Active Period Drag Highlight */}

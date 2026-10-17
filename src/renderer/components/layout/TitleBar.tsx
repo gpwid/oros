@@ -3,7 +3,7 @@ import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
 import { 
   Compass, Shield, Download, Upload, Plus, Check, Loader2, 
-  ChevronDown, Search, FolderOpen 
+  ChevronDown, Search, FolderOpen, X 
 } from 'lucide-react'
 
 export const TitleBar: React.FC = () => {
@@ -250,60 +250,78 @@ export const TitleBar: React.FC = () => {
 
       {/* New World Modal */}
       {showNewModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] shadow-2xl p-5">
-            <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 mb-4 flex items-center gap-2">
-              <Compass className="w-3.5 h-3.5 text-oros-400" />
-              <span>New World</span>
-            </h3>
-            <form onSubmit={handleCreate} className="space-y-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-100">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-[4px] shadow-2xl flex flex-col max-h-[380px] overflow-hidden select-text text-oros-100">
+            {/* Header */}
+            <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <Compass className="w-3.5 h-3.5 text-accent" />
+                <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100">
+                  New World
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowNewModal(false)}
+                className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <form id="create-world-form" onSubmit={handleCreate} className="p-3.5 space-y-2.5 overflow-y-auto flex-1">
               <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1">World Name</label>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">World Name *</label>
                 <input
                   type="text"
                   required
+                  autoFocus
                   value={newWorldName}
                   onChange={(e) => setNewWorldName(e.target.value)}
-                  placeholder="World name..."
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                  placeholder="e.g. Aethelgard"
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent font-sans"
                 />
               </div>
+
               <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1">Genre</label>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Genre</label>
                 <input
                   type="text"
                   value={newWorldGenre}
                   onChange={(e) => setNewWorldGenre(e.target.value)}
-                  placeholder="Genre (optional)..."
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                  placeholder="e.g. Dark Fantasy, Cyberpunk"
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent font-sans"
                 />
               </div>
+
               <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1">Description</label>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Tagline / Description</label>
                 <textarea
                   rows={2}
                   value={newWorldTagline}
                   onChange={(e) => setNewWorldTagline(e.target.value)}
-                  placeholder="Description (optional)..."
-                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 resize-none font-sans"
+                  placeholder="Brief world premise..."
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent resize-none font-sans"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2 border-t border-oros-800">
-                <button
-                  type="button"
-                  onClick={() => setShowNewModal(false)}
-                  className="px-3 py-1.5 rounded-[3px] text-xs text-oros-300 hover:bg-oros-800 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold transition-colors shadow-sm"
-                >
-                  Create World
-                </button>
-              </div>
             </form>
+
+            {/* Pinned Visible Footer */}
+            <div className="px-4 py-2 border-t border-oros-750 bg-oros-900 flex items-center justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowNewModal(false)}
+                className="px-3 py-1 rounded-[3px] text-xs font-semibold text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="create-world-form"
+                className="btn-accent px-3.5 py-1 rounded-[3px] text-xs font-semibold transition-colors shadow-sm"
+              >
+                Create World
+              </button>
+            </div>
           </div>
         </div>
       )}

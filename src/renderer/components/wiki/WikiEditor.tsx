@@ -7,8 +7,10 @@ import { createMentionSuggestion } from './mentionSuggestion'
 import { useToastStore } from '../../store/useToastStore'
 import { 
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, 
-  List, ListOrdered, Quote, Undo, Redo, AtSign, Image as ImageIcon 
+  List, ListOrdered, Quote, Undo, Redo, AtSign, Image as ImageIcon,
+  EyeOff
 } from 'lucide-react'
+import { Spoiler } from './spoilerExtension'
 
 interface WikiEditorProps {
   content: string;
@@ -17,7 +19,7 @@ interface WikiEditorProps {
 }
 
 export const WikiEditor: React.FC<WikiEditorProps> = ({ 
-  content, onChange, placeholder = 'Chronicle lore, history, or knowledge... (Type @ to link lore cards)' 
+  content, onChange, placeholder = 'Chronicle lore, history, or knowledge... (Type @ to link lore cards, ||spoiler|| for secrets)' 
 }) => {
   const { addToast } = useToastStore()
 
@@ -32,7 +34,8 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
           class: 'oros-mention'
         },
         suggestion: createMentionSuggestion()
-      })
+      }),
+      Spoiler
     ],
     content,
     editorProps: {
@@ -172,6 +175,21 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
           >
             <ImageIcon className="w-3.5 h-3.5 text-teal-400" />
             <span className="text-[11px]">Add Art</span>
+          </button>
+
+          {/* Discord-style Spoiler Mark */}
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().toggleSpoiler().run()}
+            className={`px-2 py-1 rounded-lg border text-xs flex items-center gap-1 transition-colors ${
+              editor.isActive('spoiler')
+                ? 'bg-rose-950/80 border-rose-700/80 text-rose-300'
+                : 'bg-oros-800/80 border-oros-700/60 hover:bg-rose-950/40 hover:text-rose-300 text-oros-300'
+            }`}
+            title="Spoiler Tag (Ctrl+Shift+S or type ||secret||)"
+          >
+            <EyeOff className="w-3.5 h-3.5 text-rose-400" />
+            <span className="text-[11px]">Spoiler</span>
           </button>
         </div>
 

@@ -7,7 +7,7 @@ import { PromptModal, ConfirmModal } from '../common/PromptModal'
 import { QuickPeekCard } from '../common/QuickPeekCard'
 import { 
   Plus, Edit, Eye, Trash2, Tag, BookOpen, Link2, List, Filter, ChevronDown, SlidersHorizontal,
-  ChevronsLeft, ChevronsRight
+  ChevronsLeft, ChevronsRight, EyeOff
 } from 'lucide-react'
 import { EntityType, LoreEntity } from '@shared/types'
 import { 
@@ -24,7 +24,7 @@ interface WikiArticleViewProps {
 export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) => {
   const { 
     entities, categories, activeWorldId, selectedEntityId, setSelectedEntityId, openTab,
-    updateEntity, createEntity, deleteEntity, searchQuery 
+    updateEntity, createEntity, deleteEntity, searchQuery, gmMode 
   } = useWorldStore()
 
   const { addToast } = useToastStore()
@@ -423,14 +423,17 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
             </div>
 
             {/* Layout: Main Article Body + MediaWiki Infobox Float */}
-            <div className="flex items-start gap-6">
+            <div className="flex flex-col xl:flex-row items-start gap-6">
               {/* Center Article Content */}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 w-full">
                 {isEditing ? (
                   <div className="space-y-3.5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-oros-400 mb-1 font-sans">Article Summary</label>
+                    {/* Responsive Metadata Inputs: Flex-wrap/stack so boxes never squish */}
+                    <div className="flex flex-col xl:flex-row gap-3">
+                      <div className="flex-1 min-w-0">
+                        <label className="block text-xs font-medium text-oros-400 mb-1 font-sans">
+                          Article Summary
+                        </label>
                         <input
                           type="text"
                           value={currentEntity.summary}
@@ -439,9 +442,10 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                           placeholder="A concise, high-level summary..."
                         />
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-oros-400 mb-1 font-sans">
-                          Also known as / Aliases <span className="text-oros-500 font-normal">(comma-separated)</span>
+                      <div className="flex-1 min-w-0">
+                        <label className="block text-xs font-medium text-oros-400 mb-1 font-sans flex items-center justify-between">
+                          <span>Also known as / Aliases</span>
+                          <span className="text-[10px] text-oros-500 font-mono">comma-separated</span>
                         </label>
                         <input
                           type="text"
@@ -452,22 +456,54 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                             updateEntity(currentEntity.id, { aliases: parsed })
                           }}
                           className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
-                          placeholder="E.g. The Silk Seer, Master Weaver (leave empty to hide)"
+                          placeholder="E.g. The Dawn King, Ronald the Steadfast"
                         />
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-0.5">
-                      <label className="flex items-center gap-2 cursor-pointer text-xs text-oros-300 select-none">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(currentEntity.isSecret)}
-                          onChange={(e) => updateEntity(currentEntity.id, { isSecret: e.target.checked })}
-                          className="rounded border-oros-750 bg-oros-900 text-oros-300 focus:ring-0"
+                    {/* Sovereign Confidential / Secret Lore Switch (Replacing raw checkbox) */}
+                    <div className="flex items-center justify-between p-2.5 rounded-[3px] bg-oros-900 border border-oros-800 transition-colors">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`p-1.5 rounded-[2px] transition-colors ${
+                          currentEntity.isSecret 
+                            ? 'bg-rose-950 text-rose-300 border border-rose-800/80 shadow-sm' 
+                            : 'bg-oros-850 text-oros-400 border border-oros-750'
+                        }`}>
+                          <EyeOff className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-medium text-oros-200 flex items-center gap-2">
+                            <span>Confidential Lore Entry</span>
+                            {currentEntity.isSecret && (
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-rose-950 text-rose-300 border border-rose-800 uppercase tracking-wider">
+                                Secret
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-oros-400 font-sans">
+                            Mask this entire lore entry when Director / GM Secrets are switched off
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={Boolean(currentEntity.isSecret)}
+                        onClick={() => updateEntity(currentEntity.id, { isSecret: !currentEntity.isSecret })}
+                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          currentEntity.isSecret ? 'bg-rose-600' : 'bg-oros-800'
+                        }`}
+                        title="Toggle Confidential / Secret Status"
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                            currentEntity.isSecret ? 'translate-x-4' : 'translate-x-0'
+                          }`}
                         />
-                        <span>Mark as Secret / Spoiler Note (distinguished for GM / Director view)</span>
-                      </label>
+                      </button>
                     </div>
+
                     <WikiEditor
                       content={currentEntity.content}
                       onChange={(newHtml) => updateEntity(currentEntity.id, { content: newHtml })}
@@ -475,6 +511,16 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                   </div>
                 ) : (
                   <div>
+                    {/* Secret Notice when entity is confidential and reader mode is active */}
+                    {currentEntity.isSecret && !gmMode && (
+                      <div className="mb-4 p-2.5 rounded-[3px] bg-rose-950/30 border border-rose-800/50 flex items-center justify-between text-xs text-rose-300">
+                        <div className="flex items-center gap-2">
+                          <EyeOff className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                          <span>Confidential lore entry. Toggle <strong>SECRETS ON</strong> in the top bar to view in Director Mode.</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Dynamic Wikipedia Table of Contents (TOC) */}
                     {tocItems.length >= 2 && (
                       <div className="bg-oros-900 border border-oros-800 rounded-[4px] p-3 max-w-sm mb-6 text-xs shadow-sm">
@@ -511,9 +557,15 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                       </div>
                     )}
 
-                    {/* Formatted HTML Wiki Article with Injected Anchor IDs */}
+                    {/* Formatted HTML Wiki Article with Injected Anchor IDs & Interactive Discord-style Spoilers */}
                     <div 
-                      className="oros-wiki-prose"
+                      className={`oros-wiki-prose ${gmMode ? 'oros-gm-revealed' : ''}`}
+                      onClick={(e) => {
+                        const target = (e.target as HTMLElement).closest('.oros-spoiler')
+                        if (target) {
+                          target.classList.toggle('is-revealed')
+                        }
+                      }}
                       dangerouslySetInnerHTML={{ __html: processedHtml }}
                     />
                   </div>

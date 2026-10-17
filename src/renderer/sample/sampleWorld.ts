@@ -56,7 +56,7 @@ export const sampleEntities: LoreEntity[] = [
     title: 'Lady Vespera the Weaver',
     type: 'character',
     summary: 'High Priestess of the Astral Loom and Queen Consort of the Solar Bastion.',
-    content: `<h2>Origins & Secret Mastery</h2><p><strong>Lady Vespera</strong> was discovered in the crystalline caverns of Mount Oros at age ten, clutching a fragment of the Star-Core. She mastered the art of <em>Ley-Weaving</em> before her sixteenth summer.</p><h2>Influence on Court Politics</h2><p>Vespera serves as Ronald's chief counselor and spymaster, balancing diplomatic tensions between the merchant princes and the arcane conclave.</p>`,
+    content: `<h2>Origins & Secret Mastery</h2><p><strong>Lady Vespera</strong> was discovered in the crystalline caverns of Mount Oros at age ten, clutching a fragment of the Star-Core. She mastered the art of <em>Ley-Weaving</em> before her sixteenth summer.</p><h2>Influence on Court Politics</h2><p>Vespera serves as Ronald's chief counselor and spymaster, balancing diplomatic tensions between the merchant princes and the arcane conclave. <span class="oros-spoiler" data-spoiler="true">She secretly controls the shadow network of the Obsidian Syndicate to insulate the throne from internal coups.</span></p>`,
     tags: ['Royalty', 'Spellcaster', 'Diplomat'],
     aliases: ['The Silk Seer', 'Lady of the Loom'],
     avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',

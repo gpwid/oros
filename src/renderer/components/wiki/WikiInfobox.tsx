@@ -73,7 +73,7 @@ export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, onUpdate }) =>
   }
 
   return (
-    <aside className="w-80 shrink-0 bg-oros-900 border border-oros-750 rounded-[4px] overflow-hidden shadow-xl text-xs select-text my-2 ml-6">
+    <aside className="w-full xl:w-80 max-w-sm xl:max-w-none shrink-0 bg-oros-900 border border-oros-750 rounded-[4px] overflow-hidden shadow-xl text-xs select-text my-2 mx-auto xl:mx-0">
       {/* Top Banner / Header */}
       <div className="bg-oros-950 border-b border-oros-800 p-3 text-center">
         <h3 className="font-sans font-semibold text-sm tracking-tight text-oros-100">

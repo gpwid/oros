@@ -169,3 +169,58 @@
 .react-flow__attribution {
   display: none !important;
 }
+
+/* ==========================================================================
+   Discord-style Spoilers (Inline text secrets)
+   ========================================================================== */
+
+/* In Editor: visible to writer with subtle indicator styling */
+.ProseMirror .oros-spoiler {
+  background-color: rgba(39, 39, 42, 0.8);
+  border: 1px dashed rgba(244, 63, 94, 0.6);
+  color: #fda4af;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: inherit;
+  transition: all 0.15s ease-in-out;
+}
+
+/* In View Mode (Reading): Discord-style opaque block */
+.oros-wiki-prose .oros-spoiler {
+  display: inline;
+  background-color: #27272a;
+  color: transparent !important;
+  border-radius: 3px;
+  padding: 1px 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  position: relative;
+}
+
+.oros-wiki-prose .oros-spoiler::selection {
+  background: transparent;
+  color: transparent;
+}
+
+.oros-wiki-prose .oros-spoiler:hover:not(.is-revealed) {
+  background-color: #3f3f46;
+}
+
+/* Revealed on click */
+.oros-wiki-prose .oros-spoiler.is-revealed {
+  background-color: rgba(63, 63, 70, 0.35);
+  color: inherit !important;
+  user-select: text;
+  border-bottom: 1px dashed rgba(161, 161, 170, 0.6);
+}
+
+/* In Director / GM Mode (SECRETS ON), automatically reveal all spoilers with a gentle indicator */
+.oros-gm-revealed .oros-spoiler {
+  background-color: rgba(225, 29, 72, 0.15) !important;
+  color: #fecdd3 !important;
+  border-bottom: 1px dashed #f43f5e;
+  cursor: default;
+  user-select: text;
+}
+

@@ -10,6 +10,7 @@ import {
   getCategoryMeta 
 } from '../../utils/categoryIcons'
 import { CategoryManagerModal } from '../common/CategoryManagerModal'
+import { NewEntityModal } from '../common/NewEntityModal'
 
 export const CardGallery: React.FC = () => {
   const { 
@@ -20,8 +21,6 @@ export const CardGallery: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string | 'all'>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showCategoryManager, setShowCategoryManager] = useState(false)
-  const [newTitle, setNewTitle] = useState('')
-  const [newType, setNewType] = useState<string>('character')
 
   const worldId = activeWorldId || 'world-aethelgard'
   const worldEntities = entities[worldId] || []
@@ -45,13 +44,10 @@ export const CardGallery: React.FC = () => {
     })
   }
 
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newTitle.trim()) return
-    const newEnt = createEntity(newType, newTitle.trim())
+  const handleCreateConfirm = (title: string, templateId: string, folderId?: string | null) => {
+    const newEnt = createEntity(activeCategory === 'all' ? 'character' : activeCategory, title, folderId, templateId)
     navigateToWiki(newEnt)
     setShowCreateModal(false)
-    setNewTitle('')
   }
 
   return (
@@ -248,86 +244,13 @@ export const CardGallery: React.FC = () => {
         )}
       </div>
 
-      {/* Modal for Creating Card */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-[4px] shadow-2xl flex flex-col max-h-[320px] overflow-hidden select-text text-oros-100 animate-modal-in">
-            {/* Header */}
-            <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
-              <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100">
-                New Card
-              </h3>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <form id="create-card-form" onSubmit={handleCreate} className="p-3.5 space-y-2.5 overflow-y-auto flex-1">
-              <div>
-                <div className="flex items-center justify-between mb-0.5">
-                  <label className="text-[10px] font-mono uppercase font-semibold text-oros-400">Category / Label</label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCreateModal(false)
-                      setShowCategoryManager(true)
-                    }}
-                    className="text-[10px] text-accent hover:underline flex items-center gap-0.5"
-                  >
-                    <Tag className="w-2.5 h-2.5" />
-                    <span>Manage</span>
-                  </button>
-                </div>
-                <select
-                  value={newType}
-                  onChange={(e) => setNewType(e.target.value)}
-                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
-                >
-                  {worldCategories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} {c.isPreset ? '' : '(Custom)'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Card Title *</label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="e.g. Lord Commander Vael"
-                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
-                />
-              </div>
-            </form>
-
-            {/* Pinned Visible Footer */}
-            <div className="px-4 py-2 border-t border-oros-750 bg-oros-900 flex items-center justify-end gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => setShowCreateModal(false)}
-                className="px-3 py-1 rounded-[3px] text-xs font-semibold text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="create-card-form"
-                className="btn-accent px-3.5 py-1 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
-              >
-                Create Card
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Archetype Template Creation Modal */}
+      <NewEntityModal
+        isOpen={showCreateModal}
+        defaultType={activeCategory === 'all' ? 'character' : activeCategory}
+        onConfirm={handleCreateConfirm}
+        onCancel={() => setShowCreateModal(false)}
+      />
 
       {/* Category Manager Modal */}
       <CategoryManagerModal
@@ -335,7 +258,6 @@ export const CardGallery: React.FC = () => {
         onClose={() => setShowCategoryManager(false)}
         onSelectCategory={(catId) => {
           setActiveCategory(catId)
-          setNewType(catId)
         }}
       />
     </div>

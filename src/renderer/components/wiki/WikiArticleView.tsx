@@ -4,10 +4,11 @@ import { useToastStore } from '../../store/useToastStore'
 import { WikiInfobox } from './WikiInfobox'
 import { WikiEditor } from './WikiEditor'
 import { PromptModal, ConfirmModal } from '../common/PromptModal'
+import { NewEntityModal } from '../common/NewEntityModal'
 import { QuickPeekCard } from '../common/QuickPeekCard'
 import { 
   Plus, Edit, Eye, Trash2, Tag, BookOpen, Link2, List, Filter, ChevronDown, SlidersHorizontal,
-  ChevronsLeft, ChevronsRight, EyeOff
+  ChevronsLeft, ChevronsRight, EyeOff, Feather, MapPin, Calendar, GitFork, FileText, ExternalLink
 } from 'lucide-react'
 import { EntityType, LoreEntity } from '@shared/types'
 import { 
@@ -16,6 +17,7 @@ import {
   getCategoryMeta 
 } from '../../utils/categoryIcons'
 import { CategoryManagerModal } from '../common/CategoryManagerModal'
+import { findBacklinksForEntity } from '../../utils/backlinksEngine'
 
 interface WikiArticleViewProps {
   entityId?: string
@@ -24,7 +26,8 @@ interface WikiArticleViewProps {
 export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) => {
   const { 
     entities, categories, activeWorldId, selectedEntityId, setSelectedEntityId, openTab,
-    updateEntity, createEntity, deleteEntity, searchQuery, gmMode 
+    updateEntity, createEntity, deleteEntity, searchQuery, gmMode,
+    manuscripts, maps, timelines, relations, setSelectedChapterId, setSelectedMapId
   } = useWorldStore()
 
   const { addToast } = useToastStore()
@@ -38,6 +41,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
   const [hoveredEntity, setHoveredEntity] = useState<LoreEntity | null>(null)
   const [isTocCollapsed, setIsTocCollapsed] = useState(false)
   const [isDirectoryOpen, setIsDirectoryOpen] = useState(true)
+  const [backlinkFilter, setBacklinkFilter] = useState<'all' | 'chapters' | 'lore' | 'maps' | 'timelines' | 'relations'>('all')
 
   const worldId = activeWorldId || 'world-aethelgard'
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
@@ -120,21 +124,28 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
     }
   }
 
-  // Find backlinks (entities mentioning this entity in infobox or content)
-  const backlinks = useMemo(() => {
-    if (!currentEntity) return []
-    return worldEntities.filter((e) => {
-      if (e.id === currentEntity.id) return false
-      const mentionsInInfobox = e.infobox.sections.some(s => 
-        s.fields.some(f => f.targetEntityId === currentEntity.id)
-      )
-      const mentionsInContent = e.content.includes(currentEntity.title)
-      return mentionsInInfobox || mentionsInContent
-    })
-  }, [currentEntity?.id, currentEntity?.title, worldEntities])
+  const worldChapters = useMemo(() => activeWorldId ? manuscripts[activeWorldId] || [] : [], [activeWorldId, manuscripts])
+  const worldMaps = useMemo(() => activeWorldId ? maps[activeWorldId] || [] : [], [activeWorldId, maps])
+  const worldTimelines = useMemo(() => activeWorldId ? timelines[activeWorldId] || [] : [], [activeWorldId, timelines])
+  const worldRelations = useMemo(() => activeWorldId ? relations[activeWorldId] || [] : [], [activeWorldId, relations])
 
-  const handleCreateSubmit = (title: string) => {
-    const newEnt = createEntity(filterType === 'all' ? 'character' : filterType, title)
+  // Multi-domain bidirectional backlinks index
+  const backlinksData = useMemo(() => {
+    if (!currentEntity) {
+      return { totalCount: 0, chapters: [], lore: [], maps: [], timelines: [], relations: [] }
+    }
+    return findBacklinksForEntity(
+      currentEntity,
+      worldEntities,
+      worldChapters,
+      worldMaps,
+      worldTimelines,
+      worldRelations
+    )
+  }, [currentEntity, worldEntities, worldChapters, worldMaps, worldTimelines, worldRelations])
+
+  const handleCreateSubmit = (title: string, templateId: string, folderId?: string | null) => {
+    const newEnt = createEntity(filterType === 'all' ? 'character' : filterType, title, folderId, templateId)
     setSelectedEntityId(newEnt.id)
     setIsEditing(true)
     setShowCreateModal(false)
@@ -584,43 +595,287 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                   </div>
                 )}
 
-                {/* Backlinks / What Links Here */}
+                {/* Bidirectional Backlinks / Mentioned In Engine */}
                 <div className="mt-12 pt-6 border-t border-oros-800">
-                  <h3 className="font-sans text-xs font-semibold text-oros-300 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <Link2 className="w-3.5 h-3.5 text-oros-400" />
-                    What Links Here (Backlinks)
-                  </h3>
-                  {backlinks.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      {backlinks.map((bl) => (
-                        <div
-                          key={bl.id}
-                          onMouseEnter={() => setHoveredEntity(bl)}
-                          onMouseLeave={() => setHoveredEntity(null)}
-                          className="relative"
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Link2 className="w-4 h-4 text-accent" />
+                      <h3 className="font-sans text-xs font-semibold text-oros-200 uppercase tracking-wider">
+                        Mentioned In & Reciprocal Backlinks
+                      </h3>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-[2px] bg-oros-900 border border-oros-750 text-oros-300">
+                        {backlinksData.totalCount} {backlinksData.totalCount === 1 ? 'reference' : 'references'}
+                      </span>
+                    </div>
+
+                    {/* Filter Pills */}
+                    {backlinksData.totalCount > 0 && (
+                      <div className="flex flex-wrap items-center gap-1">
+                        <button
+                          onClick={() => setBacklinkFilter('all')}
+                          className={`px-2 py-0.5 rounded-[2px] text-[10px] font-mono uppercase tracking-wider transition-colors ${
+                            backlinkFilter === 'all'
+                              ? 'btn-accent font-semibold shadow-sm'
+                              : 'bg-oros-900 hover:bg-oros-850 text-oros-400 hover:text-oros-200 border border-oros-800'
+                          }`}
                         >
+                          All ({backlinksData.totalCount})
+                        </button>
+                        {backlinksData.chapters.length > 0 && (
                           <button
+                            onClick={() => setBacklinkFilter('chapters')}
+                            className={`px-2 py-0.5 rounded-[2px] text-[10px] font-mono uppercase tracking-wider transition-colors flex items-center gap-1 ${
+                              backlinkFilter === 'chapters'
+                                ? 'btn-accent font-semibold shadow-sm'
+                                : 'bg-oros-900 hover:bg-oros-850 text-oros-400 hover:text-oros-200 border border-oros-800'
+                            }`}
+                          >
+                            <Feather className="w-3 h-3" />
+                            Chapters ({backlinksData.chapters.length})
+                          </button>
+                        )}
+                        {backlinksData.lore.length > 0 && (
+                          <button
+                            onClick={() => setBacklinkFilter('lore')}
+                            className={`px-2 py-0.5 rounded-[2px] text-[10px] font-mono uppercase tracking-wider transition-colors flex items-center gap-1 ${
+                              backlinkFilter === 'lore'
+                                ? 'btn-accent font-semibold shadow-sm'
+                                : 'bg-oros-900 hover:bg-oros-850 text-oros-400 hover:text-oros-200 border border-oros-800'
+                            }`}
+                          >
+                            <FileText className="w-3 h-3" />
+                            Articles ({backlinksData.lore.length})
+                          </button>
+                        )}
+                        {backlinksData.maps.length > 0 && (
+                          <button
+                            onClick={() => setBacklinkFilter('maps')}
+                            className={`px-2 py-0.5 rounded-[2px] text-[10px] font-mono uppercase tracking-wider transition-colors flex items-center gap-1 ${
+                              backlinkFilter === 'maps'
+                                ? 'btn-accent font-semibold shadow-sm'
+                                : 'bg-oros-900 hover:bg-oros-850 text-oros-400 hover:text-oros-200 border border-oros-800'
+                            }`}
+                          >
+                            <MapPin className="w-3 h-3" />
+                            Maps ({backlinksData.maps.length})
+                          </button>
+                        )}
+                        {backlinksData.timelines.length > 0 && (
+                          <button
+                            onClick={() => setBacklinkFilter('timelines')}
+                            className={`px-2 py-0.5 rounded-[2px] text-[10px] font-mono uppercase tracking-wider transition-colors flex items-center gap-1 ${
+                              backlinkFilter === 'timelines'
+                                ? 'btn-accent font-semibold shadow-sm'
+                                : 'bg-oros-900 hover:bg-oros-850 text-oros-400 hover:text-oros-200 border border-oros-800'
+                            }`}
+                          >
+                            <Calendar className="w-3 h-3" />
+                            Timelines ({backlinksData.timelines.length})
+                          </button>
+                        )}
+                        {backlinksData.relations.length > 0 && (
+                          <button
+                            onClick={() => setBacklinkFilter('relations')}
+                            className={`px-2 py-0.5 rounded-[2px] text-[10px] font-mono uppercase tracking-wider transition-colors flex items-center gap-1 ${
+                              backlinkFilter === 'relations'
+                                ? 'btn-accent font-semibold shadow-sm'
+                                : 'bg-oros-900 hover:bg-oros-850 text-oros-400 hover:text-oros-200 border border-oros-800'
+                            }`}
+                          >
+                            <GitFork className="w-3 h-3" />
+                            Relations ({backlinksData.relations.length})
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {backlinksData.totalCount > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                      {/* Chapter Mentions */}
+                      {(backlinkFilter === 'all' || backlinkFilter === 'chapters') &&
+                        backlinksData.chapters.map((ch) => (
+                          <div
+                            key={`ch-${ch.id}`}
                             onClick={() => {
-                              setSelectedEntityId(bl.id)
-                              openTab({ title: bl.title, type: 'wiki', targetId: bl.id })
+                              setSelectedChapterId(ch.id)
+                              openTab({ title: ch.title, type: 'writer', targetId: ch.id })
                             }}
-                            className="w-full text-left p-2.5 rounded-[3px] bg-oros-900 border border-oros-800 hover:border-oros-700 hover:bg-oros-850 transition-all flex items-center justify-between group"
+                            className="p-3 rounded-[3px] bg-oros-900/90 border border-oros-800 hover:border-accent/50 hover:bg-oros-850/80 transition-all cursor-pointer group shadow-sm flex flex-col justify-between"
                           >
                             <div>
-                              <div className="text-xs font-medium text-oros-200 group-hover:text-white">
-                                {bl.title}
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center gap-1.5 text-xs font-semibold text-oros-100 group-hover:text-accent transition-colors">
+                                  <Feather className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                  <span className="truncate">{ch.title}</span>
+                                </div>
+                                <span className="text-[10px] font-mono text-oros-400 px-1.5 py-0.5 rounded-[2px] bg-oros-950 border border-oros-800 shrink-0">
+                                  Ch. {ch.order + 1} · {ch.wordCount} words
+                                </span>
                               </div>
-                              <div className="text-[10px] text-oros-500 font-mono capitalize">{bl.type}</div>
+                              {ch.snippet && (
+                                <p className="text-xs text-oros-400 font-serif italic line-clamp-2 leading-relaxed bg-oros-950/40 p-2 rounded-[2px] border border-oros-850">
+                                  "{ch.snippet}"
+                                </p>
+                              )}
                             </div>
-                            <span className="text-[10px] text-oros-500 font-mono">Reference</span>
-                          </button>
-                        </div>
-                      ))}
+                            <div className="mt-2.5 pt-2 border-t border-oros-850 flex items-center justify-between text-[10px] font-mono text-oros-500">
+                              <span>Manuscript Prose</span>
+                              <span className="group-hover:text-accent flex items-center gap-1 transition-colors">
+                                Open Chapter <ExternalLink className="w-2.5 h-2.5" />
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+
+                      {/* Lore Entity Mentions */}
+                      {(backlinkFilter === 'all' || backlinkFilter === 'lore') &&
+                        backlinksData.lore.map((l) => (
+                          <div
+                            key={`lore-${l.id}`}
+                            onClick={() => {
+                              setSelectedEntityId(l.id)
+                              openTab({ title: l.title, type: 'wiki', targetId: l.id })
+                            }}
+                            className="p-3 rounded-[3px] bg-oros-900/90 border border-oros-800 hover:border-accent/50 hover:bg-oros-850/80 transition-all cursor-pointer group shadow-sm flex flex-col justify-between"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center gap-1.5 text-xs font-semibold text-oros-100 group-hover:text-accent transition-colors">
+                                  <FileText className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                                  <span className="truncate">{l.title}</span>
+                                </div>
+                                <span className="text-[10px] font-mono capitalize text-oros-400 px-1.5 py-0.5 rounded-[2px] bg-oros-950 border border-oros-800 shrink-0">
+                                  {l.entityType}
+                                </span>
+                              </div>
+                              {l.snippet && (
+                                <p className="text-xs text-oros-400 font-sans line-clamp-2 leading-relaxed bg-oros-950/40 p-2 rounded-[2px] border border-oros-850">
+                                  "{l.snippet}"
+                                </p>
+                              )}
+                            </div>
+                            <div className="mt-2.5 pt-2 border-t border-oros-850 flex items-center justify-between text-[10px] font-mono text-oros-500">
+                              <span className="capitalize">{l.reason === 'infobox' ? 'Infobox Link' : l.reason === 'mention' ? '@Mention Tag' : 'Cites in Content'}</span>
+                              <span className="group-hover:text-accent flex items-center gap-1 transition-colors">
+                                View Card <ExternalLink className="w-2.5 h-2.5" />
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+
+                      {/* Map Pins / Regions */}
+                      {(backlinkFilter === 'all' || backlinkFilter === 'maps') &&
+                        backlinksData.maps.map((m) => (
+                          <div
+                            key={`map-${m.targetId}`}
+                            onClick={() => {
+                              setSelectedMapId(m.mapId)
+                              openTab({ title: m.mapName, type: 'map', targetId: m.mapId })
+                            }}
+                            className="p-3 rounded-[3px] bg-oros-900/90 border border-oros-800 hover:border-accent/50 hover:bg-oros-850/80 transition-all cursor-pointer group shadow-sm flex flex-col justify-between"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center gap-1.5 text-xs font-semibold text-oros-100 group-hover:text-accent transition-colors">
+                                  <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                  <span className="truncate">{m.name}</span>
+                                </div>
+                                <span className="text-[10px] font-mono uppercase text-oros-400 px-1.5 py-0.5 rounded-[2px] bg-oros-950 border border-oros-800 shrink-0">
+                                  {m.targetType === 'pin' ? 'Map Pin' : 'Region'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-oros-400 font-sans">
+                                Pinned on atlas map: <strong className="text-oros-200">{m.mapName}</strong>
+                              </p>
+                            </div>
+                            <div className="mt-2.5 pt-2 border-t border-oros-850 flex items-center justify-between text-[10px] font-mono text-oros-500">
+                              <span>Cartography Atlas</span>
+                              <span className="group-hover:text-accent flex items-center gap-1 transition-colors">
+                                Open Map <ExternalLink className="w-2.5 h-2.5" />
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+
+                      {/* Timeline Events */}
+                      {(backlinkFilter === 'all' || backlinkFilter === 'timelines') &&
+                        backlinksData.timelines.map((ev) => (
+                          <div
+                            key={`tl-${ev.id}`}
+                            onClick={() => {
+                              openTab({ title: 'Timeline & Chronicles', type: 'timeline' })
+                            }}
+                            className="p-3 rounded-[3px] bg-oros-900/90 border border-oros-800 hover:border-accent/50 hover:bg-oros-850/80 transition-all cursor-pointer group shadow-sm flex flex-col justify-between"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center gap-1.5 text-xs font-semibold text-oros-100 group-hover:text-accent transition-colors">
+                                  <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                                  <span className="truncate">{ev.title}</span>
+                                </div>
+                                <span className="text-[10px] font-mono text-oros-400 px-1.5 py-0.5 rounded-[2px] bg-oros-950 border border-oros-800 shrink-0">
+                                  Year {ev.year} · {ev.era}
+                                </span>
+                              </div>
+                              {ev.descriptionSnippet && (
+                                <p className="text-xs text-oros-400 font-sans line-clamp-2 leading-relaxed bg-oros-950/40 p-2 rounded-[2px] border border-oros-850">
+                                  {ev.descriptionSnippet}
+                                </p>
+                              )}
+                            </div>
+                            <div className="mt-2.5 pt-2 border-t border-oros-850 flex items-center justify-between text-[10px] font-mono text-oros-500">
+                              <span className="capitalize">{ev.importance} Event</span>
+                              <span className="group-hover:text-accent flex items-center gap-1 transition-colors">
+                                Open Timeline <ExternalLink className="w-2.5 h-2.5" />
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+
+                      {/* Direct Relation Graph Edges */}
+                      {(backlinkFilter === 'all' || backlinkFilter === 'relations') &&
+                        backlinksData.relations.map((rel) => (
+                          <div
+                            key={`rel-${rel.id}`}
+                            onClick={() => {
+                              setSelectedEntityId(rel.relatedEntityId)
+                              openTab({ title: rel.relatedEntityTitle, type: 'wiki', targetId: rel.relatedEntityId })
+                            }}
+                            className="p-3 rounded-[3px] bg-oros-900/90 border border-oros-800 hover:border-accent/50 hover:bg-oros-850/80 transition-all cursor-pointer group shadow-sm flex flex-col justify-between"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center gap-1.5 text-xs font-semibold text-oros-100 group-hover:text-accent transition-colors">
+                                  <GitFork className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                                  <span className="truncate">{rel.relatedEntityTitle}</span>
+                                </div>
+                                <span className="text-[10px] font-mono uppercase text-oros-400 px-1.5 py-0.5 rounded-[2px] bg-oros-950 border border-oros-800 shrink-0">
+                                  {rel.label || rel.relationType}
+                                </span>
+                              </div>
+                              <p className="text-xs text-oros-400 font-sans">
+                                {rel.isIncoming ? 'Incoming link from' : 'Connected directly to'}: <strong className="text-oros-200">{rel.relatedEntityTitle}</strong>
+                              </p>
+                            </div>
+                            <div className="mt-2.5 pt-2 border-t border-oros-850 flex items-center justify-between text-[10px] font-mono text-oros-500">
+                              <span>Relationship Graph</span>
+                              <span className="group-hover:text-accent flex items-center gap-1 transition-colors">
+                                View Linked Card <ExternalLink className="w-2.5 h-2.5" />
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-oros-500 font-sans">
-                      No other articles currently cite or link to this entry.
-                    </p>
+                    <div className="p-4 rounded-[3px] bg-oros-900/50 border border-oros-800 text-center">
+                      <p className="text-xs text-oros-400 font-sans">
+                        No other chapters, articles, map pins, or timeline events currently cite or link to this entry.
+                      </p>
+                      <p className="text-[11px] text-oros-500 font-mono mt-1">
+                        Use <strong className="text-oros-300">@{currentEntity.title}</strong> while writing chapters or lore cards to create instant reciprocal links.
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -659,12 +914,9 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
       )}
 
       {/* Accessible Modals */}
-      <PromptModal
+      <NewEntityModal
         isOpen={showCreateModal}
-        title="New Article"
-        description="Enter article title."
-        placeholder="Article title..."
-        confirmLabel="Create Article"
+        defaultType={filterType === 'all' ? 'character' : filterType}
         onConfirm={handleCreateSubmit}
         onCancel={() => setShowCreateModal(false)}
       />

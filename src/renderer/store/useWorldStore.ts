@@ -3,7 +3,7 @@ import {
   World, LoreEntity, WorldMap, RelationEdge, TimelineEvent, ManuscriptChapter, 
   StorageData, MapPin, MapRegion,
   DirectoryFolder, DirectoryItem, DirectoryItemType, WorkspaceTab, 
-  WhiteboardCanvasData, CanvasStroke, EntityCategory, WorldCalendarConfig
+  WhiteboardCanvasData, CanvasStroke, EntityCategory, WorldCalendarConfig, InfoboxSection
 } from '@shared/types'
 import { DEFAULT_PRESET_CATEGORIES } from '../utils/categoryIcons'
 import { 
@@ -16,6 +16,7 @@ import {
   sampleTimelines, sampleManuscript,
   sampleFolders, sampleDirectoryItems, sampleCanvases, sampleWorkspaceTabs
 } from '../sample/sampleWorld'
+import { getTemplateById, getTemplateForType } from '../utils/entityTemplates'
 
 export type ActiveNavTab = 'wiki' | 'cards' | 'relations' | 'wiki-network' | 'maps' | 'timeline' | 'writer' | 'graph' | 'canvas';
 
@@ -101,7 +102,7 @@ interface WorldState {
   setWorldTheme: (worldId: string, theme: World['theme'], customAccentColor?: string) => void;
   
   // Entity CRUD
-  createEntity: (type: LoreEntity['type'], title: string, folderId?: string | null) => LoreEntity;
+  createEntity: (type: LoreEntity['type'], title: string, folderId?: string | null, templateId?: string) => LoreEntity;
   updateEntity: (entityId: string, updates: Partial<LoreEntity>) => void;
   deleteEntity: (entityId: string) => void;
 
@@ -1028,28 +1029,39 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     get().persistStore();
   },
 
-  createEntity: (type, title, folderId = null) => {
+  createEntity: (type, title, folderId = null, templateId) => {
     const worldId = get().activeWorldId || sampleWorld.id;
+    const worldName = get().worlds.find(w => w.id === worldId)?.name;
+    const template = templateId ? getTemplateById(templateId) : getTemplateForType(type);
+
+    const generatedSections: InfoboxSection[] = template?.sections ? template.sections.map((sec, sIdx) => ({
+      ...sec,
+      fields: sec.fields.map((f, fIdx) => ({
+        ...f,
+        id: `f-${Date.now()}-${sIdx}-${fIdx}`
+      }))
+    })) : [
+      {
+        title: 'Overview',
+        fields: [
+          { id: `f-${Date.now()}-1`, label: 'Status', value: 'Active', type: 'text' as const },
+          { id: `f-${Date.now()}-2`, label: 'Origin', value: 'Unknown', type: 'text' as const }
+        ]
+      }
+    ];
+
     const newEntity: LoreEntity = {
       id: `entity-${Date.now()}`,
       worldId,
       title,
-      type,
+      type: template?.entityType || type,
       summary: '',
-      content: `<p>Start writing about <strong>${title}</strong> here...</p>`,
+      content: template?.content || `<p>Start writing about <strong>${title}</strong> here...</p>`,
       tags: [],
       aliases: [],
       infobox: {
-        subtitle: `${type.toUpperCase()}${get().worlds.find(w => w.id === worldId)?.name ? ` · ${get().worlds.find(w => w.id === worldId)?.name}` : ''}`,
-        sections: [
-          {
-            title: 'Overview',
-            fields: [
-              { id: `f-${Date.now()}-1`, label: 'Status', value: 'Active', type: 'text' },
-              { id: `f-${Date.now()}-2`, label: 'Origin', value: 'Unknown', type: 'text' }
-            ]
-          }
-        ]
+        subtitle: `${template?.defaultSubtitle || type.toUpperCase()}${worldName ? ` · ${worldName}` : ''}`,
+        sections: generatedSections
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()

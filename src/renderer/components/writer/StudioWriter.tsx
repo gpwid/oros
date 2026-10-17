@@ -56,14 +56,14 @@ export const StudioWriter: React.FC = () => {
           <div className="p-3 border-b border-oros-800 flex items-center justify-between">
             <div className="text-xs font-sans font-semibold text-oros-100 uppercase tracking-wide flex items-center gap-2">
               <Feather className="w-3.5 h-3.5 text-oros-400" />
-              Manuscript Chapters
+              Chapters
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
               className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-750 text-oros-200 hover:text-oros-100 text-xs font-medium flex items-center gap-1 transition-colors"
             >
               <Plus className="w-3 h-3" />
-              <span>Chapter</span>
+              <span>New</span>
             </button>
           </div>
 
@@ -124,7 +124,7 @@ export const StudioWriter: React.FC = () => {
                   }`}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  <span>Codex</span>
+                  <span>References</span>
                 </button>
                 <button
                   onClick={() => setShowDeleteModal(true)}
@@ -139,7 +139,7 @@ export const StudioWriter: React.FC = () => {
             <WikiEditor
               content={currentChapter.content}
               onChange={(newHtml) => updateChapter(currentChapter.id, newHtml)}
-              placeholder="Draft your story, campaign log, or lore chronicle... (Type @ to mention lore cards)"
+              placeholder="Write here... (Type @ to link cards)"
             />
           </div>
         ) : (
@@ -156,7 +156,7 @@ export const StudioWriter: React.FC = () => {
             <div className="flex items-center justify-between mb-2">
               <span className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 flex items-center gap-1.5">
                 <BookOpen className="w-3.5 h-3.5 text-oros-400" />
-                Codex Reference
+                References
               </span>
               <button
                 onClick={() => setShowCodexDrawer(false)}
@@ -171,7 +171,7 @@ export const StudioWriter: React.FC = () => {
                 type="text"
                 value={codexSearch}
                 onChange={(e) => setCodexSearch(e.target.value)}
-                placeholder="Search lore references..."
+                placeholder="Search references..."
                 className="w-full bg-oros-900 border border-oros-750 rounded-[3px] pl-7 pr-2 py-1 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-500 font-sans"
               />
             </div>
@@ -226,9 +226,9 @@ export const StudioWriter: React.FC = () => {
       {/* Accessible Modals */}
       <PromptModal
         isOpen={showCreateModal}
-        title="Forge New Manuscript Chapter"
-        description="Enter the chapter or scene title for your story."
-        placeholder="e.g. Chapter 2: The Starlight Conclave"
+        title="New Chapter"
+        description="Enter chapter title."
+        placeholder="Chapter title..."
         confirmLabel="Create Chapter"
         onConfirm={handleCreateSubmit}
         onCancel={() => setShowCreateModal(false)}

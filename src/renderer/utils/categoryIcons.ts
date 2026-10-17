@@ -36,7 +36,7 @@ export const DEFAULT_PRESET_CATEGORIES: EntityCategory[] = [
     icon: 'User',
     color: '#eab308', // Gold
     isPreset: true,
-    description: 'Protagonists, antagonists, monarchs, NPCs, and dramatis personae'
+    description: 'People, figures, NPCs, and personas'
   },
   {
     id: 'location',
@@ -44,7 +44,7 @@ export const DEFAULT_PRESET_CATEGORIES: EntityCategory[] = [
     icon: 'MapPin',
     color: '#10b981', // Emerald
     isPreset: true,
-    description: 'Settlements, continents, landmarks, kingdoms, and mystical realms'
+    description: 'Settlements, regions, landmarks, and planets'
   },
   {
     id: 'faction',
@@ -52,55 +52,55 @@ export const DEFAULT_PRESET_CATEGORIES: EntityCategory[] = [
     icon: 'Shield',
     color: '#3b82f6', // Blue
     isPreset: true,
-    description: 'Guilds, religious sects, military orders, and clandestine houses'
+    description: 'Organizations, corporations, factions, and groups'
   },
   {
     id: 'item',
-    name: 'Artifacts & Relics',
+    name: 'Items & Artifacts',
     icon: 'Sparkles',
     color: '#a855f7', // Purple
     isPreset: true,
-    description: 'Legendary weapons, ancient relics, alchemical concoctions, and regalia'
+    description: 'Equipment, technology, relics, and objects'
   },
   {
     id: 'event',
-    name: 'Historical Events',
+    name: 'Events',
     icon: 'Flame',
     color: '#f43f5e', // Rose
     isPreset: true,
-    description: 'Cataclysms, wars, peace covenants, and celestial convergences'
+    description: 'Battles, discoveries, meetings, and key occurrences'
   },
   {
     id: 'magic_system',
-    name: 'Magic & Arcana',
+    name: 'Systems & Rules',
     icon: 'Zap',
     color: '#06b6d4', // Cyan
     isPreset: true,
-    description: 'Spellcraft schools, leyline resonances, rituals, and arcane tenets'
+    description: 'Magic systems, technology, science, and world laws'
   },
   {
     id: 'species',
-    name: 'Species & Races',
+    name: 'Species & Organisms',
     icon: 'Dna',
     color: '#84cc16', // Lime
     isPreset: true,
-    description: 'Sentient humanoid races, mythical beasts, flora, and fauna'
+    description: 'Species, creatures, populations, and biology'
   },
   {
     id: 'religion',
-    name: 'Faiths & Pantheons',
+    name: 'Faiths & Beliefs',
     icon: 'Crown',
     color: '#f59e0b', // Amber
     isPreset: true,
-    description: 'Deities, cosmic entities, holy orders, and religious doctrines'
+    description: 'Religions, philosophies, and belief systems'
   },
   {
     id: 'document',
-    name: 'Chronicles & Tomes',
+    name: 'Documents & Lore',
     icon: 'Scroll',
     color: '#94a3b8', // Slate
     isPreset: true,
-    description: 'Epistles, prophecies, treaties, charters, and forbidden codices'
+    description: 'Manuscripts, treaties, letters, and archives'
   }
 ]
 

@@ -61,11 +61,8 @@ export const CardGallery: React.FC = () => {
         <div>
           <h2 className="font-sans text-base font-semibold text-oros-100 flex items-center gap-2 tracking-tight">
             <Layers className="w-4 h-4 text-oros-400" />
-            Lore Codex Cards
+            Cards
           </h2>
-          <p className="text-xs text-oros-400 mt-0.5 font-sans">
-            Modular records of your world's dramatis personae, settlements, factions, and artifacts.
-          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -85,7 +82,7 @@ export const CardGallery: React.FC = () => {
             className="px-3 py-1.5 rounded-[3px] bg-oros-200 hover:bg-white text-oros-950 font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Create Lore Card</span>
+            <span>New Card</span>
           </button>
         </div>
       </div>
@@ -102,7 +99,7 @@ export const CardGallery: React.FC = () => {
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
-          <span>All Records</span>
+          <span>All</span>
           <span className={`text-[10px] px-1.5 py-0.2 rounded-[2px] font-mono ${
             activeCategory === 'all' ? 'bg-oros-950/20 text-oros-950' : 'bg-oros-800 text-oros-400'
           }`}>
@@ -246,17 +243,17 @@ export const CardGallery: React.FC = () => {
         {filteredEntities.length === 0 && (
           <div className="h-64 flex flex-col items-center justify-center text-center">
             <Layers className="w-8 h-8 text-oros-700 mb-2" />
-            <p className="text-xs text-oros-400 font-sans">No lore cards found matching criteria.</p>
+            <p className="text-xs text-oros-400 font-sans">No cards found.</p>
           </div>
         )}
       </div>
 
-      {/* Modal for Creating Lore Card */}
+      {/* Modal for Creating Card */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] p-5 shadow-2xl">
             <h3 className="font-sans text-sm font-semibold text-oros-100 mb-3 tracking-tight">
-              Create New Lore Card
+              New Card
             </h3>
             <form onSubmit={handleCreate} className="space-y-3.5">
               <div>
@@ -287,13 +284,13 @@ export const CardGallery: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1">Title / Name</label>
+                <label className="block text-xs font-medium text-oros-300 mb-1">Title</label>
                 <input
                   type="text"
                   required
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="e.g. Grand Magus Thorne"
+                  placeholder="Card title..."
                   className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 placeholder-oros-600"
                 />
               </div>

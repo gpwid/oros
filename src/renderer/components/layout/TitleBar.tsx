@@ -186,13 +186,10 @@ export const TitleBar: React.FC = () => {
       {showNewModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] shadow-2xl p-5">
-            <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 mb-1 flex items-center gap-2">
+            <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 mb-4 flex items-center gap-2">
               <Compass className="w-3.5 h-3.5 text-oros-400" />
-              <span>Forge a New Realm</span>
+              <span>New World</span>
             </h3>
-            <p className="text-xs text-oros-400 mb-4">
-              Initialize a sovereign world vault with its own encyclopedia, maps, and timeline.
-            </p>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-oros-300 mb-1">World Name</label>
@@ -201,7 +198,7 @@ export const TitleBar: React.FC = () => {
                   required
                   value={newWorldName}
                   onChange={(e) => setNewWorldName(e.target.value)}
-                  placeholder="e.g. Eldoria: The Sunken Archipelago"
+                  placeholder="World name..."
                   className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 />
               </div>
@@ -211,17 +208,17 @@ export const TitleBar: React.FC = () => {
                   type="text"
                   value={newWorldGenre}
                   onChange={(e) => setNewWorldGenre(e.target.value)}
-                  placeholder="e.g. Epic High Fantasy / Cyberpunk / Sci-Fi"
+                  placeholder="Genre (optional)..."
                   className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-oros-300 mb-1">Tagline or Logline</label>
+                <label className="block text-xs font-medium text-oros-300 mb-1">Description</label>
                 <textarea
                   rows={2}
                   value={newWorldTagline}
                   onChange={(e) => setNewWorldTagline(e.target.value)}
-                  placeholder="A one-sentence summary of the world's core premise..."
+                  placeholder="Description (optional)..."
                   className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 resize-none font-sans"
                 />
               </div>
@@ -237,7 +234,7 @@ export const TitleBar: React.FC = () => {
                   type="submit"
                   className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 transition-colors shadow-sm"
                 >
-                  Initialize World
+                  Create World
                 </button>
               </div>
             </form>

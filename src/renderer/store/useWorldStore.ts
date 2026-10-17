@@ -692,7 +692,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       updatedItems.push({
         id: `doc-relations-${worldId}`,
         worldId,
-        name: 'Lineage Tree',
+        name: 'Relations',
         type: 'relations',
         folderId: null,
         createdAt: new Date().toISOString(),
@@ -902,11 +902,11 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       title,
       type,
       summary: '',
-      content: `<p>Start chronicling <strong>${title}</strong> here...</p>`,
+      content: `<p>Start writing about <strong>${title}</strong> here...</p>`,
       tags: [],
       aliases: [],
       infobox: {
-        subtitle: `${type.toUpperCase()} of ${get().worlds.find(w => w.id === worldId)?.name || 'the Realm'}`,
+        subtitle: `${type.toUpperCase()}${get().worlds.find(w => w.id === worldId)?.name ? ` · ${get().worlds.find(w => w.id === worldId)?.name}` : ''}`,
         sections: [
           {
             title: 'Overview',

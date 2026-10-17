@@ -59,11 +59,8 @@ export const TimelineView: React.FC = () => {
         <div>
           <h2 className="font-serif text-lg font-bold text-oros-100 flex items-center gap-2">
             <Clock className="w-4 h-4 text-oros-400" />
-            Chronological Timelines
+            Timeline
           </h2>
-          <p className="text-xs text-oros-400 mt-0.5">
-            Sequential historical reckoning across cosmic eras and continental dynasties.
-          </p>
         </div>
 
         <button
@@ -71,7 +68,7 @@ export const TimelineView: React.FC = () => {
           className="px-3 py-1.5 rounded-[3px] bg-oros-200 hover:bg-white text-oros-950 font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Record Historical Event</span>
+          <span>Add Event</span>
         </button>
       </div>
 
@@ -88,7 +85,7 @@ export const TimelineView: React.FC = () => {
                   {era}
                 </span>
                 <span className="text-[10px] text-oros-400 font-mono">
-                  ({eraEvents.length} Recorded Epochs)
+                  ({eraEvents.length} events)
                 </span>
               </div>
 
@@ -176,7 +173,7 @@ export const TimelineView: React.FC = () => {
         {worldEvents.length === 0 && (
           <div className="h-64 flex flex-col items-center justify-center text-center text-oros-500">
             <Clock className="w-8 h-8 mb-2 opacity-40" />
-            <p className="text-xs">No chronological events registered yet.</p>
+            <p className="text-xs">No events recorded yet.</p>
           </div>
         )}
       </div>
@@ -186,7 +183,7 @@ export const TimelineView: React.FC = () => {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-oros-900 border border-oros-750 w-full max-w-lg rounded-[4px] p-5 shadow-2xl">
             <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 mb-3">
-              Record Historical Event
+              Add Event
             </h3>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -197,7 +194,7 @@ export const TimelineView: React.FC = () => {
                     required
                     value={newEra}
                     onChange={(e) => setNewEra(e.target.value)}
-                    placeholder="e.g. First Age / Golden Era"
+                    placeholder="Era name..."
                     className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                   />
                 </div>
@@ -220,7 +217,7 @@ export const TimelineView: React.FC = () => {
                   required
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="e.g. The Siege of the Sunken Citadel"
+                  placeholder="Event title..."
                   className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 />
               </div>
@@ -232,9 +229,9 @@ export const TimelineView: React.FC = () => {
                   onChange={(e) => setNewImportance(e.target.value as any)}
                   className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
                 >
-                  <option value="mythic">Mythic (Cosmic / World-Altering)</option>
-                  <option value="major">Major (War, Coronation, Treaties)</option>
-                  <option value="minor">Minor (Local conflict, discoveries)</option>
+                  <option value="mythic">Mythic</option>
+                  <option value="major">Major</option>
+                  <option value="minor">Minor</option>
                 </select>
               </div>
 
@@ -244,7 +241,7 @@ export const TimelineView: React.FC = () => {
                   rows={3}
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
-                  placeholder="Chronicle the causes and consequences of this event..."
+                  placeholder="Event description..."
                   className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 resize-none font-sans"
                 />
               </div>
@@ -284,7 +281,7 @@ export const TimelineView: React.FC = () => {
                   type="submit"
                   className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
                 >
-                  Record Event
+                  Add Event
                 </button>
               </div>
             </form>

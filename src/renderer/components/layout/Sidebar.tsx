@@ -693,24 +693,21 @@ export const Sidebar: React.FC = () => {
       {showNewElementModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-md shadow-2xl p-4 animate-in fade-in duration-100">
-            <h4 className="text-sm font-sans font-semibold text-oros-100 mb-1 flex items-center gap-2">
+            <h4 className="text-sm font-sans font-semibold text-oros-100 mb-3 flex items-center gap-2">
               <FilePlus className="w-4 h-4 text-oros-300" />
-              <span>Create Vault Record</span>
+              <span>New Item</span>
             </h4>
-            <p className="text-[11px] text-oros-400 mb-3.5 font-sans">
-              Add a card, canvas, map, or timeline directly into your local database.
-            </p>
 
             <form onSubmit={handleCreateElementSubmit} className="space-y-3">
               {/* Element Type Picker */}
               <div>
-                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">Record Type</label>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">Type</label>
                 <div className="grid grid-cols-3 gap-1">
                   {[
-                    { id: 'card', label: 'Lore Card', icon: Layers },
+                    { id: 'card', label: 'Card', icon: Layers },
                     { id: 'canvas', label: 'Canvas', icon: LayoutGrid },
                     { id: 'map', label: 'Map', icon: MapIcon },
-                    { id: 'relations', label: 'Lineage', icon: Users },
+                    { id: 'relations', label: 'Relations', icon: Users },
                     { id: 'timeline', label: 'Timeline', icon: Clock },
                     { id: 'writer', label: 'Chapter', icon: Feather }
                   ].map((t) => {
@@ -755,22 +752,14 @@ export const Sidebar: React.FC = () => {
 
               {/* Element Name */}
               <div>
-                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">Title / Name</label>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">Title</label>
                 <input
                   type="text"
                   autoFocus
                   required
                   value={newElementName}
                   onChange={(e) => setNewElementName(e.target.value)}
-                  placeholder={`e.g. ${
-                    newElementType === 'card'
-                      ? 'Archmage Vaelen'
-                      : newElementType === 'map'
-                      ? 'Western Kingdom'
-                      : newElementType === 'canvas'
-                      ? 'Battle Planning Board'
-                      : 'New Element'
-                  }`}
+                  placeholder="Item title..."
                   className="w-full bg-oros-950 border border-oros-800 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-500 font-sans"
                 />
               </div>
@@ -804,7 +793,7 @@ export const Sidebar: React.FC = () => {
                   type="submit"
                   className="px-3.5 py-1.5 rounded-[3px] text-xs font-medium bg-oros-200 hover:bg-white text-oros-950 transition-colors shadow-sm"
                 >
-                  Create Record
+                  Create
                 </button>
               </div>
             </form>

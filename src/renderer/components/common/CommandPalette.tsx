@@ -63,8 +63,8 @@ export const CommandPalette: React.FC = () => {
   items.push({
     id: 'act-nav-relations',
     category: 'Actions',
-    title: 'Open Character & Social Relations',
-    subtitle: 'View and edit familial bonds, alliances, and fealties',
+    title: 'Open Relations',
+    subtitle: 'View and edit entity relationships',
     icon: Users,
     onSelect: () => {
       setActiveTab('relations')
@@ -73,8 +73,8 @@ export const CommandPalette: React.FC = () => {
   items.push({
     id: 'act-nav-wiki-network',
     category: 'Actions',
-    title: 'Open Wiki Cross-Link Network',
-    subtitle: 'Inspect knowledge graph, article mentions, and backlinks',
+    title: 'Open Network Graph',
+    subtitle: 'Inspect card connections and backlinks',
     icon: Network,
     onSelect: () => {
       setActiveTab('wiki-network')
@@ -83,8 +83,8 @@ export const CommandPalette: React.FC = () => {
   items.push({
     id: 'act-new-char',
     category: 'Actions',
-    title: 'Create New Character',
-    subtitle: 'Add a new persona to the world codex',
+    title: 'New Character',
+    subtitle: 'Create a character card',
     icon: Plus,
     onSelect: () => {
       const ent = createEntity('character', 'Untitled Character')
@@ -100,8 +100,8 @@ export const CommandPalette: React.FC = () => {
   items.push({
     id: 'act-new-loc',
     category: 'Actions',
-    title: 'Create New Location',
-    subtitle: 'Add a realm, city, or dungeon',
+    title: 'New Location',
+    subtitle: 'Create a location card',
     icon: Plus,
     onSelect: () => {
       const ent = createEntity('location', 'Untitled Location')
@@ -117,19 +117,19 @@ export const CommandPalette: React.FC = () => {
   items.push({
     id: 'act-toggle-gm',
     category: 'Actions',
-    title: gmMode ? 'Switch to Player View' : 'Enable GM Secrets Mode',
-    subtitle: 'Toggle visibility of hidden GM layers and private notes',
+    title: gmMode ? 'Switch to Player View' : 'Enable GM Mode',
+    subtitle: 'Toggle visibility of hidden GM notes',
     icon: Shield,
     onSelect: () => {
       toggleGmMode()
-      addToast(`Switched to ${!gmMode ? 'GM Secrets Mode' : 'Player View'}`, 'info')
+      addToast(`Switched to ${!gmMode ? 'GM Mode' : 'Player View'}`, 'info')
     }
   })
   items.push({
     id: 'act-open-folder',
     category: 'Actions',
-    title: 'Open Local Vault Folder',
-    subtitle: 'Reveal Oros vault in file explorer',
+    title: 'Open Vault Folder',
+    subtitle: 'Reveal world folder in file explorer',
     icon: FolderOpen,
     onSelect: async () => {
       if (window.oros) {
@@ -143,8 +143,8 @@ export const CommandPalette: React.FC = () => {
   items.push({
     id: 'act-export',
     category: 'Actions',
-    title: 'Export World Archive',
-    subtitle: 'Save complete world as .oros.json package',
+    title: 'Export World',
+    subtitle: 'Export as .oros.json package',
     icon: Download,
     onSelect: async () => {
       await exportWorld()
@@ -158,7 +158,7 @@ export const CommandPalette: React.FC = () => {
       id: `ent-${ent.id}`,
       category: 'Articles',
       title: ent.title,
-      subtitle: `${ent.type.toUpperCase()} · ${ent.summary || 'Article in Codex'}`,
+      subtitle: `${ent.type.toUpperCase()}${ent.summary ? ` · ${ent.summary}` : ''}`,
       icon: BookOpen,
       onSelect: () => {
         setSelectedEntityId(ent.id)
@@ -177,7 +177,7 @@ export const CommandPalette: React.FC = () => {
       id: `map-${map.id}`,
       category: 'Maps',
       title: map.name,
-      subtitle: `${map.pins.length} Pins · Interactive Cartography`,
+      subtitle: `${map.pins.length} Pins`,
       icon: Map,
       onSelect: () => {
         setSelectedMapId(map.id)
@@ -192,7 +192,7 @@ export const CommandPalette: React.FC = () => {
       id: `ch-${ch.id}`,
       category: 'Chapters',
       title: ch.title,
-      subtitle: `${ch.wordCount || 0} words · Studio Manuscript`,
+      subtitle: `${ch.wordCount || 0} words`,
       icon: Feather,
       onSelect: () => {
         setSelectedChapterId(ch.id)
@@ -294,8 +294,8 @@ export const CommandPalette: React.FC = () => {
           })}
 
           {filtered.length === 0 && (
-            <div className="p-8 text-center text-xs text-oros-500 italic">
-              No matching commands or lore found for "{search}".
+            <div className="p-8 text-center text-xs text-oros-500">
+              No results found for "{search}".
             </div>
           )}
         </div>
@@ -307,7 +307,7 @@ export const CommandPalette: React.FC = () => {
             <span>↵ Select</span>
             <span>ESC Close</span>
           </div>
-          <span className="text-oros-500 uppercase tracking-wider">Oros Command Dispatch</span>
+          <span className="text-oros-500 uppercase tracking-wider">Command Palette</span>
         </div>
       </div>
     </div>

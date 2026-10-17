@@ -608,16 +608,13 @@ const RelationGraphCanvasContent: React.FC = () => {
           </div>
           <div>
             <h2 className="font-sans text-xs font-semibold tracking-wide uppercase text-oros-100 flex items-center gap-2">
-              Character & Familial Relations
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-[2px] bg-oros-900 text-oros-400 font-normal border border-oros-750 tracking-wider">
-                Genealogy Ledger
-              </span>
+              Relations
             </h2>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Manage All Bonds Drawer */}
+          {/* Manage All Relations Drawer */}
           <button
             onClick={() => setShowBondsDrawer(!showBondsDrawer)}
             className={`px-2.5 py-1.5 rounded-[3px] border text-xs font-medium flex items-center gap-1.5 transition-colors ${
@@ -627,7 +624,7 @@ const RelationGraphCanvasContent: React.FC = () => {
             }`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>All Bonds ({worldRelations.length})</span>
+            <span>All Relations ({worldRelations.length})</span>
           </button>
 
           {/* New Relation Button */}
@@ -670,12 +667,6 @@ const RelationGraphCanvasContent: React.FC = () => {
           
           <FloatingZoomControls />
         </ReactFlow>
-
-        {/* Minimalist Floating Guide */}
-        <div className="absolute bottom-4 left-6 z-10 px-3 py-1.5 rounded-[3px] bg-oros-900/95 border border-oros-750 text-[11px] text-oros-300 shadow-md flex items-center gap-2">
-          <Info className="w-3.5 h-3.5 text-oros-400" />
-          <span><strong className="text-oros-200 font-medium">Drag</strong> from any handle to connect, or <strong className="text-oros-200 font-medium">click</strong> to spawn a new entity</span>
-        </div>
       </div>
 
       {/* QuickPeek Drawer when entity clicked */}
@@ -702,7 +693,7 @@ const RelationGraphCanvasContent: React.FC = () => {
           <div className="p-3 border-b border-oros-800 flex items-center justify-between">
             <h3 className="font-sans font-semibold text-xs text-oros-100 flex items-center gap-2 uppercase tracking-wide">
               <SlidersHorizontal className="w-3.5 h-3.5 text-oros-400" />
-              <span>Active Relational Bonds ({worldRelations.length})</span>
+              <span>Relations ({worldRelations.length})</span>
             </h3>
             <button 
               onClick={() => setShowBondsDrawer(false)}
@@ -733,14 +724,14 @@ const RelationGraphCanvasContent: React.FC = () => {
                       <button
                         onClick={() => handleOpenEdit(rel.id)}
                         className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
-                        title="Edit Bond"
+                        title="Edit Relation"
                       >
                         <Edit3 className="w-3 h-3" />
                       </button>
                       <button
                         onClick={() => handleDeleteRelation(rel.id)}
                         className="p-1 rounded-[2px] text-oros-400 hover:text-rose-400 hover:bg-oros-800 transition-colors"
-                        title="Delete Bond"
+                        title="Delete Relation"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
@@ -766,7 +757,7 @@ const RelationGraphCanvasContent: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 flex items-center gap-2">
                 <Plus className="w-3.5 h-3.5 text-oros-400" />
-                <span>Add Relational Bond</span>
+                <span>Add Relation</span>
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -980,7 +971,7 @@ const RelationGraphCanvasContent: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 flex items-center gap-2">
                 <Edit3 className="w-3.5 h-3.5 text-oros-400" />
-                <span>Edit Relational Bond</span>
+                <span>Edit Relation</span>
               </h3>
               <button
                 onClick={() => setEditingRelation(null)}

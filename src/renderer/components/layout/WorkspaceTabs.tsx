@@ -128,14 +128,14 @@ export const WorkspaceTabs: React.FC = () => {
     const matchedCanvases = worldCanvases.filter(c => c.name.toLowerCase().includes(q))
 
     const features = [
-      { id: 'canvas', title: 'Whiteboard Canvas', type: 'canvas' as DirectoryItemType, desc: 'Infinite whiteboard with cards, notes, shapes & sketching' },
-      { id: 'wiki-network', title: 'Card Relations Network', type: 'wiki-network' as any, desc: 'Dynamic knowledge graph of card connections with gravity' },
-      { id: 'relations', title: 'Lineage Tree', type: 'relations' as DirectoryItemType, desc: 'Familial and social ties tree' },
-      { id: 'wiki', title: 'Encyclopedia (Wiki)', type: 'wiki' as DirectoryItemType, desc: 'Wikipedia-style lore articles & infoboxes' },
-      { id: 'card', title: 'Lore Cards Gallery', type: 'card' as DirectoryItemType, desc: 'Filterable entity cards & schemas' },
-      { id: 'timeline', title: 'Timeline', type: 'timeline' as DirectoryItemType, desc: 'Chronological eras & event milestones' },
-      { id: 'map', title: 'Cartography Map', type: 'map' as DirectoryItemType, desc: 'Interactive deep-zoom map with pins' },
-      { id: 'writer', title: 'Studio Writer', type: 'writer' as DirectoryItemType, desc: 'Manuscript chapter editor & codex' }
+      { id: 'canvas', title: 'Canvas', type: 'canvas' as DirectoryItemType, desc: 'Whiteboard with cards, notes, and shapes' },
+      { id: 'wiki-network', title: 'Network Graph', type: 'wiki-network' as any, desc: 'Card connections graph' },
+      { id: 'relations', title: 'Relations', type: 'relations' as DirectoryItemType, desc: 'Entity relationship tree' },
+      { id: 'wiki', title: 'Wiki', type: 'wiki' as DirectoryItemType, desc: 'Articles and infoboxes' },
+      { id: 'card', title: 'Cards', type: 'card' as DirectoryItemType, desc: 'Entity card gallery' },
+      { id: 'timeline', title: 'Timeline', type: 'timeline' as DirectoryItemType, desc: 'Chronological events and eras' },
+      { id: 'map', title: 'Map', type: 'map' as DirectoryItemType, desc: 'Interactive map with pins' },
+      { id: 'writer', title: 'Writer', type: 'writer' as DirectoryItemType, desc: 'Chapter editor and references' }
     ].filter(f => f.title.toLowerCase().includes(q) || f.desc.toLowerCase().includes(q))
 
     return {
@@ -333,19 +333,18 @@ export const WorkspaceTabs: React.FC = () => {
                   className="w-full text-left px-3 py-1.5 text-xs text-oros-200 hover:bg-oros-850 flex items-center gap-2 font-medium"
                 >
                   <Plus className="w-3.5 h-3.5 text-oros-400" />
-                  Initialize New World
+                  New World
                 </button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Middle: Archival Workspace Tabs */}
+        {/* Middle: Workspace Tabs */}
         <div className="flex-1 flex items-center gap-0.5 overflow-x-auto no-scrollbar mx-1.5 py-0.5">
           {openTabs.length === 0 ? (
-            <div className="flex items-center gap-2 text-xs text-oros-400/80 font-mono italic px-2">
-              <Network className="w-3.5 h-3.5 text-oros-400" />
-              <span>Card Relations (Standby Ledger)</span>
+            <div className="flex items-center gap-2 text-xs text-oros-500 font-sans px-2">
+              <span>No open tabs</span>
             </div>
           ) : (
             openTabs.map((tab) => {
@@ -865,13 +864,10 @@ export const WorkspaceTabs: React.FC = () => {
       {showNewWorldModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-md shadow-2xl p-5">
-            <h3 className="font-sans text-sm font-semibold text-oros-100 mb-1 flex items-center gap-2">
+            <h3 className="font-sans text-sm font-semibold text-oros-100 mb-4 flex items-center gap-2">
               <Compass className="w-4 h-4 text-oros-300" />
-              <span>Initialize World Vault</span>
+              <span>New World</span>
             </h3>
-            <p className="text-xs text-oros-400 mb-4">
-              Create an isolated universe repository with its own cards, maps, lineages, and manuscript.
-            </p>
             <form onSubmit={handleCreateWorldSubmit} className="space-y-3.5">
               <div>
                 <label className="block text-[11px] font-mono font-medium text-oros-300 mb-1 uppercase tracking-wider">World Name</label>
@@ -880,7 +876,7 @@ export const WorkspaceTabs: React.FC = () => {
                   required
                   value={newWorldName}
                   onChange={(e) => setNewWorldName(e.target.value)}
-                  placeholder="e.g. Aethelgard / Sector 47 / The Rustbelt"
+                  placeholder="World name..."
                   className="w-full bg-oros-950 border border-oros-800 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-500"
                 />
               </div>
@@ -891,7 +887,7 @@ export const WorkspaceTabs: React.FC = () => {
                   type="text"
                   value={newWorldGenre}
                   onChange={(e) => setNewWorldGenre(e.target.value)}
-                  placeholder="e.g. Hard Sci-Fi, Dark Fantasy, Cyberpunk, Dystopian, Historical"
+                  placeholder="Genre (optional)..."
                   className="w-full bg-oros-950 border border-oros-800 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-500"
                 />
               </div>
@@ -929,12 +925,12 @@ export const WorkspaceTabs: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono font-medium text-oros-300 mb-1 uppercase tracking-wider">Tagline or Logline</label>
+                <label className="block text-[11px] font-mono font-medium text-oros-300 mb-1 uppercase tracking-wider">Description</label>
                 <textarea
                   rows={2}
                   value={newWorldTagline}
                   onChange={(e) => setNewWorldTagline(e.target.value)}
-                  placeholder="A one-sentence summary of the world premise..."
+                  placeholder="Description (optional)..."
                   className="w-full bg-oros-950 border border-oros-800 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-500 resize-none font-sans"
                 />
               </div>
@@ -951,7 +947,7 @@ export const WorkspaceTabs: React.FC = () => {
                   type="submit"
                   className="px-3.5 py-1.5 rounded-[3px] text-xs font-medium bg-oros-200 hover:bg-white text-oros-950 transition-colors shadow-sm"
                 >
-                  Initialize Vault
+                  Create World
                 </button>
               </div>
             </form>

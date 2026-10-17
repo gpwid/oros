@@ -825,7 +825,7 @@ export const InteractiveMapViewer: React.FC = () => {
           </div>
         ) : (
           <div className="h-full flex items-center justify-center text-oros-500">
-            No maps registered in world vault.
+            No maps found.
           </div>
         )}
 
@@ -864,7 +864,7 @@ export const InteractiveMapViewer: React.FC = () => {
           <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
             <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-[3px] bg-oros-900 border border-oros-750 text-xs shadow-2xl text-oros-200 font-sans">
               <PinIcon className="w-3.5 h-3.5 text-oros-300" />
-              <span>Click anywhere on the map to place a landmark pin</span>
+              <span>Click map to place pin</span>
               <button
                 onClick={() => setActiveTool('pan')}
                 className="p-1 rounded-[2px] text-oros-400 hover:text-oros-200 hover:bg-oros-850 ml-1 transition-colors"
@@ -917,7 +917,7 @@ export const InteractiveMapViewer: React.FC = () => {
               )}
             </button>
 
-            {/* 3. Drop Landmark Pin Tool */}
+            {/* 3. Drop Pin Tool */}
             <button
               onClick={() => {
                 setActiveTool('pin')
@@ -925,7 +925,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 setSelectedPin(null)
                 setSelectedRegion(null)
               }}
-              title="Drop Landmark Pin (P)"
+              title="Place Pin (P)"
               className={`p-1.5 rounded-[3px] transition-colors ${
                 activeTool === 'pin'
                   ? 'bg-oros-800 text-oros-100 border border-oros-600 shadow-sm'
@@ -969,7 +969,7 @@ export const InteractiveMapViewer: React.FC = () => {
             {/* 6. Pins Layer Toggle */}
             <button
               onClick={() => setShowPins(!showPins)}
-              title={showPins ? 'Hide Landmark Pins' : 'Show Landmark Pins'}
+              title={showPins ? 'Hide Pins' : 'Show Pins'}
               className={`p-1.5 rounded-[3px] transition-colors ${
                 showPins
                   ? 'text-oros-200 hover:bg-oros-850'

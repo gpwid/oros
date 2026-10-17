@@ -6,7 +6,8 @@ import { WikiEditor } from './WikiEditor'
 import { PromptModal, ConfirmModal } from '../common/PromptModal'
 import { QuickPeekCard } from '../common/QuickPeekCard'
 import { 
-  Plus, Edit, Eye, Trash2, Tag, BookOpen, Link2, List, Filter, ChevronDown, SlidersHorizontal 
+  Plus, Edit, Eye, Trash2, Tag, BookOpen, Link2, List, Filter, ChevronDown, SlidersHorizontal,
+  ChevronsLeft, ChevronsRight
 } from 'lucide-react'
 import { EntityType, LoreEntity } from '@shared/types'
 import { 
@@ -36,6 +37,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [hoveredEntity, setHoveredEntity] = useState<LoreEntity | null>(null)
   const [isTocCollapsed, setIsTocCollapsed] = useState(false)
+  const [isDirectoryOpen, setIsDirectoryOpen] = useState(true)
 
   const worldId = activeWorldId || 'world-aethelgard'
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
@@ -149,108 +151,137 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
 
   return (
     <div className="flex-1 flex overflow-hidden relative">
-      {/* Left Column: Article Index / Directory */}
-      <aside className="w-72 bg-oros-950 border-r border-oros-800 flex flex-col justify-between shrink-0 select-none">
-        <div>
-          <div className="p-3 border-b border-oros-800 flex items-center justify-between">
-            <div className="text-xs font-sans font-semibold text-oros-100 tracking-tight flex items-center gap-2">
-              <BookOpen className="w-3.5 h-3.5 text-oros-400" />
-              Articles Directory
-            </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-200 border border-oros-750 text-xs font-medium flex items-center gap-1 transition-colors"
-            >
-              <Plus className="w-3 h-3 text-oros-400" />
-              <span>New</span>
-            </button>
-          </div>
-
-          {/* Category Filter Pills */}
-          <div className="px-2 py-1.5 flex items-center gap-1 overflow-x-auto text-[11px] border-b border-oros-800 scrollbar-thin">
-            <button
-              onClick={() => setFilterType('all')}
-              className={`px-2 py-0.5 rounded-[2px] capitalize shrink-0 font-medium transition-colors ${
-                filterType === 'all' 
-                  ? 'bg-oros-200 text-oros-950 font-semibold' 
-                  : 'text-oros-400 hover:text-oros-200 hover:bg-oros-900'
-              }`}
-            >
-              All
-            </button>
-            {worldCategories.map((cat) => {
-              const isActive = filterType === cat.id
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setFilterType(cat.id)}
-                  className={`px-2 py-0.5 rounded-[2px] shrink-0 flex items-center gap-1 transition-colors font-medium ${
-                    isActive 
-                      ? 'bg-oros-200 text-oros-950 font-semibold' 
-                      : 'text-oros-400 hover:text-oros-200 hover:bg-oros-900'
-                  }`}
-                >
-                  <span
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ backgroundColor: isActive ? '#090a0d' : (cat.color || '#94a3b8') }}
-                  />
-                  <span>{cat.name}</span>
-                </button>
-              )
-            })}
-            <button
-              onClick={() => setShowCategoryManager(true)}
-              title="Manage Categories"
-              className="p-1 rounded-[2px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 shrink-0 transition-colors ml-auto"
-            >
-              <SlidersHorizontal className="w-3 h-3" />
-            </button>
-          </div>
-
-          {/* Entity List */}
-          <div className="overflow-y-auto p-1.5 space-y-0.5 max-h-[calc(100vh-140px)]">
-            {filteredEntities.map((ent) => {
-              const isSelected = ent.id === currentEntity?.id
-              const catMeta = getCategoryMeta(ent.type, worldCategories)
-              const CatIcon = getCategoryIconComponent(catMeta.icon)
-              return (
-                <button
-                  key={ent.id}
-                  onClick={() => {
-                    setSelectedEntityId(ent.id)
-                    openTab({ title: ent.title, type: 'wiki', targetId: ent.id })
-                    setIsEditing(false)
-                  }}
-                  className={`w-full text-left p-2 rounded-[3px] text-xs transition-all flex items-start justify-between group ${
-                    isSelected
-                      ? 'bg-oros-850 text-oros-100 font-medium border border-oros-750'
-                      : 'text-oros-300 hover:bg-oros-900 hover:text-oros-100'
-                  }`}
-                >
-                  <div className="truncate pr-2">
-                    <div className="truncate">{ent.title}</div>
-                    <div className="text-[10px] text-oros-500 font-mono uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
-                      <span
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: catMeta.color || '#94a3b8' }}
-                      />
-                      <CatIcon className="w-2.5 h-2.5 opacity-70" />
-                      <span>{catMeta.name}</span>
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-            {filteredEntities.length === 0 && (
-              <div className="p-4 text-center text-xs text-oros-500 font-sans">
-                No matching articles found.
-              </div>
-            )}
-          </div>
+      {/* Collapsed Directory Rail */}
+      {!isDirectoryOpen ? (
+        <div className="w-8 bg-oros-950 border-r border-oros-800 flex flex-col items-center py-2.5 shrink-0 select-none">
+          <button
+            onClick={() => setIsDirectoryOpen(true)}
+            title="Open Articles Directory"
+            className="p-1 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 transition-colors mb-3"
+          >
+            <ChevronsRight className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={() => setIsDirectoryOpen(true)}
+            className="text-[10px] tracking-wider uppercase text-oros-500 hover:text-oros-300 font-medium select-none py-2"
+            style={{ writingMode: 'vertical-rl' }}
+          >
+            Articles
+          </button>
         </div>
-      </aside>
+      ) : (
+        /* Left Column: Article Index / Directory */
+        <aside className="w-72 bg-oros-950 border-r border-oros-800 flex flex-col justify-between shrink-0 select-none">
+          <div>
+            <div className="p-3 border-b border-oros-800 flex items-center justify-between">
+              <div className="text-xs font-sans font-semibold text-oros-100 tracking-tight flex items-center gap-2">
+                <BookOpen className="w-3.5 h-3.5 text-oros-400" />
+                Articles
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-200 border border-oros-750 text-xs font-medium flex items-center gap-1 transition-colors"
+                >
+                  <Plus className="w-3 h-3 text-oros-400" />
+                  <span>New</span>
+                </button>
+                <button
+                  onClick={() => setIsDirectoryOpen(false)}
+                  title="Close Directory"
+                  className="p-1 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 transition-colors"
+                >
+                  <ChevronsLeft className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
 
-      {/* Main Content Area: Wikipedia-Style Encyclopedia Article */}
+            {/* Category Filter Pills */}
+            <div className="px-2 py-1.5 flex items-center gap-1 overflow-x-auto text-[11px] border-b border-oros-800 scrollbar-thin">
+              <button
+                onClick={() => setFilterType('all')}
+                className={`px-2 py-0.5 rounded-[2px] capitalize shrink-0 font-medium transition-colors ${
+                  filterType === 'all' 
+                    ? 'bg-oros-200 text-oros-950 font-semibold' 
+                    : 'text-oros-400 hover:text-oros-200 hover:bg-oros-900'
+                }`}
+              >
+                All
+              </button>
+              {worldCategories.map((cat) => {
+                const isActive = filterType === cat.id
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setFilterType(cat.id)}
+                    className={`px-2 py-0.5 rounded-[2px] shrink-0 flex items-center gap-1 transition-colors font-medium ${
+                      isActive 
+                        ? 'bg-oros-200 text-oros-950 font-semibold' 
+                        : 'text-oros-400 hover:text-oros-200 hover:bg-oros-900'
+                    }`}
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: isActive ? '#090a0d' : (cat.color || '#94a3b8') }}
+                    />
+                    <span>{cat.name}</span>
+                  </button>
+                )
+              })}
+              <button
+                onClick={() => setShowCategoryManager(true)}
+                title="Manage Categories"
+                className="p-1 rounded-[2px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 shrink-0 transition-colors ml-auto"
+              >
+                <SlidersHorizontal className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Entity List */}
+            <div className="overflow-y-auto p-1.5 space-y-0.5 max-h-[calc(100vh-140px)]">
+              {filteredEntities.map((ent) => {
+                const isSelected = ent.id === currentEntity?.id
+                const catMeta = getCategoryMeta(ent.type, worldCategories)
+                const CatIcon = getCategoryIconComponent(catMeta.icon)
+                return (
+                  <button
+                    key={ent.id}
+                    onClick={() => {
+                      setSelectedEntityId(ent.id)
+                      openTab({ title: ent.title, type: 'wiki', targetId: ent.id })
+                      setIsEditing(false)
+                    }}
+                    className={`w-full text-left p-2 rounded-[3px] text-xs transition-all flex items-start justify-between group ${
+                      isSelected
+                        ? 'bg-oros-850 text-oros-100 font-medium border border-oros-750'
+                        : 'text-oros-300 hover:bg-oros-900 hover:text-oros-100'
+                    }`}
+                  >
+                    <div className="truncate pr-2">
+                      <div className="truncate">{ent.title}</div>
+                      <div className="text-[10px] text-oros-500 font-mono uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
+                        <span
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ backgroundColor: catMeta.color || '#94a3b8' }}
+                        />
+                        <CatIcon className="w-2.5 h-2.5 opacity-70" />
+                        <span>{catMeta.name}</span>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+              {filteredEntities.length === 0 && (
+                <div className="p-4 text-center text-xs text-oros-500 font-sans">
+                  No matching articles found.
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+      )}
+
+      {/* Main Content Area: Article */}
       <main className="flex-1 overflow-y-auto bg-oros-950 p-8 select-text">
         {currentEntity ? (
           <div className="max-w-5xl mx-auto">
@@ -258,6 +289,16 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
             <div className="border-b border-oros-800 pb-4 mb-6 flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
+                  {!isDirectoryOpen && (
+                    <button
+                      onClick={() => setIsDirectoryOpen(true)}
+                      className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-oros-100 border border-oros-750 text-xs font-medium flex items-center gap-1.5 transition-colors mr-1"
+                      title="Open Articles Directory"
+                    >
+                      <BookOpen className="w-3.5 h-3.5 text-oros-400" />
+                      <span>Articles</span>
+                    </button>
+                  )}
                   {(() => {
                     const currentCatMeta = getCategoryMeta(currentEntity.type, worldCategories)
                     const CurrentCatIcon = getCategoryIconComponent(currentCatMeta.icon)
@@ -493,13 +534,13 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
               <BookOpen className="w-8 h-8 text-oros-500 mx-auto mb-3" />
               <h3 className="font-sans text-sm font-semibold text-oros-100 mb-1">No Article Selected</h3>
               <p className="text-xs text-oros-400 mb-4 font-sans">
-                Choose an article from the directory on the left or create a new entry for your realm.
+                Select an article from the directory or create a new entry.
               </p>
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="px-3.5 py-1.5 rounded-[3px] bg-oros-200 hover:bg-white text-oros-950 font-semibold text-xs shadow-sm transition-colors"
               >
-                Create New Article
+                New Article
               </button>
             </div>
           </div>
@@ -516,9 +557,9 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
       {/* Accessible Modals */}
       <PromptModal
         isOpen={showCreateModal}
-        title="Forge New Encyclopedia Article"
-        description="Enter the title for this persona, location, or lore piece."
-        placeholder="e.g. Citadel of the Star-Core"
+        title="New Article"
+        description="Enter article title."
+        placeholder="Article title..."
         confirmLabel="Create Article"
         onConfirm={handleCreateSubmit}
         onCancel={() => setShowCreateModal(false)}

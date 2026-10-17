@@ -106,11 +106,11 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
     return Math.min(maxAllowed, Math.max(minAllowed, targetPanX))
   }, [firstYear, lastYear, minYear])
 
-  // Zoom keeping the year at the center of the viewport strictly motionless
-  const zoomAroundCenter = useCallback((targetZoom: number) => {
+  // Zoom keeping the year at focalX strictly motionless (zero drift)
+  const zoomAtFocalPoint = useCallback((targetZoom: number, focalXOverride?: number) => {
     if (!containerRef.current) return
     const containerWidth = containerRef.current.clientWidth
-    const focalX = containerWidth / 2 // Exact screen center
+    const focalX = focalXOverride ?? (containerWidth / 2) // Defaults to screen center if no mouse position provided
 
     const curZoom = zoomRef.current
     const curPanX = panXRef.current
@@ -121,7 +121,7 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
     const zoomRatio = clampedZoom / curZoom
 
     // Mathematical formula to lock the year at focalX in place:
-    // (centerYear - minYear) * 14 * curZoom = focalX - curPanX - 300
+    // (yearAtFocal - minYear) * 14 * curZoom = focalX - curPanX - 300
     // newPanX = focalX - 300 - (focalX - curPanX - 300) * zoomRatio
     const rawPanX = focalX - 300 - (focalX - curPanX - 300) * zoomRatio
     const nextPanX = clampPan(rawPanX, clampedZoom)
@@ -163,7 +163,7 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
     handleFit()
   }, [])
 
-  // High-performance, non-passive Native Wheel Listener
+  // High-performance, non-passive Native Wheel Listener focused at mouse position
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -175,12 +175,15 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
       const shouldZoom = wheelModeRef.current === 'zoom' ? !e.shiftKey : (e.ctrlKey || e.metaKey)
 
       if (shouldZoom) {
-        // Continuous, responsive exponential zoom
+        // Continuous, responsive exponential zoom focused at the mouse cursor
+        const rect = el.getBoundingClientRect()
+        const mouseX = Math.max(0, Math.min(rect.width, e.clientX - rect.left))
+
         const delta = Math.abs(e.deltaY) > 0 ? e.deltaY : e.deltaX
         const zoomSensitivity = 0.002
         const factor = Math.exp(-delta * zoomSensitivity)
         const nextZoom = zoomRef.current * factor
-        zoomAroundCenter(nextZoom)
+        zoomAtFocalPoint(nextZoom, mouseX)
       } else {
         const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY
         const nextPanX = clampPan(panXRef.current - delta, zoomRef.current)
@@ -193,7 +196,7 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
     return () => {
       el.removeEventListener('wheel', handleWheelNative)
     }
-  }, [zoomAroundCenter, clampPan])
+  }, [zoomAtFocalPoint, clampPan])
 
   // Pan interaction
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -351,7 +354,7 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
                 ? 'bg-oros-750 text-oros-100'
                 : 'text-oros-400 hover:text-oros-200'
             }`}
-            title="Scroll wheel zooms timeline centered on screen"
+            title="Scroll wheel zooms timeline focused at mouse cursor"
           >
             Wheel: Zoom
           </button>
@@ -369,9 +372,9 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
         </div>
 
         <button
-          onClick={() => zoomAroundCenter(zoom * 1.25)}
+          onClick={() => zoomAtFocalPoint(zoom * 1.25)}
           className="p-1.5 rounded-[2px] text-oros-300 hover:text-oros-100 hover:bg-oros-800 transition-colors"
-          title="Zoom In (Centered on Horizon)"
+          title="Zoom In"
         >
           <ZoomIn className="w-3.5 h-3.5" />
         </button>
@@ -379,9 +382,9 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
           {Math.round(zoom * 100)}%
         </span>
         <button
-          onClick={() => zoomAroundCenter(zoom * 0.8)}
+          onClick={() => zoomAtFocalPoint(zoom * 0.8)}
           className="p-1.5 rounded-[2px] text-oros-300 hover:text-oros-100 hover:bg-oros-800 transition-colors"
-          title="Zoom Out (Centered on Horizon)"
+          title="Zoom Out"
         >
           <ZoomOut className="w-3.5 h-3.5" />
         </button>

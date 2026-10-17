@@ -81,7 +81,7 @@ export const PromptModal: React.FC<PromptModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
+              className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm transition-colors"
             >
               {confirmLabel}
             </button>
@@ -132,7 +132,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             className={`px-3.5 py-1.5 rounded-[3px] text-xs font-semibold transition-colors shadow-sm ${
               isDestructive
                 ? 'bg-rose-600 hover:bg-rose-500 text-white'
-                : 'bg-oros-200 hover:bg-white text-oros-950'
+                : 'bg-accent hover:bg-accent-hover text-accent-contrast'
             }`}
           >
             {confirmLabel}

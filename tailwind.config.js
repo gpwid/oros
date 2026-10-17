@@ -25,8 +25,12 @@ export default {
         accent: {
           DEFAULT: 'var(--oros-accent, #e2e8f0)',
           muted: 'var(--oros-accent-muted, rgba(226, 232, 240, 0.12))',
+          subtle: 'var(--oros-accent-subtle, rgba(226, 232, 240, 0.05))',
+          border: 'var(--oros-accent-border, rgba(226, 232, 240, 0.30))',
           hover: 'var(--oros-accent-hover, #ffffff)',
           ring: 'var(--oros-accent-ring, rgba(226, 232, 240, 0.25))',
+          glow: 'var(--oros-accent-glow, rgba(226, 232, 240, 0.20))',
+          contrast: 'var(--oros-accent-contrast, #090a0d)',
         },
         gold: {
           400: '#f5c542',

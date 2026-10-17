@@ -4,6 +4,7 @@ import { WorkspaceTabs } from './components/layout/WorkspaceTabs'
 import { Sidebar } from './components/layout/Sidebar'
 import { CommandPalette } from './components/common/CommandPalette'
 import { ToastContainer } from './components/common/ToastContainer'
+import { applyTheme } from './utils/themeEngine'
 
 // Code-split heavy views to accelerate launch time and memory footprint
 const WhiteboardCanvas = lazy(() => import('./components/canvas/WhiteboardCanvas').then(m => ({ default: m.WhiteboardCanvas })))
@@ -34,9 +35,8 @@ export const App: React.FC = () => {
   const activeWorld = worlds.find((w) => w.id === activeWorldId) || worlds[0]
 
   useEffect(() => {
-    const theme = activeWorld?.theme || 'sovereign'
-    document.documentElement.setAttribute('data-theme', theme)
-  }, [activeWorld?.theme])
+    applyTheme(activeWorld?.theme, activeWorld?.customAccentColor)
+  }, [activeWorld?.theme, activeWorld?.customAccentColor])
 
   const activeTabObj = openTabs.find((t) => t.id === activeTabId)
   const currentTabType = activeTabObj?.type || activeTab

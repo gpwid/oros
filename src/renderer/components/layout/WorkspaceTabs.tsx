@@ -30,6 +30,8 @@ export const WorkspaceTabs: React.FC = () => {
   const [newWorldName, setNewWorldName] = useState('')
   const [newWorldGenre, setNewWorldGenre] = useState('Speculative Fiction')
   const [newWorldTheme, setNewWorldTheme] = useState<World['theme']>('sovereign')
+  const [newWorldCustomAccent, setNewWorldCustomAccent] = useState('#6366f1')
+  const [customHexInput, setCustomHexInput] = useState('')
   const [newWorldTagline, setNewWorldTagline] = useState('')
 
   // Right-click context menu state
@@ -223,12 +225,13 @@ export const WorkspaceTabs: React.FC = () => {
   const handleCreateWorldSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newWorldName.trim()) return
-    createWorld(newWorldName.trim(), newWorldTagline.trim(), newWorldGenre.trim(), newWorldTheme)
+    createWorld(newWorldName.trim(), newWorldTagline.trim(), newWorldGenre.trim(), newWorldTheme, newWorldTheme === 'custom' ? newWorldCustomAccent : undefined)
     setShowNewWorldModal(false)
     setNewWorldName('')
     setNewWorldTagline('')
     setNewWorldGenre('Speculative Fiction')
     setNewWorldTheme('sovereign')
+    setNewWorldCustomAccent('#6366f1')
     addToast(`Initialized world vault: ${newWorldName}`, 'success')
   }
 
@@ -281,7 +284,7 @@ export const WorkspaceTabs: React.FC = () => {
       <header className="h-9 bg-oros-950 border-b border-oros-800/70 flex items-center justify-between px-2 select-none z-30 relative">
         {/* Left: World Switcher & Brand Glyph */}
         <div className="flex items-center gap-1.5 shrink-0 pr-2 border-r border-oros-800/60">
-          <div className="w-5 h-5 rounded-[3px] bg-oros-900 border border-oros-700/80 flex items-center justify-center text-oros-200 font-mono font-bold text-[10px] tracking-tight shrink-0 shadow-inner">
+          <div className="w-5 h-5 rounded-[3px] bg-oros-900 border border-accent/40 flex items-center justify-center text-accent font-mono font-bold text-[10px] tracking-tight shrink-0 shadow-sm">
             Ω
           </div>
 
@@ -322,9 +325,14 @@ export const WorkspaceTabs: React.FC = () => {
 
                 {/* Theme Selector for Active World */}
                 <div className="border-t border-oros-800/80 my-1 px-3 py-1.5">
-                  <div className="text-[10px] font-mono font-bold text-oros-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    <Palette className="w-3 h-3 text-oros-400" />
-                    <span>Atmospheric Accent</span>
+                  <div className="text-[10px] font-mono font-bold text-oros-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Palette className="w-3 h-3 text-oros-400" />
+                      <span>Atmospheric Accent</span>
+                    </div>
+                    {activeWorld?.theme === 'custom' && (
+                      <span className="text-[9px] text-accent font-mono uppercase">Custom</span>
+                    )}
                   </div>
                   <div className="grid grid-cols-3 gap-1">
                     {[
@@ -344,8 +352,8 @@ export const WorkspaceTabs: React.FC = () => {
                           }
                         }}
                         className={`px-1.5 py-1 rounded-[3px] text-[10px] font-mono flex items-center gap-1 border transition-colors ${
-                          (activeWorld?.theme || 'sovereign') === th.id
-                            ? 'bg-oros-800 border-oros-600 text-oros-100'
+                          activeWorld?.theme === th.id
+                            ? 'bg-accent-muted border-accent/40 text-accent font-medium shadow-sm'
                             : 'bg-oros-950/60 border-oros-800 text-oros-400 hover:text-oros-200'
                         }`}
                       >
@@ -353,6 +361,45 @@ export const WorkspaceTabs: React.FC = () => {
                         <span className="truncate">{th.name.split(' ')[0]}</span>
                       </button>
                     ))}
+                  </div>
+
+                  {/* Custom Accent Color Option */}
+                  <div className="mt-2 pt-1.5 border-t border-oros-800/60 flex items-center gap-1.5">
+                    <span className="text-[10px] font-mono text-oros-400 shrink-0">Custom Hex:</span>
+                    <div className="relative flex-1 flex items-center gap-1.5">
+                      <label 
+                        className={`w-5 h-5 rounded-[3px] border cursor-pointer overflow-hidden flex items-center justify-center shrink-0 shadow-sm transition-all ${
+                          activeWorld?.theme === 'custom' ? 'border-accent ring-1 ring-accent/40' : 'border-oros-700'
+                        }`}
+                        style={{ backgroundColor: activeWorld?.customAccentColor || '#6366f1' }}
+                        title="Click to pick custom color"
+                      >
+                        <input
+                          type="color"
+                          value={activeWorld?.customAccentColor || '#6366f1'}
+                          onChange={(e) => {
+                            if (activeWorldId) {
+                              setWorldTheme(activeWorldId, 'custom', e.target.value)
+                            }
+                          }}
+                          className="opacity-0 w-0 h-0 cursor-pointer"
+                        />
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="#6366f1"
+                        maxLength={7}
+                        value={customHexInput || (activeWorld?.theme === 'custom' ? activeWorld.customAccentColor || '' : '')}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setCustomHexInput(val)
+                          if (/^#[0-9A-Fa-f]{6}$/.test(val) && activeWorldId) {
+                            setWorldTheme(activeWorldId, 'custom', val)
+                          }
+                        }}
+                        className="flex-1 bg-oros-950 border border-oros-800 rounded-[3px] px-1.5 py-0.5 text-[10px] font-mono text-oros-200 placeholder-oros-600 focus:outline-none focus:border-accent"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -975,7 +1022,7 @@ export const WorkspaceTabs: React.FC = () => {
                       onClick={() => setNewWorldTheme(t.id as any)}
                       className={`p-1.5 rounded-[3px] border text-left transition-colors flex flex-col ${
                         newWorldTheme === t.id
-                          ? 'bg-oros-800 border-oros-500 text-oros-100'
+                          ? 'bg-accent-muted border-accent/40 text-accent font-medium shadow-sm'
                           : 'bg-oros-950/70 border-oros-800 text-oros-400 hover:text-oros-200'
                       }`}
                     >
@@ -986,6 +1033,50 @@ export const WorkspaceTabs: React.FC = () => {
                       <span className="text-[9px] text-oros-500 font-sans mt-0.5">{t.desc}</span>
                     </button>
                   ))}
+                </div>
+
+                {/* Custom Color Option in New World Modal */}
+                <div className="mt-2 pt-1.5 border-t border-oros-800/60 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewWorldTheme('custom')}
+                    className={`px-2 py-1 rounded-[3px] border text-[10px] font-mono flex items-center gap-1.5 transition-colors ${
+                      newWorldTheme === 'custom'
+                        ? 'bg-accent-muted border-accent/40 text-accent font-medium shadow-sm'
+                        : 'bg-oros-950/70 border-oros-800 text-oros-400 hover:text-oros-200'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: newWorldCustomAccent }} />
+                    <span>Custom Color</span>
+                  </button>
+                  <label 
+                    className={`w-5 h-5 rounded-[3px] border cursor-pointer overflow-hidden flex items-center justify-center shrink-0 shadow-sm ${
+                      newWorldTheme === 'custom' ? 'border-accent ring-1 ring-accent/40' : 'border-oros-700'
+                    }`}
+                    style={{ backgroundColor: newWorldCustomAccent }}
+                    title="Pick custom accent color"
+                  >
+                    <input
+                      type="color"
+                      value={newWorldCustomAccent}
+                      onChange={(e) => {
+                        setNewWorldCustomAccent(e.target.value)
+                        setNewWorldTheme('custom')
+                      }}
+                      className="opacity-0 w-0 h-0 cursor-pointer"
+                    />
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={7}
+                    value={newWorldCustomAccent}
+                    onChange={(e) => {
+                      setNewWorldCustomAccent(e.target.value)
+                      setNewWorldTheme('custom')
+                    }}
+                    placeholder="#6366f1"
+                    className="w-20 bg-oros-950 border border-oros-800 rounded-[3px] px-1.5 py-0.5 text-[10px] font-mono text-oros-200 placeholder-oros-600 focus:outline-none focus:border-accent"
+                  />
                 </div>
               </div>
 
@@ -1010,7 +1101,7 @@ export const WorkspaceTabs: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-medium bg-oros-200 hover:bg-white text-oros-950 transition-colors shadow-sm"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast transition-colors shadow-sm"
                 >
                   Create World
                 </button>

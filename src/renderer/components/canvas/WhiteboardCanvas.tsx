@@ -45,12 +45,12 @@ const NodeScalingToolbar: React.FC<{
   const displayPercent = scalePercent !== undefined ? scalePercent : Math.round((scale || 1) * 100)
   return (
     <div 
-      className="absolute -top-11 left-0 flex items-center gap-1.5 bg-oros-900 border border-oros-700 rounded-lg px-2 py-1 shadow-2xl z-30 animate-in fade-in zoom-in-95 duration-100 nodrag nopan select-none"
+      className="absolute -top-11 left-0 flex items-center gap-1.5 bg-oros-900 border border-oros-750 rounded-[4px] px-2 py-1 shadow-2xl z-30 animate-in fade-in zoom-in-95 duration-100 nodrag nopan select-none"
       onClick={(e) => e.stopPropagation()}
     >
       <button
         onClick={(e) => onScale(0.85, e)}
-        className="p-1 rounded hover:bg-oros-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+        className="p-1 rounded-[2px] hover:bg-oros-850 text-oros-400 hover:text-oros-100 transition-colors cursor-pointer"
         title="Scale Down (-15%)"
       >
         <ZoomOut className="w-3.5 h-3.5" />
@@ -59,7 +59,7 @@ const NodeScalingToolbar: React.FC<{
       <span 
         onClick={onResetScale}
         title="Click to reset to 100%"
-        className="text-[10px] font-mono text-gold-400 min-w-8 text-center cursor-pointer hover:underline"
+        className="text-[10px] font-mono text-accent min-w-8 text-center cursor-pointer hover:underline"
       >
         {displayPercent}%
       </span>
@@ -172,8 +172,8 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             )
           )
         }}
-        handleClassName="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !rounded-full shadow-md"
-        lineClassName="!border-gold-400/60"
+        handleClassName="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !rounded-full shadow-md"
+        lineClassName="!border-accent/60"
       />
 
       {selected && (
@@ -185,17 +185,17 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         />
       )}
 
-      <div className={`relative w-full h-full flex flex-col rounded-2xl bg-oros-950/95 border transition-colors duration-150 shadow-2xl select-none group cursor-move ${
-        selected ? 'border-gold-400 ring-2 ring-gold-400/40' : 'border-oros-800/80 hover:border-oros-700'
+      <div className={`relative w-full h-full flex flex-col rounded-[4px] bg-oros-950/95 border transition-colors duration-150 shadow-md select-none group cursor-move ${
+        selected ? 'border-accent ring-2 ring-accent/40' : 'border-oros-800/80 hover:border-oros-700'
       }`}>
         {/* 4 Cardinal Handles - only visible on hover */}
-        <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
 
         {/* Card Portrait Banner (flex-1 fills available space cleanly) */}
-        <div className="flex-1 w-full min-h-0 bg-oros-900 relative overflow-hidden rounded-t-2xl">
+        <div className="flex-1 w-full min-h-0 bg-oros-900 relative overflow-hidden rounded-t-[4px]">
           <img
             src={imgError ? fallbackAvatar : (cardData.avatar || fallbackAvatar)}
             alt={cardData.title || 'Card'}
@@ -207,8 +207,8 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
         {/* Card Info Footer */}
         <div className="p-3 bg-oros-950/95 shrink-0">
-          <div className="flex items-center gap-1.5 text-[10px] text-gold-400 font-semibold uppercase tracking-wider mb-0.5">
-            <User className="w-3 h-3 text-gold-400 shrink-0" />
+          <div className="flex items-center gap-1.5 text-[10px] text-accent font-semibold uppercase tracking-wider mb-0.5">
+            <User className="w-3 h-3 text-accent shrink-0" />
             <span className="truncate">{cardData.subtitle || 'Character'}</span>
           </div>
           <div className="font-serif font-bold text-sm text-slate-100 truncate">
@@ -437,8 +437,8 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             )
           )
         }}
-        handleClassName="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !rounded-full shadow-md"
-        lineClassName="!border-gold-400/60"
+        handleClassName="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !rounded-full shadow-md"
+        lineClassName="!border-accent/60"
       />
 
       {selected && (
@@ -462,29 +462,29 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       )}
 
       <div className={`relative w-full h-full select-none cursor-move flex items-center justify-center transition-colors duration-150 group ${
-        selected ? 'ring-2 ring-gold-400 rounded-lg' : ''
+        selected ? 'ring-2 ring-accent rounded-[4px]' : ''
       }`}>
         {/* Handles matching shape geometry, only visible on hover */}
         {type === 'parallelogram' ? (
           <>
-            <Handle type="source" position={Position.Top} id="top" style={{ left: '60.7%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Bottom} id="bottom" style={{ left: '39.3%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !bottom-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Left} id="left" style={{ left: '14.3%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Right} id="right" style={{ left: '85.7%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Top} id="top" style={{ left: '60.7%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Bottom} id="bottom" style={{ left: '39.3%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !bottom-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Left} id="left" style={{ left: '14.3%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Right} id="right" style={{ left: '85.7%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
           </>
         ) : type === 'diamond' ? (
           <>
-            <Handle type="source" position={Position.Top} id="top" style={{ left: '50%', top: '5%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Bottom} id="bottom" style={{ left: '50%', top: '95%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Left} id="left" style={{ left: '5%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Right} id="right" style={{ left: '95%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Top} id="top" style={{ left: '50%', top: '5%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Bottom} id="bottom" style={{ left: '50%', top: '95%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Left} id="left" style={{ left: '5%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Right} id="right" style={{ left: '95%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
           </>
         ) : (
           <>
-            <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+            <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
           </>
         )}
 
@@ -636,8 +636,8 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             )
           )
         }}
-        handleClassName="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !rounded-full shadow-md"
-        lineClassName="!border-gold-400/60"
+        handleClassName="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !rounded-full shadow-md"
+        lineClassName="!border-accent/60"
       />
 
       {selected && (
@@ -649,14 +649,14 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         />
       )}
 
-      <div className={`relative w-full h-full px-3 py-1.5 rounded-lg select-none transition-colors duration-150 cursor-move flex items-center ${
-        selected ? 'ring-1 ring-gold-400 bg-oros-900/40' : 'hover:bg-oros-900/20'
+      <div className={`relative w-full h-full px-3 py-1.5 rounded-[4px] select-none transition-colors duration-150 cursor-move flex items-center ${
+        selected ? 'ring-1 ring-accent bg-oros-900/40' : 'hover:bg-oros-900/20'
       }`}>
         {/* 4 Cardinal Handles */}
-        <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-gold-400/80 !border !border-oros-950 !-top-1" />
-        <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-gold-400/80 !border !border-oros-950 !-bottom-1" />
-        <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-gold-400/80 !border !border-oros-950 !-left-1" />
-        <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-gold-400/80 !border !border-oros-950 !-right-1" />
+        <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-accent !border !border-oros-950 !-top-1" />
+        <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-accent !border !border-oros-950 !-bottom-1" />
+        <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-accent !border !border-oros-950 !-left-1" />
+        <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-accent !border !border-oros-950 !-right-1" />
 
         <input
           type="text"
@@ -753,7 +753,7 @@ const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   return (
     <div
       className={`relative select-none w-full h-full ${
-        selected ? 'ring-2 ring-gold-400 ring-dashed rounded-xl bg-gold-400/5 cursor-move pointer-events-auto' : 'pointer-events-none'
+        selected ? 'ring-2 ring-accent ring-dashed rounded-[4px] bg-accent/5 cursor-move pointer-events-auto' : 'pointer-events-none'
       }`}
     >
       <NodeResizer
@@ -780,8 +780,8 @@ const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             )
           )
         }}
-        handleClassName="!w-2.5 !h-2.5 !bg-gold-400 !border-2 !border-oros-950 !rounded-full shadow-md pointer-events-auto"
-        lineClassName="!border-gold-400/60 pointer-events-auto"
+        handleClassName="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !rounded-full shadow-md pointer-events-auto"
+        lineClassName="!border-accent/60 pointer-events-auto"
       />
 
       {/* 4 Handles - keep opacity-0 and pointer-events-none */}
@@ -1151,7 +1151,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
 
   return (
     <div 
-      className="relative w-full h-full bg-[#0a0f0d] overflow-hidden select-none"
+      className="relative w-full h-full bg-oros-950 overflow-hidden select-none"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -1173,15 +1173,15 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
         maxZoom={2.5}
         connectionMode={ConnectionMode.Loose}
         connectionLineType={ConnectionLineType.SmoothStep}
-        connectionLineStyle={{ stroke: '#f5c542', strokeWidth: 2 }}
+        connectionLineStyle={{ stroke: 'var(--oros-accent, #e2e8f0)', strokeWidth: 2 }}
         className={activeTool === 'pen' ? 'cursor-crosshair' : activeTool === 'pan' ? 'cursor-grab' : 'cursor-default'}
       >
-        {/* Subtle dot grid like VVD */}
+        {/* Atmospheric Accent-Tinted Dotted Grid */}
         <Background 
           variant={BackgroundVariant.Dots} 
-          gap={28} 
-          size={1.2} 
-          color="rgba(255, 255, 255, 0.14)" 
+          gap={24} 
+          size={1.4} 
+          color="var(--oros-accent-border, rgba(226, 232, 240, 0.22))" 
         />
 
         {/* Live Active Stroke Preview during Pen Drawing */}
@@ -1295,8 +1295,8 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             title="Select & Move (V)"
             className={`p-1.5 rounded-[3px] transition-colors ${
               activeTool === 'select'
-                ? 'bg-oros-800 text-oros-100 border border-oros-600 shadow-sm'
-                : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
+                ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
+                : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850 border border-transparent'
             }`}
           >
             <MousePointer className="w-3.5 h-3.5" />
@@ -1308,8 +1308,8 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             title="Pan / Hand tool (H)"
             className={`p-1.5 rounded-[3px] transition-colors ${
               activeTool === 'pan'
-                ? 'bg-oros-800 text-oros-100 border border-oros-600 shadow-sm'
-                : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
+                ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
+                : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850 border border-transparent'
             }`}
           >
             <Hand className="w-3.5 h-3.5" />
@@ -1324,8 +1324,8 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
               title="Add Geometric Shape"
               className={`p-1.5 rounded-[3px] transition-colors ${
                 showShapePicker
-                  ? 'bg-oros-800 text-oros-100 border border-oros-600'
-                  : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
+                  ? 'bg-accent-muted text-accent border border-accent/40'
+                  : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850 border border-transparent'
               }`}
             >
               <Square className="w-3.5 h-3.5" />
@@ -1418,7 +1418,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             title="Pen / Freehand Sketch (Draw circles & loops)"
             className={`p-1.5 rounded-[3px] transition-colors ${
               activeTool === 'pen'
-                ? 'bg-oros-800 text-oros-100 border border-oros-600 shadow-sm'
+                ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
                 : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
             }`}
           >

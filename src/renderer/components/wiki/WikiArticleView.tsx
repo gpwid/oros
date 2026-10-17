@@ -115,8 +115,8 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
     const el = document.getElementById(id)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      el.classList.add('text-gold-400')
-      setTimeout(() => el.classList.remove('text-gold-400'), 1400)
+      el.classList.add('text-accent')
+      setTimeout(() => el.classList.remove('text-accent'), 1400)
     }
   }
 
@@ -202,7 +202,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                 onClick={() => setFilterType('all')}
                 className={`px-2 py-0.5 rounded-[2px] capitalize shrink-0 font-medium transition-colors ${
                   filterType === 'all' 
-                    ? 'bg-oros-200 text-oros-950 font-semibold' 
+                    ? 'bg-accent-muted text-accent border border-accent/40 font-semibold shadow-sm' 
                     : 'text-oros-400 hover:text-oros-200 hover:bg-oros-900'
                 }`}
               >
@@ -216,13 +216,13 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                     onClick={() => setFilterType(cat.id)}
                     className={`px-2 py-0.5 rounded-[2px] shrink-0 flex items-center gap-1 transition-colors font-medium ${
                       isActive 
-                        ? 'bg-oros-200 text-oros-950 font-semibold' 
+                        ? 'bg-accent-muted text-accent border border-accent/40 font-semibold shadow-sm' 
                         : 'text-oros-400 hover:text-oros-200 hover:bg-oros-900'
                     }`}
                   >
                     <span
                       className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: isActive ? '#090a0d' : (cat.color || '#94a3b8') }}
+                      style={{ backgroundColor: cat.color || 'var(--oros-accent)' }}
                     />
                     <span>{cat.name}</span>
                   </button>
@@ -253,7 +253,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                     }}
                     className={`w-full text-left p-2 rounded-[3px] text-xs transition-all flex items-start justify-between group ${
                       isSelected
-                        ? 'bg-oros-850 text-oros-100 font-medium border border-oros-750'
+                        ? 'bg-accent-muted text-oros-100 font-medium border border-accent/40 shadow-sm'
                         : 'text-oros-300 hover:bg-oros-900 hover:text-oros-100'
                     }`}
                   >
@@ -405,8 +405,8 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                   onClick={() => setIsEditing(!isEditing)}
                   className={`px-3 py-1.5 rounded-[3px] text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm ${
                     isEditing 
-                      ? 'bg-oros-200 text-oros-950 hover:bg-white' 
-                      : 'bg-oros-900 hover:bg-oros-850 text-oros-200 border border-oros-750'
+                      ? 'bg-accent text-accent-contrast hover:bg-accent-hover' 
+                      : 'bg-oros-900 hover:bg-oros-850 text-oros-200 border border-oros-750 hover:border-accent/40'
                   }`}
                 >
                   {isEditing ? <Eye className="w-3.5 h-3.5" /> : <Edit className="w-3.5 h-3.5" />}
@@ -629,7 +629,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
               </p>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="px-3.5 py-1.5 rounded-[3px] bg-oros-200 hover:bg-white text-oros-950 font-semibold text-xs shadow-sm transition-colors"
+                className="px-3.5 py-1.5 rounded-[3px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs shadow-sm transition-colors"
               >
                 New Article
               </button>

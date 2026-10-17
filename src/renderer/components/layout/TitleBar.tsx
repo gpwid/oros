@@ -298,7 +298,7 @@ export const TitleBar: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 transition-colors shadow-sm"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast transition-colors shadow-sm"
                 >
                   Create World
                 </button>

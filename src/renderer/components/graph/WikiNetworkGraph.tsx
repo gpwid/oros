@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { 
-  ReactFlow, Background, Node, Edge, 
+  ReactFlow, Background, BackgroundVariant, Node, Edge, 
   MarkerType, Handle, Position, useNodesState, useEdgesState,
   useReactFlow, ReactFlowProvider, BaseEdge, EdgeProps, getStraightPath,
   useViewport
@@ -80,9 +80,9 @@ const WikiArticleNode = ({ data }: { data: {
       onClick={() => data.onSelect(entity.id)}
       className={`w-52 rounded-[3px] bg-oros-900 border shadow-md transition-all duration-150 cursor-pointer select-none text-left relative ${
         isSelected 
-          ? 'border-oros-400 ring-1 ring-oros-400/40 z-30' 
+          ? 'border-accent ring-1 ring-accent/40 z-30' 
           : isHub
-            ? 'border-oros-600 hover:border-oros-500'
+            ? 'border-accent/40 hover:border-accent/70'
             : 'border-oros-750 hover:border-oros-600'
       }`}
     >
@@ -274,10 +274,10 @@ const GraphMiniMap: React.FC<GraphMiniMapProps> = React.memo(({
     return (
       <button
         onClick={() => setIsCollapsed(false)}
-        className={`absolute bottom-4 ${drawerOpen ? 'right-90' : 'right-4'} z-20 px-3 py-1.5 bg-oros-900/95 backdrop-blur-md border border-oros-700/80 hover:border-gold-400/60 rounded-xl shadow-2xl flex items-center gap-1.5 text-xs text-oros-300 hover:text-gold-300 transition-all font-mono`}
+        className={`absolute bottom-4 ${drawerOpen ? 'right-90' : 'right-4'} z-20 px-3 py-1.5 bg-oros-900/95 backdrop-blur-md border border-oros-750 hover:border-accent/60 rounded-[4px] shadow-xl flex items-center gap-1.5 text-xs text-oros-300 hover:text-accent transition-all font-mono`}
         title="Expand Navigator Minimap"
       >
-        <Network className="w-3.5 h-3.5 text-gold-400" />
+        <Network className="w-3.5 h-3.5 text-accent" />
         <span className="text-[11px] font-semibold uppercase tracking-wider">Navigator</span>
       </button>
     )
@@ -287,12 +287,12 @@ const GraphMiniMap: React.FC<GraphMiniMapProps> = React.memo(({
     <div
       className={`absolute bottom-4 ${
         drawerOpen ? 'right-90' : 'right-4'
-      } z-20 w-52 h-36 sm:w-60 sm:h-40 bg-oros-950/95 backdrop-blur-md border border-oros-800/90 hover:border-gold-400/40 rounded-2xl overflow-hidden shadow-2xl transition-all flex flex-col group select-none`}
+      } z-20 w-52 h-36 sm:w-60 sm:h-40 bg-oros-950/95 backdrop-blur-md border border-oros-750 hover:border-accent/40 rounded-[4px] overflow-hidden shadow-2xl transition-all flex flex-col group select-none`}
     >
       {/* Sleek Minimap Header */}
       <div className="px-3 py-1.5 bg-oros-900/70 border-b border-oros-800/70 flex items-center justify-between text-[10px] text-oros-400">
-        <span className="flex items-center gap-1.5 text-gold-400 font-semibold tracking-wider uppercase text-[9px] font-mono">
-          <Network className="w-3 h-3 text-gold-400" />
+        <span className="flex items-center gap-1.5 text-accent font-semibold tracking-wider uppercase text-[9px] font-mono">
+          <Network className="w-3 h-3 text-accent" />
           Navigator
         </span>
         <div className="flex items-center gap-2">
@@ -851,7 +851,12 @@ const WikiNetworkGraphInner: React.FC = () => {
           fitView
           proOptions={{ hideAttribution: true }}
         >
-          <Background color="#16202c" gap={24} size={1} />
+          <Background 
+            variant={BackgroundVariant.Dots}
+            color="var(--oros-accent-border, rgba(226, 232, 240, 0.22))" 
+            gap={24} 
+            size={1.4} 
+          />
         </ReactFlow>
 
         {/* Stable, Zero-Flicker Custom Graph Navigator Minimap */}
@@ -873,7 +878,7 @@ const WikiNetworkGraphInner: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search cards..."
-              className="bg-oros-900 border border-oros-750 hover:border-oros-600 rounded-[3px] pl-7 pr-6 py-1 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-500 w-44 sm:w-52 shadow-md transition-all font-sans"
+              className="bg-oros-900 border border-oros-750 hover:border-oros-600 rounded-[3px] pl-7 pr-6 py-1 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 w-44 sm:w-52 shadow-md transition-all font-sans"
             />
             {searchQuery && (
               <button
@@ -907,7 +912,7 @@ const WikiNetworkGraphInner: React.FC = () => {
                     }}
                     className={`w-full px-2.5 py-1 text-left text-xs flex items-center justify-between transition-colors ${
                       selectedType === opt.value
-                        ? 'bg-oros-800 text-oros-100 font-medium'
+                        ? 'bg-accent-muted text-accent font-medium border-l-2 border-accent'
                         : 'text-oros-300 hover:bg-oros-850 hover:text-white'
                     }`}
                   >
@@ -1017,7 +1022,7 @@ const WikiNetworkGraphInner: React.FC = () => {
           <div className="p-2.5 border-b border-oros-800 bg-oros-950">
             <button
               onClick={() => handleOpenInWiki(activeArticle.id)}
-              className="w-full py-1.5 px-3 rounded-[3px] bg-oros-200 hover:bg-white text-oros-950 font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+              className="w-full py-1.5 px-3 rounded-[3px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
             >
               <BookOpen className="w-3.5 h-3.5" />
               <span>Open in Encyclopedia</span>

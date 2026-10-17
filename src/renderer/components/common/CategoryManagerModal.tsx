@@ -192,7 +192,7 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
 
                 <button
                   onClick={handleStartCreate}
-                  className="px-3 py-1.5 rounded-[3px] bg-oros-200 hover:bg-white text-oros-950 font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-all shrink-0"
+                  className="px-3 py-1.5 rounded-[3px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-all shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>New Category</span>
@@ -468,7 +468,7 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] bg-oros-200 hover:bg-white text-oros-950 font-semibold text-xs shadow-sm transition-all flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 rounded-[3px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs shadow-sm transition-all flex items-center gap-1.5"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>{mode === 'create' ? 'Create Category' : 'Save Changes'}</span>

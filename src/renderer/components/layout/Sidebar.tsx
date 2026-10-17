@@ -18,6 +18,7 @@ import {
 export const Sidebar: React.FC = () => {
   const { 
     activeWorldId, folders, directoryItems, openTab, setSelectedEntityId,
+    openTabs, activeTabId,
     createFolder, renameFolder, deleteFolder, toggleFolderOpen, moveFolderToFolder,
     createDirectoryItem, deleteDirectoryItem, moveItemToFolder,
     createCanvas, createEntity, createMap, createChapter,
@@ -74,6 +75,18 @@ export const Sidebar: React.FC = () => {
   const entityMap = useMemo(() => {
     return new Map(worldEntities.map((e) => [e.id, e]))
   }, [worldEntities])
+
+  const activeTabObj = useMemo(() => {
+    return openTabs.find((t) => t.id === activeTabId)
+  }, [openTabs, activeTabId])
+
+  const isItemActive = (item: DirectoryItem) => {
+    if (!activeTabObj) return false
+    if (item.targetId) {
+      return activeTabObj.targetId === item.targetId
+    }
+    return activeTabObj.type === item.type
+  }
 
   // Resolve icon for item based on type and entity subtype
   const getItemIcon = (item: DirectoryItem) => {
@@ -314,7 +327,7 @@ export const Sidebar: React.FC = () => {
                   if (e.key === 'Escape') setEditingFolderId(null)
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-oros-950 border border-gold-400/80 rounded px-1.5 py-0.5 text-xs text-white outline-none w-32"
+                className="bg-oros-950 border border-accent rounded-[3px] px-1.5 py-0.5 text-xs text-white outline-none w-32 focus:ring-1 focus:ring-accent/40"
               />
             ) : (
               <span className="truncate font-medium text-slate-200">{folder.name}</span>
@@ -334,7 +347,7 @@ export const Sidebar: React.FC = () => {
             {/* Add Element in this Folder */}
             <button
               onClick={() => openNewElementForFolder(folder.id, 'card')}
-              className="p-1 rounded hover:bg-oros-800 text-oros-400 hover:text-gold-400"
+              className="p-1 rounded hover:bg-oros-800 text-oros-400 hover:text-accent"
               title="Add element in folder"
             >
               <Plus className="w-3 h-3" />
@@ -373,25 +386,31 @@ export const Sidebar: React.FC = () => {
             {subfolders.map((sub) => renderFolder(sub, depth + 1))}
 
             {/* Folder Items */}
-            {itemsInFolder.map((item) => (
-              <div
-                key={item.id}
-                draggable={true}
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('text/plain', item.id)
-                  setDraggedItemId(item.id)
-                }}
-                onDragEnd={() => setDraggedItemId(null)}
-                onClick={() => handleItemClick(item)}
-                style={{ paddingLeft: `${Math.max(16, (depth + 1) * 14 + 10)}px` }}
-                className={`group flex items-center justify-between py-1 pr-2 rounded-[3px] hover:bg-oros-900 text-oros-300 hover:text-oros-100 transition-colors cursor-pointer text-xs ${
-                  draggedItemId === item.id ? 'opacity-40' : ''
-                }`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {getItemIcon(item)}
-                  <span className="truncate">{item.name}</span>
-                </div>
+            {itemsInFolder.map((item) => {
+              const active = isItemActive(item)
+              return (
+                <div
+                  key={item.id}
+                  draggable={true}
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', item.id)
+                    setDraggedItemId(item.id)
+                  }}
+                  onDragEnd={() => setDraggedItemId(null)}
+                  onClick={() => handleItemClick(item)}
+                  style={{ paddingLeft: `${Math.max(16, (depth + 1) * 14 + 10)}px` }}
+                  className={`group flex items-center justify-between py-1 pr-2 rounded-[3px] transition-colors cursor-pointer text-xs ${
+                    draggedItemId === item.id ? 'opacity-40' : ''
+                  } ${
+                    active
+                      ? 'bg-accent-subtle text-oros-100 font-medium border-l-2 border-accent'
+                      : 'hover:bg-oros-900 text-oros-300 hover:text-oros-100 border-l-2 border-transparent'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    {getItemIcon(item)}
+                    <span className="truncate">{item.name}</span>
+                  </div>
 
                 <div 
                   className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity"
@@ -424,7 +443,8 @@ export const Sidebar: React.FC = () => {
                   </button>
                 </div>
               </div>
-            ))}
+            )
+          })}
 
             {itemsInFolder.length === 0 && subfolders.length === 0 && (
               <div 
@@ -512,24 +532,30 @@ export const Sidebar: React.FC = () => {
         {rootFolders.map((folder) => renderFolder(folder))}
 
         {/* Root Level Items */}
-        {rootItems.map((item) => (
-          <div
-            key={item.id}
-            draggable={true}
-            onDragStart={(e) => {
-              e.dataTransfer.setData('text/plain', item.id)
-              setDraggedItemId(item.id)
-            }}
-            onDragEnd={() => setDraggedItemId(null)}
-            onClick={() => handleItemClick(item)}
-            className={`group flex items-center justify-between px-2 py-1 rounded-[3px] hover:bg-oros-900 text-oros-300 hover:text-oros-100 transition-colors cursor-pointer text-xs ${
-              draggedItemId === item.id ? 'opacity-40' : ''
-            }`}
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              {getItemIcon(item)}
-              <span className="truncate font-medium">{item.name}</span>
-            </div>
+        {rootItems.map((item) => {
+          const active = isItemActive(item)
+          return (
+            <div
+              key={item.id}
+              draggable={true}
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', item.id)
+                setDraggedItemId(item.id)
+              }}
+              onDragEnd={() => setDraggedItemId(null)}
+              onClick={() => handleItemClick(item)}
+              className={`group flex items-center justify-between px-2 py-1 rounded-[3px] transition-colors cursor-pointer text-xs ${
+                draggedItemId === item.id ? 'opacity-40' : ''
+              } ${
+                active
+                  ? 'bg-accent-subtle text-oros-100 font-medium border-l-2 border-accent'
+                  : 'hover:bg-oros-900 text-oros-300 hover:text-oros-100 border-l-2 border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                {getItemIcon(item)}
+                <span className="truncate font-medium">{item.name}</span>
+              </div>
 
             <div 
               className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity"
@@ -562,7 +588,8 @@ export const Sidebar: React.FC = () => {
               </button>
             </div>
           </div>
-        ))}
+        )
+      })}
 
         {rootItems.length === 0 && rootFolders.length === 0 && (
           <div className="text-center py-8 text-oros-500 text-xs px-4">
@@ -679,7 +706,7 @@ export const Sidebar: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1 rounded-[3px] text-xs font-medium bg-oros-200 hover:bg-white text-oros-950 transition-colors shadow-sm"
+                  className="px-3 py-1 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast transition-colors shadow-sm"
                 >
                   Create Folder
                 </button>
@@ -720,7 +747,7 @@ export const Sidebar: React.FC = () => {
                         onClick={() => setNewElementType(t.id as DirectoryItemType)}
                         className={`p-1.5 rounded-[3px] text-xs font-medium flex flex-col items-center gap-1 border transition-colors ${
                           isSelected
-                            ? 'bg-oros-800 text-oros-100 border-oros-500 shadow-sm'
+                            ? 'bg-accent-muted text-accent border-accent/40 shadow-sm'
                             : 'bg-oros-950/70 border-oros-800 text-oros-400 hover:text-oros-200 hover:bg-oros-850'
                         }`}
                       >
@@ -791,7 +818,7 @@ export const Sidebar: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-medium bg-oros-200 hover:bg-white text-oros-950 transition-colors shadow-sm"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast transition-colors shadow-sm"
                 >
                   Create
                 </button>
@@ -836,7 +863,7 @@ export const Sidebar: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1 rounded-[3px] text-xs font-medium bg-oros-200 hover:bg-white text-oros-950 transition-colors shadow-sm"
+                  className="px-3 py-1 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast transition-colors shadow-sm"
                 >
                   Move Record
                 </button>

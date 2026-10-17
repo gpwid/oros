@@ -3,46 +3,70 @@
 @tailwind utilities;
 
 :root {
-  /* Default Sovereign Theme (Precision Silver / Platinum) */
+  /* Default Sovereign Theme (Precision Silver / Lunar Platinum) */
   --oros-accent: #e2e8f0;
   --oros-accent-muted: rgba(226, 232, 240, 0.12);
+  --oros-accent-subtle: rgba(226, 232, 240, 0.05);
+  --oros-accent-border: rgba(226, 232, 240, 0.30);
   --oros-accent-hover: #ffffff;
   --oros-accent-ring: rgba(226, 232, 240, 0.25);
+  --oros-accent-glow: rgba(226, 232, 240, 0.20);
+  --oros-accent-contrast: #090a0d;
 }
 
 [data-theme="mythic"] {
   --oros-accent: #f5c542;
-  --oros-accent-muted: rgba(245, 197, 66, 0.15);
+  --oros-accent-muted: rgba(245, 197, 66, 0.14);
+  --oros-accent-subtle: rgba(245, 197, 66, 0.05);
+  --oros-accent-border: rgba(245, 197, 66, 0.35);
   --oros-accent-hover: #fde047;
-  --oros-accent-ring: rgba(245, 197, 66, 0.3);
+  --oros-accent-ring: rgba(245, 197, 66, 0.30);
+  --oros-accent-glow: rgba(245, 197, 66, 0.25);
+  --oros-accent-contrast: #090a0d;
 }
 
 [data-theme="cyber"] {
   --oros-accent: #06b6d4;
-  --oros-accent-muted: rgba(6, 182, 212, 0.15);
+  --oros-accent-muted: rgba(6, 182, 212, 0.14);
+  --oros-accent-subtle: rgba(6, 182, 212, 0.05);
+  --oros-accent-border: rgba(6, 182, 212, 0.35);
   --oros-accent-hover: #22d3ee;
-  --oros-accent-ring: rgba(6, 182, 212, 0.3);
+  --oros-accent-ring: rgba(6, 182, 212, 0.30);
+  --oros-accent-glow: rgba(6, 182, 212, 0.25);
+  --oros-accent-contrast: #090a0d;
 }
 
 [data-theme="crimson"] {
   --oros-accent: #f43f5e;
-  --oros-accent-muted: rgba(244, 63, 94, 0.15);
+  --oros-accent-muted: rgba(244, 63, 94, 0.14);
+  --oros-accent-subtle: rgba(244, 63, 94, 0.05);
+  --oros-accent-border: rgba(244, 63, 94, 0.35);
   --oros-accent-hover: #fb7185;
-  --oros-accent-ring: rgba(244, 63, 94, 0.3);
+  --oros-accent-ring: rgba(244, 63, 94, 0.30);
+  --oros-accent-glow: rgba(244, 63, 94, 0.25);
+  --oros-accent-contrast: #ffffff;
 }
 
 [data-theme="hazard"] {
   --oros-accent: #f97316;
-  --oros-accent-muted: rgba(249, 115, 22, 0.15);
+  --oros-accent-muted: rgba(249, 115, 22, 0.14);
+  --oros-accent-subtle: rgba(249, 115, 22, 0.05);
+  --oros-accent-border: rgba(249, 115, 22, 0.35);
   --oros-accent-hover: #fb923c;
-  --oros-accent-ring: rgba(249, 115, 22, 0.3);
+  --oros-accent-ring: rgba(249, 115, 22, 0.30);
+  --oros-accent-glow: rgba(249, 115, 22, 0.25);
+  --oros-accent-contrast: #090a0d;
 }
 
 [data-theme="emerald"] {
   --oros-accent: #10b981;
-  --oros-accent-muted: rgba(16, 185, 129, 0.15);
+  --oros-accent-muted: rgba(16, 185, 129, 0.14);
+  --oros-accent-subtle: rgba(16, 185, 129, 0.05);
+  --oros-accent-border: rgba(16, 185, 129, 0.35);
   --oros-accent-hover: #34d399;
-  --oros-accent-ring: rgba(16, 185, 129, 0.3);
+  --oros-accent-ring: rgba(16, 185, 129, 0.30);
+  --oros-accent-glow: rgba(16, 185, 129, 0.25);
+  --oros-accent-contrast: #090a0d;
 }
 
 @layer base {
@@ -147,22 +171,28 @@
 
 /* TipTap & Wiki @Mention Badges */
 .oros-mention {
-  background-color: rgba(245, 197, 66, 0.15);
-  color: #f5c542;
-  border-radius: 4px;
+  background-color: var(--oros-accent-muted, rgba(226, 232, 240, 0.14));
+  color: var(--oros-accent, #e2e8f0);
+  border-radius: 3px;
   padding: 1px 6px;
   font-weight: 600;
   cursor: pointer;
-  border: 1px solid rgba(245, 197, 66, 0.35);
+  border: 1px solid var(--oros-accent-border, rgba(226, 232, 240, 0.35));
   display: inline-block;
   line-height: 1.4;
   transition: all 0.15s ease-in-out;
 }
 
 .oros-mention:hover {
-  background-color: rgba(245, 197, 66, 0.28);
-  border-color: rgba(245, 197, 66, 0.7);
-  box-shadow: 0 0 8px rgba(245, 197, 66, 0.2);
+  background-color: var(--oros-accent-muted, rgba(226, 232, 240, 0.25));
+  border-color: var(--oros-accent, #ffffff);
+  box-shadow: 0 0 8px var(--oros-accent-glow, rgba(226, 232, 240, 0.25));
+}
+
+/* Atmospheric Accent-Tinted Dotted Surface for Canvases and Empty Workspaces */
+.oros-dotted-surface {
+  background-image: radial-gradient(circle, var(--oros-accent-border, rgba(226, 232, 240, 0.22)) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 /* Hide React Flow attribution watermark */

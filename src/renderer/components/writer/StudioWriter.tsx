@@ -107,7 +107,7 @@ export const StudioWriter: React.FC = () => {
                     onClick={() => setSelectedChapterId(ch.id)}
                     className={`w-full text-left p-2 rounded-[3px] text-xs transition-colors flex items-center justify-between group cursor-pointer ${
                       isSelected
-                        ? 'bg-oros-800 text-oros-100 font-medium border border-oros-600 shadow-sm'
+                        ? 'bg-accent-muted text-oros-100 font-medium border border-accent/40 shadow-sm'
                         : 'text-oros-300 hover:bg-oros-900 border border-transparent'
                     }`}
                   >
@@ -144,7 +144,7 @@ export const StudioWriter: React.FC = () => {
                           <ChevronDown className="w-3 h-3" />
                         </button>
                       </div>
-                      <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'opacity-100 text-oros-300' : 'opacity-0 group-hover:opacity-60 text-oros-500'}`} />
+                      <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'opacity-100 text-accent' : 'opacity-0 group-hover:opacity-60 text-oros-500'}`} />
                     </div>
                   </div>
                 )
@@ -179,7 +179,7 @@ export const StudioWriter: React.FC = () => {
                   type="text"
                   value={currentChapter.title}
                   onChange={(e) => updateChapter(currentChapter.id, currentChapter.content, e.target.value)}
-                  className="font-serif text-2xl font-bold text-oros-100 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-oros-500 rounded-[2px] px-1 w-full"
+                  className="font-serif text-2xl font-bold text-oros-100 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-accent rounded-[2px] px-1 w-full"
                 />
               </div>
 

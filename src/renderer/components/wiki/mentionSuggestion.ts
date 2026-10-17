@@ -19,7 +19,7 @@ class MentionList {
 
   constructor() {
     this.element = document.createElement('div')
-    this.element.className = 'oros-mention-popover bg-oros-900 border border-oros-700/80 rounded-xl shadow-2xl p-1.5 w-64 max-h-60 overflow-y-auto space-y-0.5 z-50 text-xs'
+    this.element.className = 'oros-mention-popover bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-1 w-64 max-h-60 overflow-y-auto space-y-0.5 z-50 text-xs backdrop-blur-md select-none'
   }
 
   updateProps(props: any) {
@@ -54,7 +54,7 @@ class MentionList {
     this.element.innerHTML = ''
     if (this.items.length === 0) {
       const empty = document.createElement('div')
-      empty.className = 'p-2 text-center text-oros-500 italic'
+      empty.className = 'p-2 text-center text-oros-500 italic text-[11px]'
       empty.textContent = 'No matching lore found'
       this.element.appendChild(empty)
       return
@@ -63,17 +63,19 @@ class MentionList {
     this.items.forEach((item, index) => {
       const btn = document.createElement('button')
       const isSelected = index === this.selectedIndex
-      btn.className = `w-full text-left p-2 rounded-lg flex items-center justify-between transition-all ${
-        isSelected ? 'bg-gold-500 text-oros-950 font-semibold' : 'text-slate-200 hover:bg-oros-800'
+      btn.className = `w-full text-left p-1.5 rounded-[3px] flex items-center justify-between transition-colors border ${
+        isSelected 
+          ? 'bg-accent-muted text-oros-100 font-medium border-accent/40 shadow-sm' 
+          : 'text-oros-300 hover:bg-oros-850 hover:text-oros-100 border-transparent'
       }`
       btn.innerHTML = `
         <div class="flex items-center gap-2 truncate mr-1">
-          <div class="w-5 h-5 rounded-full ${isSelected ? 'bg-oros-950 text-gold-400' : 'bg-oros-800 text-oros-400'} flex items-center justify-center font-bold text-[10px] shrink-0">
+          <div class="w-5 h-5 rounded-[2px] ${isSelected ? 'bg-accent text-accent-contrast' : 'bg-oros-950 text-oros-400 border border-oros-800'} flex items-center justify-center font-bold text-[10px] shrink-0 font-mono">
             ${item.title.charAt(0)}
           </div>
           <span class="truncate">${item.title}</span>
         </div>
-        <span class="text-[9px] uppercase font-mono px-1 py-0.2 rounded ${isSelected ? 'bg-oros-950/20 text-oros-950' : 'bg-oros-950 text-oros-400'} shrink-0">${item.type}</span>
+        <span class="text-[9px] uppercase font-mono px-1 py-0.2 rounded-[2px] ${isSelected ? 'bg-accent/20 text-accent font-medium' : 'bg-oros-950 text-oros-400 border border-oros-800/80'} shrink-0">${item.type}</span>
       `
       btn.addEventListener('click', () => {
         this.command({ id: item.id, label: item.title })

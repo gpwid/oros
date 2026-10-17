@@ -622,7 +622,7 @@ const RelationGraphCanvasContent: React.FC = () => {
             onClick={() => setShowBondsDrawer(!showBondsDrawer)}
             className={`px-2.5 py-1.5 rounded-[3px] border text-xs font-medium flex items-center gap-1.5 transition-colors ${
               showBondsDrawer 
-                ? 'bg-oros-800 border-oros-500 text-oros-100' 
+                ? 'bg-accent-muted border-accent/40 text-accent' 
                 : 'bg-oros-900 border-oros-750 text-oros-300 hover:bg-oros-850 hover:text-oros-100'
             }`}
           >
@@ -637,7 +637,7 @@ const RelationGraphCanvasContent: React.FC = () => {
               setQuickAddDirection('right')
               setShowAddModal(true)
             }}
-            className="px-3 py-1.5 rounded-[3px] bg-oros-200 hover:bg-white text-oros-950 font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+            className="px-3 py-1.5 rounded-[3px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Relation</span>
@@ -666,9 +666,9 @@ const RelationGraphCanvasContent: React.FC = () => {
         >
           <Background 
             variant={BackgroundVariant.Dots}
-            color="#223044" 
-            gap={20} 
-            size={1.2} 
+            color="var(--oros-accent-border, rgba(226, 232, 240, 0.22))" 
+            gap={24} 
+            size={1.4} 
           />
           
           <FloatingZoomControls />
@@ -960,7 +960,7 @@ const RelationGraphCanvasContent: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm transition-colors"
                 >
                   Create Relation
                 </button>
@@ -1124,7 +1124,7 @@ const RelationGraphCanvasContent: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm flex items-center gap-1.5 transition-colors"
+                    className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm flex items-center gap-1.5 transition-colors"
                   >
                     <Check className="w-3.5 h-3.5" />
                     <span>Save Changes</span>

@@ -786,7 +786,7 @@ export const InteractiveMapViewer: React.FC = () => {
                   <div 
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-oros-950 font-bold shadow-2xl transition-all border-2 ${
                       isSelected 
-                        ? 'border-white ring-4 ring-gold-400/50 scale-125' 
+                        ? 'border-white ring-4 ring-accent/50 scale-125' 
                         : 'border-white/80 group-hover:border-white'
                     }`}
                     style={{ backgroundColor: pin.color || '#f5c542' }}
@@ -843,7 +843,7 @@ export const InteractiveMapViewer: React.FC = () => {
               {drawingPoints.length >= 3 && (
                 <button
                   onClick={handleFinishPolygon}
-                  className="px-2.5 py-1 rounded-[2px] bg-oros-200 hover:bg-white text-oros-950 font-semibold text-xs transition-colors shadow-sm"
+                  className="px-2.5 py-1 rounded-[2px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs transition-colors shadow-sm"
                 >
                   Close & Save
                 </button>
@@ -888,7 +888,7 @@ export const InteractiveMapViewer: React.FC = () => {
               title="Pan & Select (H or V)"
               className={`p-1.5 rounded-[3px] transition-colors ${
                 activeTool === 'pan'
-                  ? 'bg-oros-800 text-oros-100 border border-oros-600 shadow-sm'
+                  ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
                   : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
               }`}
             >
@@ -905,13 +905,13 @@ export const InteractiveMapViewer: React.FC = () => {
               title="Draw Territory Polygon (T)"
               className={`p-1.5 rounded-[3px] relative transition-colors ${
                 activeTool === 'territory'
-                  ? 'bg-oros-800 text-oros-100 border border-oros-600 shadow-sm'
+                  ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
                   : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
               }`}
             >
               <Hexagon className="w-3.5 h-3.5" />
               {drawingPoints.length > 0 && (
-                <span className="absolute -top-1 -right-1 px-1 rounded-[2px] bg-oros-200 text-oros-950 text-[9px] font-mono font-bold leading-none py-0.5 shadow">
+                <span className="absolute -top-1 -right-1 px-1 rounded-[2px] bg-accent text-accent-contrast text-[9px] font-mono font-bold leading-none py-0.5 shadow">
                   {drawingPoints.length}
                 </span>
               )}
@@ -928,7 +928,7 @@ export const InteractiveMapViewer: React.FC = () => {
               title="Place Pin (P)"
               className={`p-1.5 rounded-[3px] transition-colors ${
                 activeTool === 'pin'
-                  ? 'bg-oros-800 text-oros-100 border border-oros-600 shadow-sm'
+                  ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
                   : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
               }`}
             >
@@ -1376,7 +1376,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm transition-colors"
                 >
                   {editingRegionId ? 'Save Changes' : 'Save Territory'}
                 </button>
@@ -1525,7 +1525,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm transition-colors"
                 >
                   {editingPinId ? 'Save Changes' : 'Drop Landmark Pin'}
                 </button>
@@ -1584,7 +1584,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm transition-colors"
                 >
                   Create Map
                 </button>

@@ -79,7 +79,7 @@ export const CardGallery: React.FC = () => {
 
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-3 py-1.5 rounded-[3px] bg-oros-200 hover:bg-white text-oros-950 font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+            className="px-3 py-1.5 rounded-[3px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>New Card</span>
@@ -94,14 +94,14 @@ export const CardGallery: React.FC = () => {
           onClick={() => setActiveCategory('all')}
           className={`px-2.5 py-1.5 rounded-[3px] text-xs font-medium flex items-center gap-2 transition-all shrink-0 ${
             activeCategory === 'all'
-              ? 'bg-oros-200 text-oros-950 font-semibold shadow-sm'
+              ? 'bg-accent-muted text-accent border border-accent/40 font-semibold shadow-sm'
               : 'bg-oros-900 hover:bg-oros-850 text-oros-400 hover:text-oros-200 border border-oros-800'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
           <span>All</span>
           <span className={`text-[10px] px-1.5 py-0.2 rounded-[2px] font-mono ${
-            activeCategory === 'all' ? 'bg-oros-950/20 text-oros-950' : 'bg-oros-800 text-oros-400'
+            activeCategory === 'all' ? 'bg-accent/20 text-accent font-semibold' : 'bg-oros-800 text-oros-400'
           }`}>
             {worldEntities.length}
           </span>
@@ -118,17 +118,17 @@ export const CardGallery: React.FC = () => {
               onClick={() => setActiveCategory(cat.id)}
               className={`px-2.5 py-1.5 rounded-[3px] text-xs font-medium flex items-center gap-2 transition-all shrink-0 ${
                 isActive
-                  ? 'bg-oros-200 text-oros-950 font-semibold shadow-sm'
+                  ? 'bg-accent-muted text-accent border border-accent/40 font-semibold shadow-sm'
                   : 'bg-oros-900 hover:bg-oros-850 text-oros-400 hover:text-oros-200 border border-oros-800'
               }`}
             >
               <Icon 
                 className="w-3.5 h-3.5" 
-                style={{ color: isActive ? '#090a0d' : (cat.color || '#94a3b8') }} 
+                style={{ color: cat.color || 'var(--oros-accent)' }} 
               />
               <span>{cat.name}</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded-[2px] font-mono ${
-                isActive ? 'bg-oros-950/20 text-oros-950' : 'bg-oros-800 text-oros-400'
+                isActive ? 'bg-accent/20 text-accent font-semibold' : 'bg-oros-800 text-oros-400'
               }`}>
                 {count}
               </span>
@@ -304,7 +304,7 @@ export const CardGallery: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 transition-colors shadow-sm"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast transition-colors shadow-sm"
                 >
                   Create Card
                 </button>

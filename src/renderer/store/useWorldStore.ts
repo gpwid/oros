@@ -84,8 +84,8 @@ interface WorldState {
   clearCanvasStrokes: (canvasId: string) => void;
 
   // World CRUD
-  createWorld: (name: string, tagline: string, genre: string, theme?: World['theme']) => void;
-  setWorldTheme: (worldId: string, theme: World['theme']) => void;
+  createWorld: (name: string, tagline: string, genre: string, theme?: World['theme'], customAccentColor?: string) => void;
+  setWorldTheme: (worldId: string, theme: World['theme'], customAccentColor?: string) => void;
   
   // Entity CRUD
   createEntity: (type: LoreEntity['type'], title: string, folderId?: string | null) => LoreEntity;
@@ -889,7 +889,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     get().persistStore();
   },
 
-  createWorld: (name, tagline, genre, theme = 'sovereign') => {
+  createWorld: (name, tagline, genre, theme = 'sovereign', customAccentColor) => {
     const newWorld: World = {
       id: `world-${Date.now()}`,
       name,
@@ -897,6 +897,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       description: '',
       genre,
       theme,
+      customAccentColor,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -912,9 +913,17 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     get().persistStore();
   },
 
-  setWorldTheme: (worldId, theme) => {
+  setWorldTheme: (worldId, theme, customAccentColor) => {
     set((state) => ({
-      worlds: state.worlds.map((w) => (w.id === worldId ? { ...w, theme } : w))
+      worlds: state.worlds.map((w) =>
+        w.id === worldId
+          ? {
+              ...w,
+              theme,
+              ...(customAccentColor !== undefined ? { customAccentColor } : {})
+            }
+          : w
+      )
     }));
     get().persistStore();
   },

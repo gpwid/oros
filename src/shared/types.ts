@@ -132,7 +132,8 @@ export interface World {
   tagline: string;
   description: string;
   genre: string;
-  theme?: 'sovereign' | 'mythic' | 'cyber' | 'crimson' | 'hazard' | 'emerald';
+  theme?: 'sovereign' | 'mythic' | 'cyber' | 'crimson' | 'hazard' | 'emerald' | 'custom';
+  customAccentColor?: string;
   bannerUrl?: string;
   createdAt: string;
   updatedAt: string;

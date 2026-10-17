@@ -265,13 +265,13 @@ export const CommandPalette: React.FC = () => {
                 onMouseEnter={() => setSelectedIndex(idx)}
                 className={`w-full text-left p-2 rounded-[3px] text-xs flex items-center justify-between transition-colors group ${
                   isSelected
-                    ? 'bg-oros-800 border border-oros-600 text-oros-100 font-medium'
-                    : 'text-oros-300 hover:bg-oros-850/60 border border-transparent'
+                    ? 'bg-accent-muted border-l-2 border-accent border-t-transparent border-r-transparent border-b-transparent text-oros-100 font-medium'
+                    : 'text-oros-300 hover:bg-oros-850/60 border-l-2 border-transparent'
                 }`}
               >
                 <div className="flex items-center gap-2.5 truncate">
-                  <div className={`p-1.5 rounded-[2px] ${
-                    isSelected ? 'bg-oros-700 text-oros-100' : 'bg-oros-950 text-oros-400 border border-oros-800'
+                  <div className={`p-1.5 rounded-[2px] transition-colors ${
+                    isSelected ? 'bg-accent text-accent-contrast shadow-sm' : 'bg-oros-950 text-oros-400 border border-oros-800'
                   }`}>
                     <Icon className="w-3.5 h-3.5" />
                   </div>
@@ -287,7 +287,7 @@ export const CommandPalette: React.FC = () => {
                   <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded-[2px] bg-oros-950 text-oros-400 border border-oros-800">
                     {item.category}
                   </span>
-                  {isSelected && <ArrowRight className="w-3.5 h-3.5 text-oros-300" />}
+                  {isSelected && <ArrowRight className="w-3.5 h-3.5 text-accent" />}
                 </div>
               </button>
             )

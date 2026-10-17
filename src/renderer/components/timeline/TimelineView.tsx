@@ -108,7 +108,7 @@ export const TimelineView: React.FC = () => {
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-3 py-1.5 rounded-[3px] bg-oros-200 hover:bg-white text-oros-950 font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+          className="px-3 py-1.5 rounded-[3px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Add Event</span>
@@ -139,7 +139,7 @@ export const TimelineView: React.FC = () => {
                 {eraEvents.map((evt) => {
                   let badgeColor = 'bg-oros-850 text-oros-300 border-oros-700'
                   if (evt.importance === 'mythic') {
-                    badgeColor = 'bg-oros-800 text-oros-200 border-oros-600'
+                    badgeColor = 'bg-accent-muted text-accent border border-accent/40 font-semibold'
                   } else if (evt.importance === 'minor') {
                     badgeColor = 'bg-oros-950 text-oros-400 border-oros-800'
                   }
@@ -147,7 +147,7 @@ export const TimelineView: React.FC = () => {
                   return (
                     <div key={evt.id} className="relative group">
                       {/* Timeline Dot Node */}
-                      <div className="absolute -left-[30px] top-2.5 w-2.5 h-2.5 rounded-[1px] bg-oros-950 border border-oros-500" />
+                      <div className="absolute -left-[30px] top-2.5 w-2.5 h-2.5 rounded-[1px] bg-oros-950 border border-oros-600 group-hover:border-accent group-hover:bg-accent transition-colors shadow-sm" />
 
                       {/* Event Card */}
                       <div className="bg-oros-900 border border-oros-750 hover:border-oros-600 rounded-[3px] p-3.5 transition-colors">
@@ -331,7 +331,7 @@ export const TimelineView: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm transition-colors"
                 >
                   Add Event
                 </button>
@@ -442,7 +442,7 @@ export const TimelineView: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm transition-colors"
                 >
                   Save Changes
                 </button>

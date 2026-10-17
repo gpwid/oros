@@ -6,16 +6,17 @@ import {
   Clock, Map as MapIcon, Feather, Compass, ChevronDown, 
   Check, FolderOpen, Shield, Download, Upload, Search, 
   Network, ArrowRight, CornerDownLeft, EyeOff, PlusCircle,
-  Palette, PanelLeft
+  Palette, PanelLeft, Home
 } from 'lucide-react'
 import { DirectoryItemType, LoreEntity, World } from '@shared/types'
+import { OrosLogoMark } from '../common/OrosLogo'
 
 export const WorkspaceTabs: React.FC = () => {
   const { 
     openTabs, activeTabId, setActiveTabId, closeTab, closeOtherTabs,
     closeTabsToTheRight, closeAllTabs, openTab,
     worlds, activeWorldId, setActiveWorldId, createWorld, exportWorld, importWorld,
-    setWorldTheme, sidebarCollapsed, toggleSidebar,
+    setWorldTheme, sidebarCollapsed, toggleSidebar, setAppView,
     isSaving, gmMode, toggleGmMode, createCanvas, createEntity,
     createMap, createTimelineEvent, createChapter,
     entities, maps, manuscripts, canvases
@@ -306,9 +307,14 @@ export const WorkspaceTabs: React.FC = () => {
             <PanelLeft className="w-3.5 h-3.5" />
           </button>
 
-          <div className="w-5 h-5 rounded-[3px] bg-oros-900 border border-accent/40 flex items-center justify-center text-accent font-mono font-bold text-[10px] tracking-tight shrink-0 shadow-sm">
-            Ω
-          </div>
+          {/* Logo Mark: Click to Return to Homepage / Project Hub */}
+          <button
+            onClick={() => setAppView('home')}
+            className="w-5 h-5 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-accent/40 hover:border-accent flex items-center justify-center text-accent shrink-0 shadow-sm transition-all hover:scale-105 btn-interactive cursor-pointer group"
+            title="Return to Project Hub (Home)"
+          >
+            <OrosLogoMark className="w-3.5 h-3.5 text-accent group-hover:brightness-110" />
+          </button>
 
           {/* World Dropdown */}
           <div className="relative" ref={worldMenuRef}>
@@ -322,6 +328,18 @@ export const WorkspaceTabs: React.FC = () => {
 
             {worldDropdownOpen && (
               <div className="absolute left-0 mt-1.5 w-72 bg-oros-900 border border-oros-750 rounded-md shadow-2xl py-1 z-50 animate-dropdown-in overflow-hidden">
+                {/* Return to Project Hub option */}
+                <button
+                  onClick={() => {
+                    setWorldDropdownOpen(false)
+                    setAppView('home')
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs text-accent hover:bg-oros-850 flex items-center gap-2 font-medium border-b border-oros-800/80 mb-1 transition-colors"
+                >
+                  <Home className="w-3.5 h-3.5 text-accent" />
+                  <span>All Projects & Hub (Home)</span>
+                </button>
+
                 <div className="px-3 py-1 text-[10px] font-mono font-bold text-oros-400 uppercase tracking-wider">
                   World Vaults
                 </div>

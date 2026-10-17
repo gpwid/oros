@@ -17,6 +17,21 @@ export interface ThemeTokens {
   contrast: string
 }
 
+export interface ThemePresetOption {
+  id: World['theme']
+  name: string
+  hex: string
+}
+
+export const THEME_PRESETS: ThemePresetOption[] = [
+  { id: 'sovereign', name: 'Platinum Sovereign', hex: '#e2e8f0' },
+  { id: 'mythic', name: 'Mythic Gold', hex: '#f5c542' },
+  { id: 'cyber', name: 'Cyber Cyan', hex: '#06b6d4' },
+  { id: 'crimson', name: 'Crimson Ember', hex: '#f43f5e' },
+  { id: 'hazard', name: 'Hazard Ochre', hex: '#f97316' },
+  { id: 'emerald', name: 'Emerald Verdant', hex: '#10b981' }
+]
+
 export const PRESET_THEMES: Record<string, ThemeTokens> = {
   sovereign: {
     accent: '#e2e8f0',

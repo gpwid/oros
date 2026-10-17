@@ -33,6 +33,7 @@ interface WorldState {
   isSaving: boolean;
   gmMode: boolean; // Toggle GM / Private notes and hidden layers
   sidebarCollapsed: boolean;
+  appView: 'home' | 'workspace';
 
   // Data Store
   worlds: World[];
@@ -62,6 +63,7 @@ interface WorldState {
   toggleGmMode: () => void;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  setAppView: (view: 'home' | 'workspace') => void;
 
   // Workspace Tabs Actions
   openTab: (tab: { title: string; type: DirectoryItemType; targetId?: string; id?: string }) => void;
@@ -94,6 +96,8 @@ interface WorldState {
 
   // World CRUD
   createWorld: (name: string, tagline: string, genre: string, theme?: World['theme'], customAccentColor?: string) => void;
+  updateWorld: (worldId: string, updates: Partial<World>) => void;
+  deleteWorld: (worldId: string) => void;
   setWorldTheme: (worldId: string, theme: World['theme'], customAccentColor?: string) => void;
   
   // Entity CRUD
@@ -159,6 +163,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   isSaving: false,
   gmMode: false,
   sidebarCollapsed: typeof window !== 'undefined' ? localStorage.getItem('oros_sidebar_collapsed') === 'true' : false,
+  appView: typeof window !== 'undefined' ? (localStorage.getItem('oros_app_view') as 'home' | 'workspace') || 'home' : 'home',
 
   worlds: [sampleWorld],
   entities: { [sampleWorld.id]: sampleEntities },
@@ -329,6 +334,14 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       } catch (e) {}
     }
     set({ sidebarCollapsed: collapsed });
+  },
+  setAppView: (view: 'home' | 'workspace') => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('oros_app_view', view);
+      } catch (e) {}
+    }
+    set({ appView: view });
   },
 
   // Workspace Tabs Actions
@@ -936,9 +949,15 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('oros_app_view', 'workspace');
+      } catch (e) {}
+    }
     set((state) => ({
       worlds: [...state.worlds, newWorld],
       activeWorldId: newWorld.id,
+      appView: 'workspace',
       entities: { ...state.entities, [newWorld.id]: [] },
       maps: { ...state.maps, [newWorld.id]: [] },
       relations: { ...state.relations, [newWorld.id]: [] },
@@ -946,6 +965,61 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       manuscripts: { ...state.manuscripts, [newWorld.id]: [] },
       calendars: { ...state.calendars, [newWorld.id]: initialCalendar }
     }));
+    get().syncVaultDirectory(newWorld.id);
+    get().persistStore();
+  },
+
+  updateWorld: (worldId, updates) => {
+    set((state) => ({
+      worlds: state.worlds.map((w) =>
+        w.id === worldId ? { ...w, ...updates, updatedAt: new Date().toISOString() } : w
+      )
+    }));
+    get().persistStore();
+  },
+
+  deleteWorld: (worldId) => {
+    const s = get();
+    const remainingWorlds = s.worlds.filter((w) => w.id !== worldId);
+    const nextActiveId = remainingWorlds.length > 0 ? remainingWorlds[0].id : null;
+
+    set((state) => {
+      const nextEntities = { ...state.entities };
+      delete nextEntities[worldId];
+      const nextMaps = { ...state.maps };
+      delete nextMaps[worldId];
+      const nextRelations = { ...state.relations };
+      delete nextRelations[worldId];
+      const nextTimelines = { ...state.timelines };
+      delete nextTimelines[worldId];
+      const nextManuscripts = { ...state.manuscripts };
+      delete nextManuscripts[worldId];
+      const nextFolders = { ...state.folders };
+      delete nextFolders[worldId];
+      const nextDirectoryItems = { ...state.directoryItems };
+      delete nextDirectoryItems[worldId];
+      const nextCanvases = { ...state.canvases };
+      delete nextCanvases[worldId];
+      const nextCategories = { ...state.categories };
+      delete nextCategories[worldId];
+      const nextCalendars = { ...state.calendars };
+      delete nextCalendars[worldId];
+
+      return {
+        worlds: remainingWorlds,
+        activeWorldId: state.activeWorldId === worldId ? nextActiveId : state.activeWorldId,
+        entities: nextEntities,
+        maps: nextMaps,
+        relations: nextRelations,
+        timelines: nextTimelines,
+        manuscripts: nextManuscripts,
+        folders: nextFolders,
+        directoryItems: nextDirectoryItems,
+        canvases: nextCanvases,
+        categories: nextCategories,
+        calendars: nextCalendars
+      };
+    });
     get().persistStore();
   },
 

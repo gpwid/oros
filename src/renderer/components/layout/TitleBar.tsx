@@ -5,11 +5,12 @@ import {
   Compass, Shield, Download, Upload, Plus, Check, Loader2, 
   ChevronDown, Search, FolderOpen, X 
 } from 'lucide-react'
+import { OrosLogoMark } from '../common/OrosLogo'
 
 export const TitleBar: React.FC = () => {
   const { 
     worlds, activeWorldId, setActiveWorldId, createWorld, 
-    exportWorld, importWorld, isSaving, gmMode, toggleGmMode 
+    exportWorld, importWorld, isSaving, gmMode, toggleGmMode, setAppView
   } = useWorldStore()
 
   const { addToast } = useToastStore()
@@ -83,9 +84,13 @@ export const TitleBar: React.FC = () => {
       <header className="h-9 bg-oros-950 border-b border-oros-800 flex items-center justify-between px-3 z-40 select-none">
         {/* Left: Brand & World Switcher */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 pr-2 border-r border-oros-800">
-            <div className="w-5 h-5 rounded-[2px] bg-oros-900 border border-oros-750 flex items-center justify-center text-oros-100 font-bold text-xs">
-              <Compass className="w-3.5 h-3.5 text-oros-300" />
+          <button
+            onClick={() => setAppView('home')}
+            className="flex items-center gap-2 pr-2 border-r border-oros-800 hover:opacity-85 transition-opacity cursor-pointer group"
+            title="Return to Project Hub (Home)"
+          >
+            <div className="w-5 h-5 rounded-[2px] bg-oros-900 border border-oros-750 flex items-center justify-center shadow-sm">
+              <OrosLogoMark className="w-3.5 h-3.5 text-accent group-hover:brightness-110" />
             </div>
             <span className="font-serif font-black tracking-wider text-xs uppercase text-oros-100">
               OROS
@@ -93,7 +98,7 @@ export const TitleBar: React.FC = () => {
             <span className="text-[9px] px-1 py-0.2 rounded-[2px] bg-oros-900 text-oros-400 font-mono border border-oros-750">
               VAULT
             </span>
-          </div>
+          </button>
 
           {/* World Selector Dropdown */}
           <div className="relative">

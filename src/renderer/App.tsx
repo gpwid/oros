@@ -2,6 +2,7 @@ import React, { useEffect, lazy, Suspense } from 'react'
 import { useWorldStore } from './store/useWorldStore'
 import { WorkspaceTabs } from './components/layout/WorkspaceTabs'
 import { Sidebar } from './components/layout/Sidebar'
+import { HomePage } from './components/home/HomePage'
 import { CommandPalette } from './components/common/CommandPalette'
 import { ToastContainer } from './components/common/ToastContainer'
 import { ConfirmModal } from './components/common/ConfirmModal'
@@ -28,7 +29,7 @@ const ViewFallback = () => (
 )
 
 export const App: React.FC = () => {
-  const { activeTab, openTabs, activeTabId, initStore, worlds, activeWorldId } = useWorldStore()
+  const { activeTab, openTabs, activeTabId, initStore, worlds, activeWorldId, appView } = useWorldStore()
 
   useEffect(() => {
     initStore()
@@ -80,23 +81,29 @@ export const App: React.FC = () => {
 
   return (
     <div className="h-screen w-screen flex flex-col bg-oros-950 text-slate-100 overflow-hidden font-sans">
-      {/* Top Browser-style Tabs Bar */}
-      <WorkspaceTabs />
-      
-      {/* Main Workspace Layout */}
-      <div className="flex-1 flex overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 flex overflow-hidden bg-oros-950">
-          <Suspense fallback={<ViewFallback />}>
-            <div 
-              key={activeTabId || currentTabType} 
-              className="flex-1 flex overflow-hidden animate-fade-in"
-            >
-              {renderActiveView()}
-            </div>
-          </Suspense>
-        </main>
-      </div>
+      {appView === 'home' ? (
+        <HomePage />
+      ) : (
+        <>
+          {/* Top Browser-style Tabs Bar */}
+          <WorkspaceTabs />
+          
+          {/* Main Workspace Layout */}
+          <div className="flex-1 flex overflow-hidden">
+            <Sidebar />
+            <main className="flex-1 flex overflow-hidden bg-oros-950">
+              <Suspense fallback={<ViewFallback />}>
+                <div 
+                  key={activeTabId || currentTabType} 
+                  className="flex-1 flex overflow-hidden animate-fade-in"
+                >
+                  {renderActiveView()}
+                </div>
+              </Suspense>
+            </main>
+          </div>
+        </>
+      )}
 
       <CommandPalette />
       <ToastContainer />

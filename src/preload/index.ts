@@ -6,6 +6,8 @@ export interface OrosBridge {
   selectImage: () => Promise<string | null>;
   importAsset: () => Promise<string | null>;
   exportWorld: (fileName: string, content: string) => Promise<boolean>;
+  importWorld: () => Promise<string | null>;
+  exportFile: (defaultFileName: string, content: string, extension?: string, filterName?: string) => Promise<boolean>;
   openVaultFolder: () => Promise<boolean>;
 }
 
@@ -15,6 +17,9 @@ const api: OrosBridge = {
   selectImage: () => ipcRenderer.invoke('oros:select-image'),
   importAsset: () => ipcRenderer.invoke('oros:import-asset'),
   exportWorld: (fileName: string, content: string) => ipcRenderer.invoke('oros:export-world', fileName, content),
+  importWorld: () => ipcRenderer.invoke('oros:import-world'),
+  exportFile: (defaultFileName: string, content: string, extension?: string, filterName?: string) => 
+    ipcRenderer.invoke('oros:export-file', defaultFileName, content, extension, filterName),
   openVaultFolder: () => ipcRenderer.invoke('oros:open-vault-folder'),
 }
 

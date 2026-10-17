@@ -4,7 +4,7 @@ import { useToastStore } from '../../store/useToastStore'
 import { 
   Plus, X, LayoutGrid, BookOpen, Layers, Users, 
   Clock, Map as MapIcon, Feather, Compass, ChevronDown, 
-  Check, FolderOpen, Shield, Download, Search, 
+  Check, FolderOpen, Shield, Download, Upload, Search, 
   Network, ArrowRight, CornerDownLeft, EyeOff, PlusCircle,
   Palette
 } from 'lucide-react'
@@ -14,7 +14,7 @@ export const WorkspaceTabs: React.FC = () => {
   const { 
     openTabs, activeTabId, setActiveTabId, closeTab, closeOtherTabs,
     closeTabsToTheRight, closeAllTabs, openTab,
-    worlds, activeWorldId, setActiveWorldId, createWorld, exportWorld,
+    worlds, activeWorldId, setActiveWorldId, createWorld, exportWorld, importWorld,
     setWorldTheme,
     isSaving, gmMode, toggleGmMode, createCanvas, createEntity,
     createMap, createTimelineEvent, createChapter,
@@ -42,6 +42,7 @@ export const WorkspaceTabs: React.FC = () => {
   const contextMenuRef = useRef<HTMLDivElement>(null)
   const worldMenuRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const activeWorld = worlds.find((w) => w.id === activeWorldId) || worlds[0]
   const worldId = activeWorldId || 'world-aethelgard'
@@ -240,6 +241,37 @@ export const WorkspaceTabs: React.FC = () => {
     }
   }
 
+  const handleImportWorld = async () => {
+    if (typeof window !== 'undefined' && window.oros) {
+      const success = await importWorld()
+      if (success) {
+        addToast('World archive imported successfully', 'success')
+      } else {
+        addToast('Import cancelled or failed', 'info')
+      }
+    } else {
+      fileInputRef.current?.click()
+    }
+  }
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const text = await file.text()
+      const success = await importWorld(text)
+      if (success) {
+        addToast('World archive imported successfully', 'success')
+      } else {
+        addToast('Failed to import world archive', 'error')
+      }
+    } catch (err) {
+      console.error('File import error:', err)
+      addToast('Error reading file for import', 'error')
+    }
+    e.target.value = ''
+  }
+
   const triggerCommandPalette = () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))
   }
@@ -334,6 +366,16 @@ export const WorkspaceTabs: React.FC = () => {
                 >
                   <Plus className="w-3.5 h-3.5 text-oros-400" />
                   New World
+                </button>
+                <button
+                  onClick={() => {
+                    setWorldDropdownOpen(false)
+                    handleImportWorld()
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs text-oros-200 hover:bg-oros-850 flex items-center gap-2 font-medium"
+                >
+                  <Upload className="w-3.5 h-3.5 text-oros-400" />
+                  Import Archive
                 </button>
               </div>
             )}
@@ -464,6 +506,24 @@ export const WorkspaceTabs: React.FC = () => {
           >
             <Download className="w-3.5 h-3.5" />
           </button>
+
+          {/* Import World */}
+          <button
+            onClick={handleImportWorld}
+            title="Import World Archive (.oros.json)"
+            className="p-1 rounded-[3px] hover:bg-oros-850 text-oros-400 hover:text-oros-200 transition-colors"
+          >
+            <Upload className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Hidden File Input Fallback */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".json,.oros.json"
+            className="hidden"
+            onChange={handleFileInputChange}
+          />
         </div>
       </header>
 

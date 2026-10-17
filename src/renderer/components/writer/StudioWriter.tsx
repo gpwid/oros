@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
 import { WikiEditor } from '../wiki/WikiEditor'
@@ -6,14 +6,15 @@ import { PromptModal, ConfirmModal } from '../common/PromptModal'
 import { QuickPeekCard } from '../common/QuickPeekCard'
 import { 
   Feather, Plus, BookOpen, Search, Eye, Trash2, ChevronRight, X,
-  ChevronsLeft, ChevronsRight
+  ChevronsLeft, ChevronsRight, ChevronUp, ChevronDown, Maximize2, Minimize2, BookDown
 } from 'lucide-react'
 import { LoreEntity } from '@shared/types'
 
 export const StudioWriter: React.FC = () => {
   const { 
     manuscripts, entities, activeWorldId, selectedChapterId, setSelectedChapterId,
-    createChapter, updateChapter, deleteChapter, setSelectedEntityId, setActiveTab, openTab 
+    createChapter, updateChapter, deleteChapter, setSelectedEntityId, setActiveTab, openTab,
+    moveChapter, compileManuscript
   } = useWorldStore()
 
   const { addToast } = useToastStore()
@@ -24,8 +25,20 @@ export const StudioWriter: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [hoveredEntity, setHoveredEntity] = useState<LoreEntity | null>(null)
+  const [isZenMode, setIsZenMode] = useState(false)
 
-  const worldChapters = activeWorldId ? manuscripts[activeWorldId] || [] : []
+  // Listen for Escape key to exit Zen Mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isZenMode) {
+        setIsZenMode(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isZenMode])
+
+  const worldChapters = activeWorldId ? [...(manuscripts[activeWorldId] || [])].sort((a, b) => a.order - b.order) : []
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
 
   const currentChapter = worldChapters.find((c) => c.id === selectedChapterId) || worldChapters[0]
@@ -98,26 +111,54 @@ export const StudioWriter: React.FC = () => {
             </div>
 
             <div className="p-2 space-y-1 overflow-y-auto">
-              {worldChapters.map((ch) => {
+              {worldChapters.map((ch, idx) => {
                 const isSelected = ch.id === currentChapter?.id
                 return (
-                  <button
+                  <div
                     key={ch.id}
                     onClick={() => setSelectedChapterId(ch.id)}
-                    className={`w-full text-left p-2 rounded-[3px] text-xs transition-colors flex items-center justify-between group ${
+                    className={`w-full text-left p-2 rounded-[3px] text-xs transition-colors flex items-center justify-between group cursor-pointer ${
                       isSelected
                         ? 'bg-oros-800 text-oros-100 font-medium border border-oros-600 shadow-sm'
                         : 'text-oros-300 hover:bg-oros-900 border border-transparent'
                     }`}
                   >
-                    <div className="truncate pr-2">
+                    <div className="truncate pr-2 flex-1">
                       <div className="truncate">{ch.title}</div>
                       <div className="text-[10px] text-oros-400 font-mono mt-0.5">
                         {ch.wordCount || 0} words
                       </div>
                     </div>
-                    <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'opacity-100 text-oros-300' : 'opacity-0 group-hover:opacity-60 text-oros-500'}`} />
-                  </button>
+                    <div className="flex items-center gap-0.5">
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            moveChapter(ch.id, 'up')
+                          }}
+                          className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 disabled:opacity-20 disabled:hover:text-oros-400 transition-colors"
+                          title="Move Chapter Up"
+                        >
+                          <ChevronUp className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === worldChapters.length - 1}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            moveChapter(ch.id, 'down')
+                          }}
+                          className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 disabled:opacity-20 disabled:hover:text-oros-400 transition-colors"
+                          title="Move Chapter Down"
+                        >
+                          <ChevronDown className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'opacity-100 text-oros-300' : 'opacity-0 group-hover:opacity-60 text-oros-500'}`} />
+                    </div>
+                  </div>
                 )
               })}
             </div>
@@ -158,6 +199,28 @@ export const StudioWriter: React.FC = () => {
                 <span className="text-xs font-mono text-oros-300 px-2 py-1 rounded-[2px] bg-oros-900 border border-oros-750">
                   {currentChapter.wordCount || 0} words
                 </span>
+                <button
+                  onClick={async () => {
+                    const success = await compileManuscript()
+                    if (success) {
+                      addToast('Manuscript exported as Markdown (.md)', 'success')
+                    } else {
+                      addToast('Failed to compile manuscript', 'error')
+                    }
+                  }}
+                  className="px-2.5 py-1 rounded-[3px] text-xs font-medium flex items-center gap-1.5 border bg-oros-900 text-oros-300 hover:text-oros-100 border-oros-750 hover:bg-oros-850 transition-colors"
+                  title="Compile & Export Complete Manuscript to Markdown (.md)"
+                >
+                  <BookDown className="w-3.5 h-3.5 text-oros-400" />
+                  <span className="hidden sm:inline">Compile Book</span>
+                </button>
+                <button
+                  onClick={() => setIsZenMode(true)}
+                  className="p-1.5 rounded-[3px] bg-oros-900 text-oros-400 hover:text-oros-100 border border-oros-750 hover:bg-oros-850 transition-colors"
+                  title="Distraction-Free Zen Mode (Esc to exit)"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </button>
                 <button
                   onClick={() => setShowCodexDrawer(!showCodexDrawer)}
                   className={`px-2.5 py-1 rounded-[3px] text-xs font-medium flex items-center gap-1.5 border transition-colors ${
@@ -286,6 +349,38 @@ export const StudioWriter: React.FC = () => {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setShowDeleteModal(false)}
       />
+
+      {/* Distraction-Free Zen Mode Overlay */}
+      {isZenMode && currentChapter && (
+        <div className="fixed inset-0 z-50 bg-oros-950 flex flex-col p-8 overflow-y-auto select-text animate-in fade-in duration-150">
+          <div className="flex items-center justify-between max-w-3xl mx-auto w-full mb-6 pb-2 border-b border-oros-850">
+            <span className="text-xs font-mono text-oros-400 uppercase tracking-wider">
+              Zen Mode · {currentChapter.wordCount || 0} words
+            </span>
+            <button
+              onClick={() => setIsZenMode(false)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-oros-100 border border-oros-750 text-xs font-medium transition-colors"
+              title="Exit Zen Mode (Esc)"
+            >
+              <Minimize2 className="w-3.5 h-3.5 text-oros-400" />
+              <span>Exit Zen (Esc)</span>
+            </button>
+          </div>
+          <div className="max-w-2xl mx-auto w-full pb-32">
+            <input
+              type="text"
+              value={currentChapter.title}
+              onChange={(e) => updateChapter(currentChapter.id, currentChapter.content, e.target.value)}
+              className="font-serif text-3xl font-bold text-oros-100 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-oros-500 rounded-[2px] px-1 w-full mb-8 text-center"
+            />
+            <WikiEditor
+              content={currentChapter.content}
+              onChange={(newHtml) => updateChapter(currentChapter.id, newHtml)}
+              placeholder="Write in uninterrupted focus... (Type @ to link cards)"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

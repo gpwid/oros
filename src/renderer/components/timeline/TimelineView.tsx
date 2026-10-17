@@ -2,13 +2,13 @@ import React, { useState } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
 import { TimelineEvent } from '@shared/types'
 import { 
-  Clock, Plus, Calendar, Trash2, ExternalLink, Bookmark 
+  Clock, Plus, Calendar, Trash2, ExternalLink, Bookmark, Edit3 
 } from 'lucide-react'
 
 export const TimelineView: React.FC = () => {
   const { 
     timelines, entities, activeWorldId, setSelectedEntityId, setActiveTab, openTab,
-    createTimelineEvent, deleteTimelineEvent 
+    createTimelineEvent, updateTimelineEvent, deleteTimelineEvent 
   } = useWorldStore()
 
   const [showAddModal, setShowAddModal] = useState(false)
@@ -18,6 +18,15 @@ export const TimelineView: React.FC = () => {
   const [newDesc, setNewDesc] = useState('')
   const [newImportance, setNewImportance] = useState<TimelineEvent['importance']>('major')
   const [selectedEntityIds, setSelectedEntityIds] = useState<string[]>([])
+
+  // Edit Event State
+  const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editEra, setEditEra] = useState('')
+  const [editYear, setEditYear] = useState<number>(0)
+  const [editDesc, setEditDesc] = useState('')
+  const [editImportance, setEditImportance] = useState<TimelineEvent['importance']>('major')
+  const [editEntityIds, setEditEntityIds] = useState<string[]>([])
 
   const worldEvents = activeWorldId ? timelines[activeWorldId] || [] : []
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
@@ -44,11 +53,45 @@ export const TimelineView: React.FC = () => {
     setSelectedEntityIds([])
   }
 
+  const openEditModal = (evt: TimelineEvent) => {
+    setEditingEvent(evt)
+    setEditTitle(evt.title)
+    setEditEra(evt.era || 'Universal Era')
+    setEditYear(evt.year)
+    setEditDesc(evt.description)
+    setEditImportance(evt.importance)
+    setEditEntityIds([...evt.entityIds])
+  }
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingEvent || !editTitle.trim()) return
+
+    updateTimelineEvent(editingEvent.id, {
+      era: editEra.trim(),
+      year: Number(editYear),
+      title: editTitle.trim(),
+      description: editDesc.trim(),
+      importance: editImportance,
+      entityIds: editEntityIds
+    })
+
+    setEditingEvent(null)
+  }
+
   const toggleEntityLink = (entId: string) => {
     if (selectedEntityIds.includes(entId)) {
       setSelectedEntityIds(selectedEntityIds.filter(id => id !== entId))
     } else {
       setSelectedEntityIds([...selectedEntityIds, entId])
+    }
+  }
+
+  const toggleEditEntityLink = (entId: string) => {
+    if (editEntityIds.includes(entId)) {
+      setEditEntityIds(editEntityIds.filter(id => id !== entId))
+    } else {
+      setEditEntityIds([...editEntityIds, entId])
     }
   }
 
@@ -75,7 +118,9 @@ export const TimelineView: React.FC = () => {
       {/* Main Timeline Stream */}
       <div className="flex-1 overflow-y-auto pr-4 space-y-8">
         {eras.map((era) => {
-          const eraEvents = worldEvents.filter((e) => (e.era || 'Universal Era') === era)
+          const eraEvents = worldEvents
+            .filter((e) => (e.era || 'Universal Era') === era)
+            .sort((a, b) => (a.year || 0) - (b.year || 0))
           return (
             <div key={era} className="relative">
               {/* Era Header Banner */}
@@ -116,10 +161,17 @@ export const TimelineView: React.FC = () => {
                             </h3>
                           </div>
 
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             <span className={`text-[10px] uppercase font-mono px-1.5 py-0.5 rounded-[2px] border ${badgeColor}`}>
                               {evt.importance}
                             </span>
+                            <button
+                              onClick={() => openEditModal(evt)}
+                              className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 opacity-0 group-hover:opacity-100 transition-all"
+                              title="Edit event"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
                             <button
                               onClick={() => deleteTimelineEvent(evt.id)}
                               className="p-1 rounded-[2px] text-oros-500 hover:text-rose-400 hover:bg-rose-950/30 opacity-0 group-hover:opacity-100 transition-all"
@@ -282,6 +334,117 @@ export const TimelineView: React.FC = () => {
                   className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
                 >
                   Add Event
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Event Modal */}
+      {editingEvent && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-lg rounded-[4px] p-5 shadow-2xl">
+            <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 mb-3">
+              Edit Event
+            </h3>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-oros-300 mb-1">Era</label>
+                  <input
+                    type="text"
+                    required
+                    value={editEra}
+                    onChange={(e) => setEditEra(e.target.value)}
+                    placeholder="Era name..."
+                    className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-oros-300 mb-1">Year</label>
+                  <input
+                    type="number"
+                    required
+                    value={editYear}
+                    onChange={(e) => setEditYear(Number(e.target.value))}
+                    className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-oros-300 mb-1">Event Title</label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Event title..."
+                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-oros-300 mb-1">Significance</label>
+                <select
+                  value={editImportance}
+                  onChange={(e) => setEditImportance(e.target.value as any)}
+                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                >
+                  <option value="mythic">Mythic</option>
+                  <option value="major">Major</option>
+                  <option value="minor">Minor</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-oros-300 mb-1">Description</label>
+                <textarea
+                  rows={3}
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  placeholder="Event description..."
+                  className="w-full bg-oros-950 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 resize-none font-sans"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-oros-300 mb-1">Involved Entities</label>
+                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto p-1.5 bg-oros-950 border border-oros-750 rounded-[3px]">
+                  {worldEntities.map((ent) => {
+                    const isSelected = editEntityIds.includes(ent.id)
+                    return (
+                      <button
+                        type="button"
+                        key={ent.id}
+                        onClick={() => toggleEditEntityLink(ent.id)}
+                        className={`text-[10px] px-2 py-0.5 rounded-[2px] transition-colors ${
+                          isSelected
+                            ? 'bg-oros-800 border border-oros-500 text-oros-100 font-medium'
+                            : 'bg-oros-900 border border-transparent text-oros-400 hover:text-oros-200'
+                        }`}
+                      >
+                        {ent.title}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-oros-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingEvent(null)}
+                  className="px-3 py-1.5 rounded-[3px] text-xs text-oros-300 hover:bg-oros-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-200 hover:bg-white text-oros-950 shadow-sm transition-colors"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>

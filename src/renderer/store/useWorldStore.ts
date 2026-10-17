@@ -117,15 +117,19 @@ interface WorldState {
 
   // Timeline CRUD
   createTimelineEvent: (event: Omit<TimelineEvent, 'id' | 'worldId'>) => void;
+  updateTimelineEvent: (eventId: string, updates: Partial<TimelineEvent>) => void;
   deleteTimelineEvent: (eventId: string) => void;
 
   // Manuscript CRUD
   createChapter: (title: string, folderId?: string | null) => void;
   updateChapter: (chapterId: string, content: string, title?: string) => void;
   deleteChapter: (chapterId: string) => void;
+  moveChapter: (chapterId: string, direction: 'up' | 'down') => void;
+  compileManuscript: () => Promise<boolean>;
 
-  // Export
+  // Export & Import
   exportWorld: () => Promise<boolean>;
+  importWorld: (rawJson?: string) => Promise<boolean>;
 }
 
 let persistDebounceTimer: any = null;
@@ -1245,6 +1249,18 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     get().persistStore();
   },
 
+  updateTimelineEvent: (eventId, updates) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    set((state) => {
+      const list = (state.timelines[worldId] || []).map((t) =>
+        t.id === eventId ? { ...t, ...updates } : t
+      ).sort((a, b) => a.year - b.year);
+      return { timelines: { ...state.timelines, [worldId]: list } };
+    });
+    get().persistStore();
+  },
+
   deleteTimelineEvent: (eventId) => {
     const worldId = get().activeWorldId;
     if (!worldId) return;
@@ -1345,6 +1361,102 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       };
     });
     get().persistStore();
+  },
+
+  moveChapter: (chapterId, direction) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+
+    const chapters = [...(get().manuscripts[worldId] || [])].sort((a, b) => a.order - b.order);
+    const index = chapters.findIndex((c) => c.id === chapterId);
+    if (index === -1) return;
+
+    if (direction === 'up' && index > 0) {
+      const temp = chapters[index - 1];
+      chapters[index - 1] = chapters[index];
+      chapters[index] = temp;
+    } else if (direction === 'down' && index < chapters.length - 1) {
+      const temp = chapters[index + 1];
+      chapters[index + 1] = chapters[index];
+      chapters[index] = temp;
+    } else {
+      return;
+    }
+
+    // Re-index order
+    const updated = chapters.map((ch, idx) => ({ ...ch, order: idx + 1 }));
+
+    set((state) => ({
+      manuscripts: {
+        ...state.manuscripts,
+        [worldId]: updated
+      }
+    }));
+
+    get().persistStore();
+  },
+
+  compileManuscript: async () => {
+    const s = get();
+    const activeWorld = s.worlds.find((w) => w.id === s.activeWorldId);
+    if (!activeWorld || !s.activeWorldId) return false;
+
+    const chapters = [...(s.manuscripts[s.activeWorldId] || [])].sort((a, b) => a.order - b.order);
+    if (chapters.length === 0) return false;
+
+    const lines: string[] = [];
+    lines.push(`# ${activeWorld.name}`);
+    if (activeWorld.tagline) lines.push(`*${activeWorld.tagline}*\n`);
+    lines.push(`**Compiled from Project OROS Worldbuilding Suite**`);
+    lines.push(`Total Chapters: ${chapters.length}`);
+    const totalWords = chapters.reduce((acc, c) => acc + (c.wordCount || 0), 0);
+    lines.push(`Total Word Count: ${totalWords.toLocaleString()} words\n`);
+    lines.push(`---\n`);
+
+    chapters.forEach((ch, idx) => {
+      lines.push(`## Chapter ${idx + 1}: ${ch.title}\n`);
+      const text = ch.content
+        .replace(/<h1>(.*?)<\/h1>/gi, '# $1\n\n')
+        .replace(/<h2>(.*?)<\/h2>/gi, '## $1\n\n')
+        .replace(/<h3>(.*?)<\/h3>/gi, '### $1\n\n')
+        .replace(/<blockquote>(.*?)<\/blockquote>/gi, '> $1\n\n')
+        .replace(/<li>(.*?)<\/li>/gi, '- $1\n')
+        .replace(/<\/p>/gi, '\n\n')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/&amp;/gi, '&')
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+      lines.push(text);
+      lines.push(`\n\n* * *\n`);
+    });
+
+    const fullManuscript = lines.join('\n');
+    const safeTitle = `${activeWorld.name.replace(/[^a-z0-9_-]/gi, '_')}_Manuscript`;
+
+    try {
+      if (typeof window !== 'undefined' && window.oros) {
+        const success = await window.oros.exportFile(safeTitle, fullManuscript, 'md', 'Markdown Document');
+        return Boolean(success);
+      } else if (typeof window !== 'undefined') {
+        const blob = new Blob([fullManuscript], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${safeTitle}.md`;
+        a.click();
+        URL.revokeObjectURL(url);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to compile manuscript:', err);
+      return false;
+    }
   },
 
   // Category / Label Actions
@@ -1486,6 +1598,109 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       return false;
     } catch (err) {
       console.error('Failed to export world:', err);
+      return false;
+    }
+  },
+
+  importWorld: async (rawJson?: string) => {
+    try {
+      let content = rawJson;
+      if (!content && typeof window !== 'undefined' && window.oros) {
+        const loaded = await window.oros.importWorld();
+        if (!loaded) return false;
+        content = loaded;
+      }
+
+      if (!content) return false;
+
+      const parsed = JSON.parse(content);
+      const isSingleWorldBundle = Boolean(parsed.world);
+      const isFullVault = Boolean(parsed.worlds && Array.isArray(parsed.worlds));
+
+      if (!isSingleWorldBundle && !isFullVault) {
+        console.error('Unrecognized Oros world file format');
+        return false;
+      }
+
+      if (isSingleWorldBundle) {
+        const w: World = parsed.world;
+        const targetWorldId = w.id || `world-${Date.now()}`;
+        w.id = targetWorldId;
+
+        set((state) => {
+          const filteredWorlds = state.worlds.filter((existing) => existing.id !== targetWorldId);
+          return {
+            worlds: [...filteredWorlds, w],
+            activeWorldId: targetWorldId,
+            entities: {
+              ...state.entities,
+              [targetWorldId]: parsed.entities || []
+            },
+            maps: {
+              ...state.maps,
+              [targetWorldId]: parsed.maps || []
+            },
+            relations: {
+              ...state.relations,
+              [targetWorldId]: parsed.relations || []
+            },
+            timelines: {
+              ...state.timelines,
+              [targetWorldId]: (parsed.timelines || []).sort((a: any, b: any) => (a.year || 0) - (b.year || 0))
+            },
+            manuscripts: {
+              ...state.manuscripts,
+              [targetWorldId]: parsed.manuscripts || []
+            },
+            folders: {
+              ...state.folders,
+              [targetWorldId]: parsed.folders || []
+            },
+            directoryItems: {
+              ...state.directoryItems,
+              [targetWorldId]: parsed.directoryItems || []
+            },
+            canvases: {
+              ...state.canvases,
+              [targetWorldId]: parsed.canvases || []
+            },
+            categories: {
+              ...state.categories,
+              [targetWorldId]: parsed.categories || DEFAULT_PRESET_CATEGORIES
+            },
+            relationNodePositions: {
+              ...state.relationNodePositions,
+              [targetWorldId]: parsed.relationNodePositions || {}
+            }
+          };
+        });
+
+        get().syncVaultDirectory(targetWorldId);
+        await get().persistStore();
+        return true;
+      } else {
+        // Full vault restore
+        set({
+          worlds: parsed.worlds,
+          activeWorldId: parsed.activeWorldId || parsed.worlds[0]?.id || sampleWorld.id,
+          entities: parsed.entities || {},
+          maps: parsed.maps || {},
+          relations: parsed.relations || {},
+          timelines: parsed.timelines || {},
+          manuscripts: parsed.manuscripts || {},
+          folders: parsed.folders || {},
+          directoryItems: parsed.directoryItems || {},
+          canvases: parsed.canvases || {},
+          categories: parsed.categories || {},
+          relationNodePositions: parsed.relationNodePositions || {}
+        });
+
+        get().syncVaultDirectory();
+        await get().persistStore();
+        return true;
+      }
+    } catch (err) {
+      console.error('Failed to import world:', err);
       return false;
     }
   }

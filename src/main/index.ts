@@ -178,6 +178,35 @@ app.whenReady().then(() => {
     return true
   })
 
+  ipcMain.handle('oros:import-world', async () => {
+    if (!mainWindow) return null
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Import Oros World Archive',
+      properties: ['openFile'],
+      filters: [{ name: 'Oros World Archive', extensions: ['json', 'oros.json'] }]
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    try {
+      const content = readFileSync(result.filePaths[0], 'utf-8')
+      return content
+    } catch (err) {
+      console.error('Failed to read imported world archive:', err)
+      return null
+    }
+  })
+
+  ipcMain.handle('oros:export-file', async (_event, defaultFileName: string, content: string, extension: string = 'md', filterName: string = 'Markdown Document') => {
+    if (!mainWindow) return false
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export Document',
+      defaultPath: `${defaultFileName}.${extension}`,
+      filters: [{ name: filterName, extensions: [extension] }]
+    })
+    if (result.canceled || !result.filePath) return false
+    writeFileSync(result.filePath, content, 'utf-8')
+    return true
+  })
+
   ipcMain.handle('oros:open-vault-folder', async () => {
     ensureDirectories()
     const err = await shell.openPath(vaultPath)

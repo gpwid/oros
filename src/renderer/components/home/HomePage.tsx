@@ -297,18 +297,18 @@ export const HomePage: React.FC = () => {
                   <div className="mt-5 pt-3.5 border-t border-oros-800/80 flex items-center justify-between text-xs font-mono">
                     <div className="flex items-center gap-3">
                       {/* Word Count */}
-                      <span className="text-oros-200 font-medium flex items-center gap-1" title="Total Words Written">
-                        <span>📝</span>
+                      <span className="text-oros-200 font-medium flex items-center gap-1.5" title="Total Words Written">
+                        <Feather className="w-3.5 h-3.5 text-oros-400" />
                         <span>{formatNumber(stats.totalWords)}</span>
                         <span className="text-[10px] text-oros-500 font-normal">words</span>
                       </span>
 
                       {/* Document Count */}
                       <span 
-                        className="text-oros-300 flex items-center gap-1"
+                        className="text-oros-300 flex items-center gap-1.5"
                         title={`${stats.entityCount} Articles • ${stats.chapterCount} Chapters • ${stats.canvasCount} Canvases • ${stats.mapCount} Maps`}
                       >
-                        <span>📚</span>
+                        <BookOpen className="w-3.5 h-3.5 text-oros-400" />
                         <span>{stats.totalDocuments}</span>
                         <span className="text-[10px] text-oros-500 font-normal">docs</span>
                       </span>

@@ -33,6 +33,11 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     initStore()
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('oros_app_view')
+      } catch (e) {}
+    }
   }, [initStore])
 
   const activeWorld = worlds.find((w) => w.id === activeWorldId) || worlds[0]

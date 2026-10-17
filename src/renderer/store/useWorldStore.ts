@@ -163,7 +163,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   isSaving: false,
   gmMode: false,
   sidebarCollapsed: typeof window !== 'undefined' ? localStorage.getItem('oros_sidebar_collapsed') === 'true' : false,
-  appView: typeof window !== 'undefined' ? (localStorage.getItem('oros_app_view') as 'home' | 'workspace') || 'home' : 'home',
+  appView: 'home',
 
   worlds: [sampleWorld],
   entities: { [sampleWorld.id]: sampleEntities },
@@ -336,11 +336,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     set({ sidebarCollapsed: collapsed });
   },
   setAppView: (view: 'home' | 'workspace') => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('oros_app_view', view);
-      } catch (e) {}
-    }
     set({ appView: view });
   },
 
@@ -949,11 +944,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('oros_app_view', 'workspace');
-      } catch (e) {}
-    }
     set((state) => ({
       worlds: [...state.worlds, newWorld],
       activeWorldId: newWorld.id,

@@ -637,9 +637,9 @@ const RelationGraphCanvasContent: React.FC = () => {
               setQuickAddDirection('right')
               setShowAddModal(true)
             }}
-            className="px-3 py-1.5 rounded-[3px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+            className="btn-accent px-2.5 sm:px-3 py-1.5 rounded-[3px] font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors shrink-0 whitespace-nowrap"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3.5 h-3.5 shrink-0" />
             <span>Add Relation</span>
           </button>
         </div>
@@ -960,7 +960,7 @@ const RelationGraphCanvasContent: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm transition-colors"
+                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
                 >
                   Create Relation
                 </button>
@@ -1124,7 +1124,7 @@ const RelationGraphCanvasContent: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm flex items-center gap-1.5 transition-colors"
+                    className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-colors"
                   >
                     <Check className="w-3.5 h-3.5" />
                     <span>Save Changes</span>

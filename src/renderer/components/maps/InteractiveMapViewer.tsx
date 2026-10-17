@@ -843,7 +843,7 @@ export const InteractiveMapViewer: React.FC = () => {
               {drawingPoints.length >= 3 && (
                 <button
                   onClick={handleFinishPolygon}
-                  className="px-2.5 py-1 rounded-[2px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs transition-colors shadow-sm"
+                  className="btn-accent px-2.5 py-1 rounded-[2px] font-semibold text-xs transition-colors shadow-sm"
                 >
                   Close & Save
                 </button>
@@ -1376,7 +1376,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm transition-colors"
+                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
                 >
                   {editingRegionId ? 'Save Changes' : 'Save Territory'}
                 </button>
@@ -1525,7 +1525,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm transition-colors"
+                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
                 >
                   {editingPinId ? 'Save Changes' : 'Drop Landmark Pin'}
                 </button>
@@ -1584,7 +1584,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm transition-colors"
+                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
                 >
                   Create Map
                 </button>

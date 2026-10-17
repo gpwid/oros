@@ -1022,7 +1022,7 @@ const WikiNetworkGraphInner: React.FC = () => {
           <div className="p-2.5 border-b border-oros-800 bg-oros-950">
             <button
               onClick={() => handleOpenInWiki(activeArticle.id)}
-              className="w-full py-1.5 px-3 rounded-[3px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+              className="btn-accent w-full py-1.5 px-3 rounded-[3px] font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
             >
               <BookOpen className="w-3.5 h-3.5" />
               <span>Open in Encyclopedia</span>

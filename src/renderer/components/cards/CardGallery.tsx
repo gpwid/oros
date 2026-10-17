@@ -79,9 +79,9 @@ export const CardGallery: React.FC = () => {
 
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-3 py-1.5 rounded-[3px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+            className="btn-accent px-2.5 sm:px-3 py-1.5 rounded-[3px] font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors shrink-0 whitespace-nowrap"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3.5 h-3.5 shrink-0" />
             <span>New Card</span>
           </button>
         </div>
@@ -304,7 +304,7 @@ export const CardGallery: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast transition-colors shadow-sm"
+                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold transition-colors shadow-sm"
                 >
                   Create Card
                 </button>

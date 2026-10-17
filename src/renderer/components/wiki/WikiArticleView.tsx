@@ -405,7 +405,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                   onClick={() => setIsEditing(!isEditing)}
                   className={`px-3 py-1.5 rounded-[3px] text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm ${
                     isEditing 
-                      ? 'bg-accent text-accent-contrast hover:bg-accent-hover' 
+                      ? 'btn-accent' 
                       : 'bg-oros-900 hover:bg-oros-850 text-oros-200 border border-oros-750 hover:border-accent/40'
                   }`}
                 >
@@ -629,7 +629,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
               </p>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="px-3.5 py-1.5 rounded-[3px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs shadow-sm transition-colors"
+                className="btn-accent px-3.5 py-1.5 rounded-[3px] font-semibold text-xs shadow-sm transition-colors"
               >
                 New Article
               </button>

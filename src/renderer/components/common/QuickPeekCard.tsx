@@ -105,7 +105,7 @@ export const QuickPeekCard: React.FC<QuickPeekCardProps> = ({ entity, onClose, o
         {/* Action Button */}
         <button
           onClick={handleOpen}
-          className="w-full py-1.5 rounded-[3px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+          className="btn-accent w-full py-1.5 rounded-[3px] font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm"
         >
           <span>Open Full Article in Wiki</span>
           <ExternalLink className="w-3.5 h-3.5" />

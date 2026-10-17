@@ -194,7 +194,7 @@ export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, onUpdate }) =>
                 />
                 <button
                   onClick={() => handleAddField(sIdx)}
-                  className="p-1 rounded-[3px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold shadow-sm transition-colors"
+                  className="btn-accent p-1 rounded-[3px] font-semibold shadow-sm transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>

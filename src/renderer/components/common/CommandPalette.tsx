@@ -271,7 +271,7 @@ export const CommandPalette: React.FC = () => {
               >
                 <div className="flex items-center gap-2.5 truncate">
                   <div className={`p-1.5 rounded-[2px] transition-colors ${
-                    isSelected ? 'bg-accent text-accent-contrast shadow-sm' : 'bg-oros-950 text-oros-400 border border-oros-800'
+                    isSelected ? 'btn-accent shadow-sm' : 'bg-oros-950 text-oros-400 border border-oros-800'
                   }`}>
                     <Icon className="w-3.5 h-3.5" />
                   </div>

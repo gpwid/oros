@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+[data-theme="sovereign"] {
   /* Default Sovereign Theme (Precision Silver / Lunar Platinum) */
   --oros-accent: #e2e8f0;
   --oros-accent-muted: rgba(226, 232, 240, 0.12);
@@ -12,6 +13,19 @@
   --oros-accent-ring: rgba(226, 232, 240, 0.25);
   --oros-accent-glow: rgba(226, 232, 240, 0.20);
   --oros-accent-contrast: #090a0d;
+}
+
+/* Primary Accent Button Utility guaranteeing WCAG contrast text */
+.btn-accent {
+  background-color: var(--oros-accent, #e2e8f0) !important;
+  color: var(--oros-accent-contrast, #090a0d) !important;
+}
+.btn-accent *,
+.btn-accent svg {
+  color: var(--oros-accent-contrast, #090a0d) !important;
+}
+.btn-accent:hover {
+  background-color: var(--oros-accent-hover, #ffffff) !important;
 }
 
 [data-theme="mythic"] {

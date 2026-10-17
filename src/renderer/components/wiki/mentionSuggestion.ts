@@ -70,7 +70,7 @@ class MentionList {
       }`
       btn.innerHTML = `
         <div class="flex items-center gap-2 truncate mr-1">
-          <div class="w-5 h-5 rounded-[2px] ${isSelected ? 'bg-accent text-accent-contrast' : 'bg-oros-950 text-oros-400 border border-oros-800'} flex items-center justify-center font-bold text-[10px] shrink-0 font-mono">
+          <div class="w-5 h-5 rounded-[2px] ${isSelected ? 'btn-accent' : 'bg-oros-950 text-oros-400 border border-oros-800'} flex items-center justify-center font-bold text-[10px] shrink-0 font-mono">
             ${item.title.charAt(0)}
           </div>
           <span class="truncate">${item.title}</span>

@@ -96,9 +96,9 @@ export const TimelineView: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-oros-950 p-6 select-text">
+    <div className="flex-1 flex flex-col overflow-hidden bg-oros-950 p-4 sm:p-6 select-text">
       {/* Top Header */}
-      <div className="flex items-center justify-between pb-4 mb-6 border-b border-oros-800 shrink-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-6 border-b border-oros-800 shrink-0">
         <div>
           <h2 className="font-serif text-lg font-bold text-oros-100 flex items-center gap-2">
             <Clock className="w-4 h-4 text-oros-400" />
@@ -108,9 +108,9 @@ export const TimelineView: React.FC = () => {
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-3 py-1.5 rounded-[3px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+          className="btn-accent px-2.5 sm:px-3 py-1.5 rounded-[3px] font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-colors shrink-0 whitespace-nowrap"
         >
-          <Plus className="w-3.5 h-3.5" />
+          <Plus className="w-3.5 h-3.5 shrink-0" />
           <span>Add Event</span>
         </button>
       </div>
@@ -151,17 +151,17 @@ export const TimelineView: React.FC = () => {
 
                       {/* Event Card */}
                       <div className="bg-oros-900 border border-oros-750 hover:border-oros-600 rounded-[3px] p-3.5 transition-colors">
-                        <div className="flex items-start justify-between gap-4 mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-[11px] text-oros-300 px-1.5 py-0.5 rounded-[2px] bg-oros-950 border border-oros-750 tracking-wide">
+                        <div className="flex flex-wrap sm:flex-nowrap items-start justify-between gap-2 sm:gap-4 mb-2">
+                          <div className="flex flex-wrap items-center gap-2 min-w-0">
+                            <span className="font-mono text-[11px] text-oros-300 px-1.5 py-0.5 rounded-[2px] bg-oros-950 border border-oros-750 tracking-wide shrink-0">
                               Year {evt.year} AC
                             </span>
-                            <h3 className="font-sans font-semibold text-sm text-oros-100">
+                            <h3 className="font-sans font-semibold text-sm text-oros-100 break-words">
                               {evt.title}
                             </h3>
                           </div>
 
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 shrink-0 self-start">
                             <span className={`text-[10px] uppercase font-mono px-1.5 py-0.5 rounded-[2px] border ${badgeColor}`}>
                               {evt.importance}
                             </span>
@@ -233,12 +233,12 @@ export const TimelineView: React.FC = () => {
       {/* Record Event Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-lg rounded-[4px] p-5 shadow-2xl">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-lg rounded-[4px] p-5 shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 mb-3">
               Add Event
             </h3>
             <form onSubmit={handleCreate} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-oros-300 mb-1">Era</label>
                   <input
@@ -331,7 +331,7 @@ export const TimelineView: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm transition-colors"
+                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
                 >
                   Add Event
                 </button>
@@ -344,12 +344,12 @@ export const TimelineView: React.FC = () => {
       {/* Edit Event Modal */}
       {editingEvent && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-lg rounded-[4px] p-5 shadow-2xl">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-lg rounded-[4px] p-5 shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 mb-3">
               Edit Event
             </h3>
             <form onSubmit={handleUpdate} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-oros-300 mb-1">Era</label>
                   <input
@@ -442,7 +442,7 @@ export const TimelineView: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3.5 py-1.5 rounded-[3px] text-xs font-semibold bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm transition-colors"
+                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
                 >
                   Save Changes
                 </button>

@@ -477,12 +477,11 @@ export const Sidebar: React.FC = () => {
   return (
     <>
       <aside 
-        className={`h-full bg-oros-950/95 border-r border-oros-800/40 select-none transition-[width,opacity] duration-250 ease-snappy overflow-hidden shrink-0 ${
+        className={`h-full bg-oros-950/95 border-r border-oros-800/40 select-none transition-all duration-250 ease-snappy overflow-hidden shrink-0 min-w-0 ${
           sidebarCollapsed ? 'w-0 opacity-0 border-r-0 pointer-events-none' : 'w-64 opacity-100'
         }`}
-        style={{ minWidth: sidebarCollapsed ? '0px' : '16rem' }}
       >
-        <div className="w-64 h-full flex flex-col justify-between">
+        <div className="w-64 h-full flex flex-col justify-between shrink-0">
           {/* TOP SEARCH & ACTION HEADER */}
           <div className="p-2 border-b border-oros-800/60">
             <div className="flex items-center gap-1.5">

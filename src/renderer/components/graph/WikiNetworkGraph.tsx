@@ -988,7 +988,7 @@ const WikiNetworkGraphInner: React.FC = () => {
 
       {/* Side Inspector Drawer for Selected Wiki Article */}
       {activeArticle && (
-        <aside className="absolute top-0 right-0 bottom-0 w-80 bg-oros-950 border-l border-oros-800 shadow-2xl z-30 flex flex-col">
+        <aside className="absolute top-0 right-0 bottom-0 w-80 bg-oros-950 border-l border-oros-800 shadow-2xl z-30 flex flex-col animate-slide-in-right">
           {/* Header */}
           <div className="p-3.5 border-b border-oros-800 flex items-start justify-between">
             <div className="flex items-center gap-2.5">

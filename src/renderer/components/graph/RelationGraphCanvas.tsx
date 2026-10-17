@@ -677,7 +677,7 @@ const RelationGraphCanvasContent: React.FC = () => {
 
       {/* QuickPeek Drawer when entity clicked */}
       {activeEntityForPeek && !showBondsDrawer && (
-        <div className="absolute top-13 right-5 z-30 animate-in fade-in slide-in-from-right-3 duration-150">
+        <div className="absolute top-13 right-5 z-30 animate-slide-in-right">
           <div className="relative">
             <button
               onClick={() => setActiveEntityForPeek(null)}
@@ -695,7 +695,7 @@ const RelationGraphCanvasContent: React.FC = () => {
 
       {/* Slide-out Drawer: All Active Bonds */}
       {showBondsDrawer && (
-        <aside className="absolute top-11 right-0 bottom-0 w-80 bg-oros-950 border-l border-oros-800 shadow-xl z-30 flex flex-col">
+        <aside className="absolute top-11 right-0 bottom-0 w-80 bg-oros-950 border-l border-oros-800 shadow-xl z-30 flex flex-col animate-slide-in-right">
           <div className="p-3 border-b border-oros-800 flex items-center justify-between">
             <h3 className="font-sans font-semibold text-xs text-oros-100 flex items-center gap-2 uppercase tracking-wide">
               <SlidersHorizontal className="w-3.5 h-3.5 text-oros-400" />
@@ -759,8 +759,8 @@ const RelationGraphCanvasContent: React.FC = () => {
       {/* Add / Connect Relation Modal */}
       {/* Add / Connect Relation Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-100">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] shadow-2xl flex flex-col max-h-[460px] overflow-hidden select-text text-oros-100">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] shadow-2xl flex flex-col max-h-[460px] overflow-hidden select-text text-oros-100 animate-modal-in">
             {/* Header */}
             <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
               <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 flex items-center gap-2">
@@ -961,8 +961,8 @@ const RelationGraphCanvasContent: React.FC = () => {
 
       {/* Edit Relation Modal */}
       {editingRelation && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-100">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] shadow-2xl flex flex-col max-h-[460px] overflow-hidden select-text text-oros-100">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] shadow-2xl flex flex-col max-h-[460px] overflow-hidden select-text text-oros-100 animate-modal-in">
             {/* Header */}
             <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
               <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 flex items-center gap-2">

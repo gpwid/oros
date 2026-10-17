@@ -108,7 +108,7 @@ export const TitleBar: React.FC = () => {
 
             {dropdownOpen && (
               <div 
-                className="absolute left-0 mt-1 w-64 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl py-1 z-50 animate-in fade-in duration-100"
+                className="absolute left-0 mt-1 w-64 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl py-1 z-50 animate-dropdown-in"
                 onClick={() => setDropdownOpen(false)}
               >
                 <div className="px-3 py-1 text-[10px] font-mono font-medium text-oros-400 uppercase tracking-wider">
@@ -250,8 +250,8 @@ export const TitleBar: React.FC = () => {
 
       {/* New World Modal */}
       {showNewModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-100">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-[4px] shadow-2xl flex flex-col max-h-[380px] overflow-hidden select-text text-oros-100">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-[4px] shadow-2xl flex flex-col max-h-[380px] overflow-hidden select-text text-oros-100 animate-modal-in">
             {/* Header */}
             <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">

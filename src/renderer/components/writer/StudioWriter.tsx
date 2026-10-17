@@ -53,27 +53,40 @@ export const StudioWriter: React.FC = () => {
 
   return (
     <div className="flex-1 flex overflow-hidden bg-oros-950 relative">
-      {/* Collapsed Chapter Sidebar Rail */}
-      {!isChapterSidebarOpen ? (
-        <div className="w-8 bg-oros-950 border-r border-oros-800 flex flex-col items-center py-2.5 shrink-0 select-none">
+      {/* Animated Chapter Sidebar Container */}
+      <aside 
+        className={`h-full bg-oros-950 border-r border-oros-800 shrink-0 select-none transition-all duration-250 ease-snappy overflow-hidden relative ${
+          isChapterSidebarOpen ? 'w-64' : 'w-8'
+        }`}
+      >
+        {/* Collapsed Chapter Rail */}
+        <div 
+          className={`w-8 h-full bg-oros-950 flex flex-col items-center py-2.5 absolute inset-y-0 left-0 transition-opacity duration-200 z-10 ${
+            !isChapterSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+        >
           <button
             onClick={() => setIsChapterSidebarOpen(true)}
             title="Open Chapters"
-            className="p-1 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 transition-colors mb-3"
+            className="p-1 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 transition-colors mb-3 btn-interactive"
           >
             <ChevronsRight className="w-4 h-4" />
           </button>
           <button
             onClick={() => setIsChapterSidebarOpen(true)}
-            className="text-[10px] tracking-wider uppercase text-oros-500 hover:text-oros-300 font-medium select-none py-2"
+            className="text-[10px] tracking-wider uppercase text-oros-500 hover:text-oros-300 font-medium select-none py-2 cursor-pointer"
             style={{ writingMode: 'vertical-rl' }}
           >
             Chapters
           </button>
         </div>
-      ) : (
-        /* Chapter Outline Navigation */
-        <aside className="w-64 bg-oros-950 border-r border-oros-800 flex flex-col justify-between shrink-0 select-none">
+
+        {/* Expanded Chapter Outline (Fixed w-64 to prevent text wrapping during width transition) */}
+        <div 
+          className={`w-64 h-full flex flex-col justify-between transition-opacity duration-200 shrink-0 ${
+            isChapterSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+        >
           <div>
             <div className="p-3 border-b border-oros-800 flex items-center justify-between">
               <div className="text-xs font-sans font-semibold text-oros-100 uppercase tracking-wide flex items-center gap-2">
@@ -83,7 +96,7 @@ export const StudioWriter: React.FC = () => {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-750 text-oros-200 hover:text-oros-100 text-xs font-medium flex items-center gap-1 transition-colors"
+                  className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-750 text-oros-200 hover:text-oros-100 text-xs font-medium flex items-center gap-1 transition-colors btn-interactive"
                 >
                   <Plus className="w-3 h-3" />
                   <span>New</span>
@@ -91,7 +104,7 @@ export const StudioWriter: React.FC = () => {
                 <button
                   onClick={() => setIsChapterSidebarOpen(false)}
                   title="Close Chapters Sidebar"
-                  className="p-1 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 transition-colors"
+                  className="p-1 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 transition-colors btn-interactive"
                 >
                   <ChevronsLeft className="w-3.5 h-3.5" />
                 </button>
@@ -156,8 +169,8 @@ export const StudioWriter: React.FC = () => {
           <div className="p-3 border-t border-oros-800 text-[10px] text-oros-400 font-mono tracking-wider uppercase">
             {worldChapters.length} Chapters · {worldChapters.reduce((acc, c) => acc + (c.wordCount || 0), 0)} Total Words
           </div>
-        </aside>
-      )}
+        </div>
+      </aside>
 
       {/* Main Manuscript Writing Canvas */}
       <main className="flex-1 overflow-y-auto p-8 select-text">
@@ -168,7 +181,7 @@ export const StudioWriter: React.FC = () => {
                 {!isChapterSidebarOpen && (
                   <button
                     onClick={() => setIsChapterSidebarOpen(true)}
-                    className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-oros-100 border border-oros-750 text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0"
+                    className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-oros-100 border border-oros-750 text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0 btn-interactive"
                     title="Open Chapters Sidebar"
                   >
                     <Feather className="w-3.5 h-3.5 text-oros-400" />
@@ -255,7 +268,7 @@ export const StudioWriter: React.FC = () => {
 
       {/* Distraction-Free Zen Mode Overlay */}
       {isZenMode && currentChapter && (
-        <div className="fixed inset-0 z-50 bg-oros-950 flex flex-col p-8 overflow-y-auto select-text animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 bg-oros-950 flex flex-col p-8 overflow-y-auto select-text animate-fade-in">
           <div className="flex items-center justify-between max-w-3xl mx-auto w-full mb-6 pb-2 border-b border-oros-850">
             <span className="text-xs font-mono text-oros-400 uppercase tracking-wider">
               Zen Mode · {currentChapter.wordCount || 0} words

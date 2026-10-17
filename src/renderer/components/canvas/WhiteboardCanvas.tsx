@@ -45,7 +45,7 @@ const NodeScalingToolbar: React.FC<{
   const displayPercent = scalePercent !== undefined ? scalePercent : Math.round((scale || 1) * 100)
   return (
     <div 
-      className="absolute -top-11 left-0 flex items-center gap-1.5 bg-oros-900 border border-oros-750 rounded-[4px] px-2 py-1 shadow-2xl z-30 animate-in fade-in zoom-in-95 duration-100 nodrag nopan select-none"
+      className="absolute -top-11 left-0 flex items-center gap-1.5 bg-oros-900 border border-oros-750 rounded-[4px] px-2 py-1 shadow-2xl z-30 animate-dropdown-in nodrag nopan select-none"
       onClick={(e) => e.stopPropagation()}
     >
       <button

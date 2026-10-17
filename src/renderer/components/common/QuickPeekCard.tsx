@@ -36,7 +36,7 @@ export const QuickPeekCard: React.FC<QuickPeekCardProps> = ({ entity, onClose, o
   const keyFields = entity.infobox.sections[0]?.fields.slice(0, 3) || []
 
   return (
-    <div className="w-80 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl overflow-hidden select-text animate-in fade-in duration-100 z-50 text-xs">
+    <div className="w-80 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl overflow-hidden select-text animate-dropdown-in z-50 text-xs">
       {/* Top Banner / Avatar */}
       <div className="relative h-28 bg-oros-950 overflow-hidden">
         {entity.avatar ? (

@@ -41,8 +41,8 @@ export const PromptModal: React.FC<PromptModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl max-w-md w-full p-5">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl max-w-md w-full p-5 animate-modal-in">
         <div className="flex items-start justify-between mb-2.5">
           <div className="flex items-center gap-2">
             <PenLine className="w-3.5 h-3.5 text-oros-400" />
@@ -75,7 +75,7 @@ export const PromptModal: React.FC<PromptModalProps> = ({
             <button
               type="button"
               onClick={onCancel}
-              className="px-3 py-1.5 rounded-[3px] text-xs font-medium text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors"
+              className="px-3 py-1.5 rounded-[3px] text-xs font-medium text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors btn-interactive"
             >
               Cancel
             </button>
@@ -114,22 +114,22 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl max-w-sm w-full p-5">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl max-w-sm w-full p-5 animate-modal-in">
         <h3 className="font-sans font-semibold text-sm text-oros-100 mb-1.5 tracking-tight">{title}</h3>
         <p className="text-xs text-oros-400 mb-4 leading-relaxed font-sans">{message}</p>
         <div className="flex justify-end gap-2 pt-2 border-t border-oros-800">
           <button
             type="button"
             onClick={onCancel}
-            className="px-3 py-1.5 rounded-[3px] text-xs text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors"
+            className="px-3 py-1.5 rounded-[3px] text-xs text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors btn-interactive"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className={`px-3.5 py-1.5 rounded-[3px] text-xs font-semibold transition-colors shadow-sm ${
+            className={`px-3.5 py-1.5 rounded-[3px] text-xs font-semibold transition-colors shadow-sm btn-interactive ${
               isDestructive
                 ? 'bg-rose-600 hover:bg-rose-500 text-white'
                 : 'btn-accent'

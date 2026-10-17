@@ -181,7 +181,7 @@ export const TimelineCalendarView: React.FC<TimelineCalendarViewProps> = ({
 
         {/* Ongoing Periods Banner (if any active during this month) */}
         {activePeriodsThisMonth.length > 0 && (
-          <div className="space-y-1.5 animate-in fade-in duration-150">
+          <div className="space-y-1.5 animate-fade-in">
             {activePeriodsThisMonth.map((period) => {
               const cfg = getPeriodTypeConfig(period.periodType || 'custom', calendarConfig.customPeriodTypes)
               const duration = formatPeriodDuration(
@@ -318,7 +318,7 @@ export const TimelineCalendarView: React.FC<TimelineCalendarViewProps> = ({
 
       {/* Right Day Almanac Lore Drawer */}
       {selectedDay && (
-        <div className="w-80 border-l border-oros-750 bg-oros-900/95 flex flex-col shrink-0 animate-in slide-in-from-right-3 duration-150">
+        <div className="w-80 border-l border-oros-750 bg-oros-900/95 flex flex-col shrink-0 animate-slide-in-right">
           {/* Drawer Header */}
           <div className="p-4 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
             <div>

@@ -1018,7 +1018,7 @@ export const InteractiveMapViewer: React.FC = () => {
 
       {/* SELECTED PIN DETAILS DRAWER */}
       {selectedPin && (
-        <div className="absolute right-4 top-14 w-80 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-4 z-30">
+        <div className="absolute right-4 top-14 w-80 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-4 z-30 animate-slide-in-right">
           <div className="flex items-start justify-between mb-2.5">
             <div className="flex items-center gap-2">
               <div 
@@ -1154,7 +1154,7 @@ export const InteractiveMapViewer: React.FC = () => {
 
       {/* SELECTED TERRITORY DETAILS DRAWER */}
       {selectedRegion && (
-        <div className="absolute right-4 top-14 w-80 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-4 z-30">
+        <div className="absolute right-4 top-14 w-80 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-4 z-30 animate-slide-in-right">
           <div className="flex items-start justify-between mb-2.5">
             <div className="flex items-center gap-2">
               <div 
@@ -1261,8 +1261,8 @@ export const InteractiveMapViewer: React.FC = () => {
 
       {/* TERRITORY POLYGON CREATION / EDIT MODAL */}
       {isRegionModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-100">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] shadow-2xl flex flex-col max-h-[460px] overflow-hidden select-text text-oros-100">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] shadow-2xl flex flex-col max-h-[460px] overflow-hidden select-text text-oros-100 animate-modal-in">
             {/* Header */}
             <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
@@ -1393,8 +1393,8 @@ export const InteractiveMapViewer: React.FC = () => {
 
       {/* PIN CREATION / EDIT MODAL */}
       {isPinModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-100">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] shadow-2xl flex flex-col max-h-[460px] overflow-hidden select-text text-oros-100">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] shadow-2xl flex flex-col max-h-[460px] overflow-hidden select-text text-oros-100 animate-modal-in">
             {/* Header */}
             <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
@@ -1561,8 +1561,8 @@ export const InteractiveMapViewer: React.FC = () => {
 
       {/* CREATE MAP MODAL */}
       {showNewMapModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-100">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-[4px] shadow-2xl flex flex-col max-h-[380px] overflow-hidden select-text text-oros-100">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-[4px] shadow-2xl flex flex-col max-h-[380px] overflow-hidden select-text text-oros-100 animate-modal-in">
             {/* Header */}
             <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">

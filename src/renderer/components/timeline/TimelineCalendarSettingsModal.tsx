@@ -250,9 +250,9 @@ export const TimelineCalendarSettingsModal: React.FC<TimelineCalendarSettingsMod
   const totalDaysInYear = months.reduce((acc, m) => acc + (Number(m.days) || 0), 0)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-oros-950/80 backdrop-blur-sm animate-in fade-in duration-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-oros-950/80 backdrop-blur-sm animate-fade-in">
       <div 
-        className="w-full max-w-xl bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl flex flex-col max-h-[500px] overflow-hidden select-text text-oros-100"
+        className="w-full max-w-xl bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl flex flex-col max-h-[500px] overflow-hidden select-text text-oros-100 animate-modal-in"
         role="dialog"
         aria-modal="true"
       >

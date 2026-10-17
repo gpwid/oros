@@ -151,27 +151,40 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
 
   return (
     <div className="flex-1 flex overflow-hidden relative">
-      {/* Collapsed Directory Rail */}
-      {!isDirectoryOpen ? (
-        <div className="w-8 bg-oros-950 border-r border-oros-800 flex flex-col items-center py-2.5 shrink-0 select-none">
+      {/* Animated Article Directory Sidebar Container */}
+      <aside 
+        className={`h-full bg-oros-950 border-r border-oros-800 shrink-0 select-none transition-all duration-250 ease-snappy overflow-hidden relative ${
+          isDirectoryOpen ? 'w-72' : 'w-8'
+        }`}
+      >
+        {/* Collapsed Directory Rail */}
+        <div 
+          className={`w-8 h-full bg-oros-950 flex flex-col items-center py-2.5 absolute inset-y-0 left-0 transition-opacity duration-200 z-10 ${
+            !isDirectoryOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+        >
           <button
             onClick={() => setIsDirectoryOpen(true)}
             title="Open Articles Directory"
-            className="p-1 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 transition-colors mb-3"
+            className="p-1 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 transition-colors mb-3 btn-interactive"
           >
             <ChevronsRight className="w-4 h-4" />
           </button>
           <button 
             onClick={() => setIsDirectoryOpen(true)}
-            className="text-[10px] tracking-wider uppercase text-oros-500 hover:text-oros-300 font-medium select-none py-2"
+            className="text-[10px] tracking-wider uppercase text-oros-500 hover:text-oros-300 font-medium select-none py-2 cursor-pointer"
             style={{ writingMode: 'vertical-rl' }}
           >
             Articles
           </button>
         </div>
-      ) : (
-        /* Left Column: Article Index / Directory */
-        <aside className="w-72 bg-oros-950 border-r border-oros-800 flex flex-col justify-between shrink-0 select-none">
+
+        {/* Expanded Directory Content (Fixed w-72 to prevent wrapping during width transition) */}
+        <div 
+          className={`w-72 h-full flex flex-col justify-between transition-opacity duration-200 shrink-0 ${
+            isDirectoryOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+        >
           <div>
             <div className="p-3 border-b border-oros-800 flex items-center justify-between">
               <div className="text-xs font-sans font-semibold text-oros-100 tracking-tight flex items-center gap-2">
@@ -181,7 +194,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-200 border border-oros-750 text-xs font-medium flex items-center gap-1 transition-colors"
+                  className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-200 border border-oros-750 text-xs font-medium flex items-center gap-1 transition-colors btn-interactive"
                 >
                   <Plus className="w-3 h-3 text-oros-400" />
                   <span>New</span>
@@ -189,7 +202,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                 <button
                   onClick={() => setIsDirectoryOpen(false)}
                   title="Close Directory"
-                  className="p-1 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 transition-colors"
+                  className="p-1 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 transition-colors btn-interactive"
                 >
                   <ChevronsLeft className="w-3.5 h-3.5" />
                 </button>
@@ -231,7 +244,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
               <button
                 onClick={() => setShowCategoryManager(true)}
                 title="Manage Categories"
-                className="p-1 rounded-[2px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 shrink-0 transition-colors ml-auto"
+                className="p-1 rounded-[2px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 shrink-0 transition-colors ml-auto btn-interactive"
               >
                 <SlidersHorizontal className="w-3 h-3" />
               </button>
@@ -278,8 +291,8 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
               )}
             </div>
           </div>
-        </aside>
-      )}
+        </div>
+      </aside>
 
       {/* Main Content Area: Article */}
       <main className="flex-1 overflow-y-auto bg-oros-950 p-8 select-text">
@@ -292,7 +305,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                   {!isDirectoryOpen && (
                     <button
                       onClick={() => setIsDirectoryOpen(true)}
-                      className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-oros-100 border border-oros-750 text-xs font-medium flex items-center gap-1.5 transition-colors mr-1"
+                      className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-oros-100 border border-oros-750 text-xs font-medium flex items-center gap-1.5 transition-colors mr-1 btn-interactive"
                       title="Open Articles Directory"
                     >
                       <BookOpen className="w-3.5 h-3.5 text-oros-400" />
@@ -306,7 +319,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                       <div className="relative inline-block">
                         <button
                           onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                          className="px-2 py-0.5 rounded-[2px] text-[10px] uppercase font-mono tracking-wider border font-medium flex items-center gap-1.5 transition-all shadow-sm"
+                          className="px-2 py-0.5 rounded-[2px] text-[10px] uppercase font-mono tracking-wider border font-medium flex items-center gap-1.5 transition-all shadow-sm btn-interactive"
                           style={{
                             backgroundColor: `${currentCatMeta.color || '#94a3b8'}15`,
                             borderColor: `${currentCatMeta.color || '#94a3b8'}40`,
@@ -322,7 +335,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                         {/* Category Reassignment Dropdown */}
                         {showCategoryDropdown && (
                           <div 
-                            className="absolute top-full left-0 mt-1.5 w-56 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl py-1 z-50"
+                            className="absolute top-full left-0 mt-1.5 w-56 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl py-1 z-50 animate-dropdown-in"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-oros-400 font-mono border-b border-oros-800 flex items-center justify-between">
@@ -640,7 +653,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
 
       {/* Floating QuickPeek Card on Backlink Hover */}
       {hoveredEntity && (
-        <div className="absolute bottom-12 left-80 z-50 pointer-events-none">
+        <div className="absolute bottom-12 left-80 z-50 pointer-events-none animate-dropdown-in">
           <QuickPeekCard entity={hoveredEntity} />
         </div>
       )}

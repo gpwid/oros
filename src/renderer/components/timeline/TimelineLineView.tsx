@@ -640,7 +640,7 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
           {/* Dynamic Hover Cursor on Timeline Axis (Only visible when hovering near the ruler) */}
           {hoverX !== null && hoverYear !== null && dragPeriodStartYear === null && isNearAxis && (
             <div
-              className="absolute top-1 pointer-events-none z-20 flex flex-col items-center animate-in fade-in duration-75"
+              className="absolute top-1 pointer-events-none z-20 flex flex-col items-center animate-fade-in"
               style={{ left: hoverX, transform: 'translateX(-50%)' }}
             >
               {/* Tooltip Pill */}
@@ -744,7 +744,7 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
 
       {/* Quick Event / Period Inspector Drawer (Bottom Left) */}
       {selectedEvent && (
-        <div className="absolute bottom-16 left-6 z-30 w-80 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-4 animate-in slide-in-from-bottom-2 duration-150">
+        <div className="absolute bottom-16 left-6 z-30 w-80 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-4 animate-modal-in">
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-oros-800">
             <div className="flex items-center gap-1.5">
               {selectedEvent.isPeriod ? (

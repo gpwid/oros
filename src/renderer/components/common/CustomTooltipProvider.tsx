@@ -98,7 +98,7 @@ export const CustomTooltipProvider: React.FC = () => {
 
   return (
     <div
-      className="fixed pointer-events-none select-none z-[9999999] animate-in fade-in zoom-in-95 duration-75"
+      className="fixed pointer-events-none select-none z-[9999999] animate-dropdown-in"
       style={{
         left: `${tooltip.x}px`,
         top: `${tooltip.y}px`,

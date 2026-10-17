@@ -3,28 +3,23 @@ import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
 import { WikiEditor } from '../wiki/WikiEditor'
 import { PromptModal, ConfirmModal } from '../common/PromptModal'
-import { QuickPeekCard } from '../common/QuickPeekCard'
 import { 
-  Feather, Plus, BookOpen, Search, Eye, Trash2, ChevronRight, X,
+  Feather, Plus, Trash2, ChevronRight,
   ChevronsLeft, ChevronsRight, ChevronUp, ChevronDown, Maximize2, Minimize2, BookDown
 } from 'lucide-react'
-import { LoreEntity } from '@shared/types'
 
 export const StudioWriter: React.FC = () => {
   const { 
-    manuscripts, entities, activeWorldId, selectedChapterId, setSelectedChapterId,
-    createChapter, updateChapter, deleteChapter, setSelectedEntityId, setActiveTab, openTab,
+    manuscripts, activeWorldId, selectedChapterId, setSelectedChapterId,
+    createChapter, updateChapter, deleteChapter,
     moveChapter, compileManuscript
   } = useWorldStore()
 
   const { addToast } = useToastStore()
 
   const [isChapterSidebarOpen, setIsChapterSidebarOpen] = useState(true)
-  const [codexSearch, setCodexSearch] = useState('')
-  const [showCodexDrawer, setShowCodexDrawer] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [hoveredEntity, setHoveredEntity] = useState<LoreEntity | null>(null)
   const [isZenMode, setIsZenMode] = useState(false)
 
   // Listen for Escape key to exit Zen Mode
@@ -39,15 +34,8 @@ export const StudioWriter: React.FC = () => {
   }, [isZenMode])
 
   const worldChapters = activeWorldId ? [...(manuscripts[activeWorldId] || [])].sort((a, b) => a.order - b.order) : []
-  const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
 
   const currentChapter = worldChapters.find((c) => c.id === selectedChapterId) || worldChapters[0]
-
-  const filteredEntities = worldEntities.filter((e) =>
-    codexSearch === '' ||
-    e.title.toLowerCase().includes(codexSearch.toLowerCase()) ||
-    e.tags.some(t => t.toLowerCase().includes(codexSearch.toLowerCase()))
-  )
 
   const handleCreateSubmit = (title: string) => {
     createChapter(title)
@@ -222,17 +210,6 @@ export const StudioWriter: React.FC = () => {
                   <Maximize2 className="w-3.5 h-3.5" />
                 </button>
                 <button
-                  onClick={() => setShowCodexDrawer(!showCodexDrawer)}
-                  className={`px-2.5 py-1 rounded-[3px] text-xs font-medium flex items-center gap-1.5 border transition-colors ${
-                    showCodexDrawer
-                      ? 'bg-oros-800 text-oros-100 border-oros-600 shadow-sm'
-                      : 'bg-oros-900 text-oros-300 hover:text-oros-100 border-oros-750 hover:bg-oros-850'
-                  }`}
-                >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>References</span>
-                </button>
-                <button
                   onClick={() => setShowDeleteModal(true)}
                   className="p-1.5 rounded-[3px] bg-oros-900 text-oros-400 hover:text-rose-400 border border-oros-750 hover:bg-oros-850 transition-colors"
                   title="Delete chapter"
@@ -254,80 +231,6 @@ export const StudioWriter: React.FC = () => {
           </div>
         )}
       </main>
-
-      {/* Right Drawer: Live World Codex Quick Reference */}
-      {showCodexDrawer && (
-        <aside className="w-80 bg-oros-950 border-l border-oros-800 flex flex-col justify-between shrink-0 select-none">
-          <div className="p-3 border-b border-oros-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100 flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-oros-400" />
-                References
-              </span>
-              <button
-                onClick={() => setShowCodexDrawer(false)}
-                className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-oros-400 absolute left-2 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={codexSearch}
-                onChange={(e) => setCodexSearch(e.target.value)}
-                placeholder="Search references..."
-                className="w-full bg-oros-900 border border-oros-750 rounded-[3px] pl-7 pr-2 py-1 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-500 font-sans"
-              />
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-3 space-y-2 select-text">
-            {filteredEntities.map((ent) => (
-              <div
-                key={ent.id}
-                onMouseEnter={() => setHoveredEntity(ent)}
-                onMouseLeave={() => setHoveredEntity(null)}
-                className="p-2.5 rounded-[3px] bg-oros-900 border border-oros-750 text-xs space-y-1 hover:border-oros-600 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-sans font-medium text-oros-100">{ent.title}</span>
-                  <span className="text-[10px] text-oros-400 uppercase font-mono">{ent.type}</span>
-                </div>
-                <p className="text-[11px] text-oros-300 line-clamp-2 leading-relaxed">
-                  {ent.summary || 'No summary'}
-                </p>
-                <div className="pt-1 flex items-center justify-between border-t border-oros-800 text-[10px]">
-                  <span className="text-oros-400 truncate max-w-[140px]">
-                    {ent.infobox.sections[0]?.fields[0]?.label}: {ent.infobox.sections[0]?.fields[0]?.value}
-                  </span>
-                  <button
-                    onClick={() => {
-                      setSelectedEntityId(ent.id)
-                      openTab({
-                        title: ent.title,
-                        type: 'wiki',
-                        targetId: ent.id
-                      })
-                    }}
-                    className="text-oros-300 hover:text-oros-100 font-medium transition-colors"
-                  >
-                    View in Wiki
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </aside>
-      )}
-
-      {/* Hover QuickPeek Card */}
-      {hoveredEntity && (
-        <div className="absolute top-20 right-84 z-50 pointer-events-none">
-          <QuickPeekCard entity={hoveredEntity} />
-        </div>
-      )}
 
       {/* Accessible Modals */}
       <PromptModal

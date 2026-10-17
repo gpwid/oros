@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { TimelineEvent, WorldCalendarConfig } from '@shared/types'
 import { useWorldStore } from '../../store/useWorldStore'
+import { confirmDialog } from '../../store/useConfirmStore'
 import { 
   Bookmark, Plus, Edit3, Trash2, ExternalLink, Clock, Zap, Calendar 
 } from 'lucide-react'
@@ -165,8 +166,14 @@ export const TimelineChronicleView: React.FC<TimelineChronicleViewProps> = ({
                                 <Edit3 className="w-3 h-3" />
                               </button>
                               <button
-                                onClick={() => {
-                                  if (confirm(`Delete "${evt.title}"?`)) {
+                                onClick={async () => {
+                                  const confirmed = await confirmDialog({
+                                    title: 'Delete Chronicle Entry',
+                                    message: `Delete "${evt.title}" from timeline?`,
+                                    confirmText: 'Delete',
+                                    variant: 'danger'
+                                  })
+                                  if (confirmed) {
                                     onDeleteEvent(evt.id)
                                   }
                                 }}

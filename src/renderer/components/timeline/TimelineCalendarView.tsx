@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { TimelineEvent, WorldCalendarConfig } from '@shared/types'
 import { useWorldStore } from '../../store/useWorldStore'
+import { confirmDialog } from '../../store/useConfirmStore'
 import { 
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, 
   Calendar as CalendarIcon, Clock, Plus, Edit3, Trash2, ExternalLink, 
@@ -377,8 +378,14 @@ export const TimelineCalendarView: React.FC<TimelineCalendarViewProps> = ({
                           <Edit3 className="w-3 h-3" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (confirm(`Delete "${evt.title}"?`)) {
+                          onClick={async () => {
+                            const confirmed = await confirmDialog({
+                              title: 'Delete Event',
+                              message: `Delete event "${evt.title}" from timeline?`,
+                              confirmText: 'Delete',
+                              variant: 'danger'
+                            })
+                            if (confirmed) {
                               onDeleteEvent(evt.id)
                             }
                           }}

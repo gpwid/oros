@@ -4,6 +4,8 @@ import { WorkspaceTabs } from './components/layout/WorkspaceTabs'
 import { Sidebar } from './components/layout/Sidebar'
 import { CommandPalette } from './components/common/CommandPalette'
 import { ToastContainer } from './components/common/ToastContainer'
+import { ConfirmModal } from './components/common/ConfirmModal'
+import { CustomTooltipProvider } from './components/common/CustomTooltipProvider'
 import { applyTheme } from './utils/themeEngine'
 
 // Code-split heavy views to accelerate launch time and memory footprint
@@ -93,6 +95,8 @@ export const App: React.FC = () => {
 
       <CommandPalette />
       <ToastContainer />
+      <ConfirmModal />
+      <CustomTooltipProvider />
     </div>
   )
 }

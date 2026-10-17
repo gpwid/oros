@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
+import { confirmDialog } from '../../store/useConfirmStore'
 import { 
   Folder, FolderOpen, ChevronRight, ChevronDown, Plus, 
   Search, LayoutGrid, BookOpen, Layers, Users, Clock, 
@@ -365,8 +366,14 @@ export const Sidebar: React.FC = () => {
             </button>
             {/* Delete */}
             <button
-              onClick={() => {
-                if (confirm(`Delete folder "${folder.name}"? Items inside will be moved to root.`)) {
+              onClick={async () => {
+                const confirmed = await confirmDialog({
+                  title: 'Delete Folder',
+                  message: `Delete folder "${folder.name}"? Items inside will be moved to root.`,
+                  confirmText: 'Delete Folder',
+                  variant: 'danger'
+                })
+                if (confirmed) {
                   deleteFolder(folder.id)
                   addToast('Folder deleted', 'info')
                 }
@@ -430,8 +437,14 @@ export const Sidebar: React.FC = () => {
 
                   {/* Delete from vault */}
                   <button
-                    onClick={() => {
-                      if (confirm(`Remove "${item.name}" from vault?`)) {
+                    onClick={async () => {
+                      const confirmed = await confirmDialog({
+                        title: 'Remove Item',
+                        message: `Remove "${item.name}" from vault?`,
+                        confirmText: 'Remove',
+                        variant: 'danger'
+                      })
+                      if (confirmed) {
                         deleteDirectoryItem(item.id)
                         addToast(`Removed "${item.name}" from vault`, 'info')
                       }
@@ -575,8 +588,14 @@ export const Sidebar: React.FC = () => {
 
               {/* Delete from vault */}
               <button
-                onClick={() => {
-                  if (confirm(`Remove "${item.name}" from vault?`)) {
+                onClick={async () => {
+                  const confirmed = await confirmDialog({
+                    title: 'Remove Item',
+                    message: `Remove "${item.name}" from vault?`,
+                    confirmText: 'Remove',
+                    variant: 'danger'
+                  })
+                  if (confirmed) {
                     deleteDirectoryItem(item.id)
                     addToast(`Removed "${item.name}" from vault`, 'info')
                   }

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { TimelineEvent, WorldCalendarConfig } from '@shared/types'
 import { useWorldStore } from '../../store/useWorldStore'
+import { confirmDialog } from '../../store/useConfirmStore'
 import { 
   Plus, ZoomIn, ZoomOut, Maximize2, Calendar, Clock, 
   Swords, Crown, Hourglass, Flame, Shield, Sparkles, Edit3, Trash2, ExternalLink,
@@ -765,8 +766,14 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
                 <Edit3 className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => {
-                  if (confirm(`Delete "${selectedEvent.title}"?`)) {
+                onClick={async () => {
+                  const confirmed = await confirmDialog({
+                    title: 'Delete Chronicle Entry',
+                    message: `Delete "${selectedEvent.title}" from timeline?`,
+                    confirmText: 'Delete',
+                    variant: 'danger'
+                  })
+                  if (confirmed) {
                     onDeleteEvent(selectedEvent.id)
                     setSelectedEventId(null)
                   }

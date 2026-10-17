@@ -299,7 +299,7 @@ export const WorkspaceTabs: React.FC = () => {
             </button>
 
             {worldDropdownOpen && (
-              <div className="absolute left-0 mt-1.5 w-64 bg-oros-900 border border-oros-750 rounded-md shadow-2xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute left-0 mt-1.5 w-72 bg-oros-900 border border-oros-750 rounded-md shadow-2xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
                 <div className="px-3 py-1 text-[10px] font-mono font-bold text-oros-400 uppercase tracking-wider">
                   World Vaults
                 </div>
@@ -364,9 +364,9 @@ export const WorkspaceTabs: React.FC = () => {
                   </div>
 
                   {/* Custom Accent Color Option */}
-                  <div className="mt-2 pt-1.5 border-t border-oros-800/60 flex items-center gap-1.5">
+                  <div className="mt-2 pt-1.5 border-t border-oros-800/60 flex items-center gap-2">
                     <span className="text-[10px] font-mono text-oros-400 shrink-0">Custom Hex:</span>
-                    <div className="relative flex-1 flex items-center gap-1.5">
+                    <div className="flex-1 min-w-0 flex items-center gap-1.5">
                       <label 
                         className={`w-5 h-5 rounded-[3px] border cursor-pointer overflow-hidden flex items-center justify-center shrink-0 shadow-sm transition-all ${
                           activeWorld?.theme === 'custom' ? 'border-accent ring-1 ring-accent/40' : 'border-oros-700'
@@ -397,7 +397,7 @@ export const WorkspaceTabs: React.FC = () => {
                             setWorldTheme(activeWorldId, 'custom', val)
                           }
                         }}
-                        className="flex-1 bg-oros-950 border border-oros-800 rounded-[3px] px-1.5 py-0.5 text-[10px] font-mono text-oros-200 placeholder-oros-600 focus:outline-none focus:border-accent"
+                        className="w-full min-w-0 bg-oros-950 border border-oros-800 rounded-[3px] px-2 py-0.5 text-[10px] font-mono text-oros-200 placeholder-oros-600 focus:outline-none focus:border-accent"
                       />
                     </div>
                   </div>

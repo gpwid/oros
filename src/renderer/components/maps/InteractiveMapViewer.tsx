@@ -881,7 +881,7 @@ export const InteractiveMapViewer: React.FC = () => {
                           y1={(prev[1] / 100) * 800}
                           x2={(pt[0] / 100) * 1280}
                           y2={(pt[1] / 100) * 800}
-                          stroke="#0284c7"
+                          stroke="var(--accent-color, #f5c542)"
                           strokeWidth={5}
                           strokeOpacity={0.35}
                         />
@@ -891,7 +891,7 @@ export const InteractiveMapViewer: React.FC = () => {
                           y1={(prev[1] / 100) * 800}
                           x2={(pt[0] / 100) * 1280}
                           y2={(pt[1] / 100) * 800}
-                          stroke="#38bdf8"
+                          stroke="var(--accent-color, #f5c542)"
                           strokeWidth={2.5}
                           strokeDasharray="6 4"
                         />
@@ -903,15 +903,15 @@ export const InteractiveMapViewer: React.FC = () => {
                             width={68}
                             height={20}
                             rx={10}
-                            fill="#030712"
+                            fill="#090a0d"
                             fillOpacity={0.92}
-                            stroke="#0284c7"
+                            stroke="var(--accent-color, #f5c542)"
                             strokeWidth={1}
                           />
                           <text
                             textAnchor="middle"
                             dominantBaseline="central"
-                            className="fill-sky-200 font-mono text-[10px] font-bold select-none"
+                            className="fill-slate-100 font-mono text-[10px] font-bold select-none"
                           >
                             {segDist} {currentMap?.scaleUnit || 'Lg'}
                           </text>
@@ -928,7 +928,7 @@ export const InteractiveMapViewer: React.FC = () => {
                         y1={(rulerPoints[rulerPoints.length - 1][1] / 100) * 800}
                         x2={(rulerHoverPoint[0] / 100) * 1280}
                         y2={(rulerHoverPoint[1] / 100) * 800}
-                        stroke="#38bdf8"
+                        stroke="var(--accent-color, #f5c542)"
                         strokeWidth={1.75}
                         strokeDasharray="4 3"
                       />
@@ -948,12 +948,12 @@ export const InteractiveMapViewer: React.FC = () => {
                               width={118}
                               height={34}
                               rx={4}
-                              fill="#030712"
+                              fill="#090a0d"
                               fillOpacity={0.95}
-                              stroke="#0284c7"
+                              stroke="var(--accent-color, #f5c542)"
                               strokeWidth={1}
                             />
-                            <text x={8} y={14} className="fill-sky-400 font-mono text-[10px] font-bold">
+                            <text x={8} y={14} className="font-mono text-[10px] font-bold" style={{ fill: 'var(--accent-color, #f5c542)' }}>
                               +{liveSeg} {currentMap?.scaleUnit || 'Lg'}
                             </text>
                             <text x={8} y={26} className="fill-slate-300 font-mono text-[9px]">
@@ -972,8 +972,8 @@ export const InteractiveMapViewer: React.FC = () => {
                         cx={(pt[0] / 100) * 1280}
                         cy={(pt[1] / 100) * 800}
                         r={8}
-                        fill="#0369a1"
-                        stroke="#38bdf8"
+                        fill="var(--accent-color, #f5c542)"
+                        stroke="#090a0d"
                         strokeWidth={2}
                       />
                       <text
@@ -981,7 +981,7 @@ export const InteractiveMapViewer: React.FC = () => {
                         y={(pt[1] / 100) * 800}
                         textAnchor="middle"
                         dominantBaseline="central"
-                        className="fill-white font-mono text-[9px] font-bold select-none"
+                        className="fill-slate-950 font-mono text-[9px] font-bold select-none"
                       >
                         {idx + 1}
                       </text>
@@ -1119,9 +1119,9 @@ export const InteractiveMapViewer: React.FC = () => {
         {/* RULER MEASUREMENT HELPER BANNER */}
         {(activeTool === 'ruler' || rulerPoints.length > 0) && (
           <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
-            <div className="flex items-center gap-3 px-3.5 py-1.5 rounded-[4px] bg-oros-900 border border-sky-800/70 text-xs shadow-2xl text-oros-100 font-sans">
-              <div className="flex items-center gap-2 text-sky-400 font-medium">
-                <Ruler className="w-3.5 h-3.5 text-sky-400 animate-pulse" />
+            <div className="flex items-center gap-3 px-3.5 py-1.5 rounded-[4px] bg-oros-900 border border-accent/40 text-xs shadow-2xl text-oros-100 font-sans">
+              <div className="flex items-center gap-2 text-accent font-medium">
+                <Ruler className="w-3.5 h-3.5 text-accent animate-pulse" />
                 <span className="font-semibold text-xs">
                   {rulerPoints.length === 0
                     ? 'Click map to place distance waypoints'
@@ -1145,7 +1145,7 @@ export const InteractiveMapViewer: React.FC = () => {
                     setIsRulerFinished(true)
                     setRulerHoverPoint(null)
                   }}
-                  className="px-2 py-0.5 rounded-[2px] bg-sky-900/60 hover:bg-sky-800 text-sky-200 border border-sky-700/60 text-[11px] font-medium transition-colors"
+                  className="px-2 py-0.5 rounded-[2px] bg-accent/20 hover:bg-accent/30 text-accent border border-accent/40 text-[11px] font-medium transition-colors"
                 >
                   Pin Route
                 </button>
@@ -1237,13 +1237,13 @@ export const InteractiveMapViewer: React.FC = () => {
               title="Measure Distance & Travel Time (R or M)"
               className={`p-1.5 rounded-[3px] relative transition-colors ${
                 activeTool === 'ruler'
-                  ? 'bg-sky-950 text-sky-400 border border-sky-600/60 shadow-sm'
+                  ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
                   : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
               }`}
             >
               <Ruler className="w-3.5 h-3.5" />
               {rulerPoints.length > 0 && (
-                <span className="absolute -top-1 -right-1 px-1 rounded-[2px] bg-sky-500 text-white text-[9px] font-mono font-bold leading-none py-0.5 shadow">
+                <span className="absolute -top-1 -right-1 px-1 rounded-[2px] bg-accent text-accent-contrast text-[9px] font-mono font-bold leading-none py-0.5 shadow">
                   {rulerPoints.length}
                 </span>
               )}
@@ -1251,7 +1251,7 @@ export const InteractiveMapViewer: React.FC = () => {
 
             <div className="w-[1px] h-4 bg-oros-800 mx-0.5" />
 
-            {/* 4. Snapping Toggle */}
+            {/* 5. Snapping Toggle */}
             <button
               onClick={() => {
                 setSnappingEnabled(!snappingEnabled)
@@ -1260,7 +1260,7 @@ export const InteractiveMapViewer: React.FC = () => {
               title={snappingEnabled ? 'Snapping is ON (Click to disable)' : 'Snapping is OFF (Click to enable)'}
               className={`p-1.5 rounded-[3px] transition-colors ${
                 snappingEnabled
-                  ? 'bg-oros-850 text-cyan-400 border border-cyan-800/60'
+                  ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
                   : 'text-oros-500 hover:text-oros-300 hover:bg-oros-850'
               }`}
             >
@@ -1834,7 +1834,7 @@ export const InteractiveMapViewer: React.FC = () => {
             {/* Header */}
             <div className="px-4 py-3 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-[3px] bg-sky-950 border border-sky-700/60 flex items-center justify-center text-sky-400">
+                <div className="w-7 h-7 rounded-[3px] bg-accent/15 border border-accent/30 flex items-center justify-center text-accent">
                   <Ruler className="w-3.5 h-3.5" />
                 </div>
                 <div>

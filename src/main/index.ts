@@ -25,6 +25,19 @@ protocol.registerSchemesAsPrivileged([
 
 let mainWindow: BrowserWindow | null = null
 
+// Enforce single-instance lock to avoid Windows GPU/Cache access collision
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  })
+}
+
 const userDataPath = app.getPath('userData')
 const vaultPath = join(userDataPath, 'vault')
 const assetsPath = join(vaultPath, 'assets')

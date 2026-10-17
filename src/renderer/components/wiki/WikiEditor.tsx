@@ -16,10 +16,16 @@ interface WikiEditorProps {
   content: string;
   onChange: (newContent: string) => void;
   placeholder?: string;
+  typographyStyle?: React.CSSProperties;
+  contentClassName?: string;
 }
 
 export const WikiEditor: React.FC<WikiEditorProps> = ({ 
-  content, onChange, placeholder = 'Chronicle lore, history, or knowledge... (Type @ to link lore cards, ||spoiler|| for secrets)' 
+  content, 
+  onChange, 
+  placeholder = 'Chronicle lore, history, or knowledge... (Type @ to link lore cards, ||spoiler|| for secrets)',
+  typographyStyle,
+  contentClassName
 }) => {
   const { addToast } = useToastStore()
 
@@ -216,7 +222,9 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
       </div>
 
       {/* Editor Content Area */}
-      <EditorContent editor={editor} />
+      <div className={`oros-editor-wrapper ${contentClassName || ''}`} style={typographyStyle}>
+        <EditorContent editor={editor} />
+      </div>
     </div>
   )
 }

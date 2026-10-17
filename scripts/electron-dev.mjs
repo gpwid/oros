@@ -1,7 +1,7 @@
 /**
  * Oros Desktop Dev Launcher
  * Starts the Vite dev server then launches Electron pointing at it.
- * Usage: node scripts/electron-dev.mjs  (or pnpm electron:dev)
+ * Usage: node scripts/electron-dev.mjs (or pnpm electron:dev / npm run electron:dev)
  */
 
 import { createServer } from 'vite'
@@ -27,17 +27,17 @@ async function startVite() {
 }
 
 function launchElectron(viteUrl) {
-  const electronBin = path.join(root, 'node_modules', '.bin', 'electron')
+  const isWin = process.platform === 'win32'
+  const electronBin = path.join(root, 'node_modules', '.bin', isWin ? 'electron.cmd' : 'electron')
 
-  // Build preload first so it's available
-  console.log('  📦  Pre-building Electron processes...\n')
-  const { spawnSync } = await import('node:child_process').then(m => m)
+  console.log('  ⚡ Launching Oros Desktop Electron window...\n')
 
   electronProcess = spawn(
     electronBin,
     ['.'],
     {
       stdio: 'inherit',
+      shell: isWin,
       env: {
         ...process.env,
         NODE_ENV: 'development',
@@ -55,7 +55,4 @@ function launchElectron(viteUrl) {
 
 // ---- Main ----
 const url = await startVite()
-
-// We need to build preload/main first for the IPC bridge to be available.
-// The vite-plugin-electron handles this when vite runs — just launch electron.
-setTimeout(() => launchElectron(url), 3500)
+setTimeout(() => launchElectron(url), 1800)

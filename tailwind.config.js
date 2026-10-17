@@ -39,9 +39,10 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        serif: ['Cinzel', 'Merriweather', 'Georgia', 'serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+        sans: ['Plus Jakarta Sans', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        serif: ['Cormorant Garamond', 'Georgia', 'serif'],
+        prose: ['Literata', 'Merriweather', 'Georgia', 'serif'],
+        mono: ['IBM Plex Mono', 'monospace']
       },
       transitionTimingFunction: {
         'snappy': 'cubic-bezier(0.16, 1, 0.3, 1)',

@@ -91,7 +91,7 @@
 @layer base {
   body {
     @apply bg-oros-950 text-oros-100 select-none;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   }
 
   /* Architectural thin scrollbars */
@@ -119,9 +119,10 @@
 }
 
 .oros-wiki-prose h1 {
-  font-family: 'Cinzel', serif;
-  font-size: 1.85rem;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 2.1rem;
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: #f4f6f8;
   border-bottom: 1px solid rgba(115, 145, 171, 0.25);
   padding-bottom: 0.4rem;
@@ -131,9 +132,10 @@
 }
 
 .oros-wiki-prose h2 {
-  font-family: 'Cinzel', serif;
-  font-size: 1.35rem;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.55rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: #e5e9ee;
   border-bottom: 1px solid rgba(115, 145, 171, 0.15);
   padding-bottom: 0.25rem;
@@ -143,7 +145,8 @@
 }
 
 .oros-wiki-prose h3 {
-  font-size: 1.1rem;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #cbd4df;
   margin-top: 1.25rem;
@@ -317,6 +320,9 @@
     scroll-behavior: auto !important;
   }
 }
-
-
-
+/* Dynamic Studio Writer Typography Styles */
+.oros-editor-wrapper .ProseMirror {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}

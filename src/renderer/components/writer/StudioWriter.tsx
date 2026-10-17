@@ -6,8 +6,9 @@ import { PromptModal, ConfirmModal } from '../common/PromptModal'
 import { 
   Feather, Plus, Trash2, ChevronRight,
   ChevronsLeft, ChevronsRight, ChevronUp, ChevronDown, Maximize2, Minimize2, BookDown,
-  BookMarked, Target, Pin, PinOff, Search, RotateCcw, X, ExternalLink, Check
+  BookMarked, Target, Pin, PinOff, Search, RotateCcw, X, ExternalLink, Check, SlidersHorizontal
 } from 'lucide-react'
+import { ManuscriptCompilerModal } from './ManuscriptCompilerModal'
 import { getCategoryMeta, getCategoryIconComponent } from '../../utils/categoryIcons'
 import { LoreEntity } from '@shared/types'
 
@@ -25,6 +26,50 @@ export const StudioWriter: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isZenMode, setIsZenMode] = useState(false)
+  const [isCompilerModalOpen, setIsCompilerModalOpen] = useState(false)
+
+  // Typography Settings
+  const [showTypographyMenu, setShowTypographyMenu] = useState(false)
+  const [typography, setTypography] = useState<{
+    fontFamily: 'serif' | 'sans' | 'mono';
+    fontSize: number;
+    lineHeight: number;
+    columnWidth: 'max-w-2xl' | 'max-w-3xl' | 'max-w-4xl';
+  }>(() => {
+    try {
+      const saved = localStorage.getItem('oros_writer_typography')
+      if (saved) return JSON.parse(saved)
+    } catch {}
+    return {
+      fontFamily: 'serif',
+      fontSize: 16,
+      lineHeight: 1.75,
+      columnWidth: 'max-w-3xl'
+    }
+  })
+
+  const updateTypography = (updates: Partial<typeof typography>) => {
+    setTypography(prev => {
+      const next = { ...prev, ...updates }
+      try {
+        localStorage.setItem('oros_writer_typography', JSON.stringify(next))
+      } catch {}
+      return next
+    })
+  }
+
+  const typographyStyle: React.CSSProperties = useMemo(() => {
+    const fontMap = {
+      serif: "'Literata', Georgia, serif",
+      sans: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+      mono: "'IBM Plex Mono', monospace"
+    }
+    return {
+      fontFamily: fontMap[typography.fontFamily] || fontMap.serif,
+      fontSize: `${typography.fontSize}px`,
+      lineHeight: typography.lineHeight
+    }
+  }, [typography])
 
   // Reference Drawer ("Codex Peek") State
   const [isReferenceDrawerOpen, setIsReferenceDrawerOpen] = useState(false)
@@ -268,7 +313,7 @@ export const StudioWriter: React.FC = () => {
         }}
       >
         {currentChapter ? (
-          <div className="max-w-3xl mx-auto">
+          <div className={`${typography.columnWidth} mx-auto transition-all duration-200`}>
             <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-4 border-b border-oros-800">
               <div className="flex items-center gap-2 mr-2 flex-1 min-w-[200px]">
                 {!isChapterSidebarOpen && (
@@ -335,20 +380,160 @@ export const StudioWriter: React.FC = () => {
 
                 {/* Compile Book */}
                 <button
-                  onClick={async () => {
-                    const success = await compileManuscript()
-                    if (success) {
-                      addToast('Manuscript exported as Markdown (.md)', 'success')
-                    } else {
-                      addToast('Failed to compile manuscript', 'error')
-                    }
-                  }}
-                  className="px-2.5 py-1 rounded-[3px] text-xs font-medium flex items-center gap-1.5 border bg-oros-900 text-oros-300 hover:text-oros-100 border-oros-750 hover:bg-oros-850 transition-colors"
-                  title="Compile & Export Complete Manuscript to Markdown (.md)"
+                  onClick={() => setIsCompilerModalOpen(true)}
+                  className="px-2.5 py-1 rounded-[3px] text-xs font-medium flex items-center gap-1.5 border bg-oros-900 text-oros-300 hover:text-oros-100 border-oros-750 hover:bg-oros-850 transition-colors btn-interactive"
+                  title="Open Manuscript Book Compiler (Print PDF, Markdown, E-Reader)"
                 >
                   <BookDown className="w-3.5 h-3.5 text-oros-400" />
                   <span className="hidden sm:inline">Compile Book</span>
                 </button>
+
+                {/* Typography Popover */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowTypographyMenu(!showTypographyMenu)}
+                    className={`p-1.5 rounded-[3px] border transition-colors btn-interactive ${
+                      showTypographyMenu
+                        ? 'btn-accent shadow-sm'
+                        : 'bg-oros-900 text-oros-300 hover:text-oros-100 border-oros-750 hover:bg-oros-850'
+                    }`}
+                    title="Typography & Reading Layout"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                  </button>
+
+                  {showTypographyMenu && (
+                    <div className="absolute right-0 top-full mt-2 w-72 p-3 bg-oros-950 border border-oros-750 rounded shadow-2xl z-50 animate-fade-in space-y-3">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-oros-800 text-xs font-semibold text-oros-200 font-mono uppercase tracking-wider">
+                        <span>Prose Typography</span>
+                        <button
+                          onClick={() => setShowTypographyMenu(false)}
+                          className="text-oros-500 hover:text-oros-300"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Font Family */}
+                      <div>
+                        <label className="text-[10px] text-oros-400 font-medium block mb-1 font-mono uppercase">Typeface</label>
+                        <div className="grid grid-cols-3 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => updateTypography({ fontFamily: 'serif' })}
+                            className={`p-1.5 rounded text-xs font-serif transition-colors ${
+                              typography.fontFamily === 'serif'
+                                ? 'btn-accent shadow-sm'
+                                : 'bg-oros-900 text-oros-300 hover:bg-oros-850 border border-oros-800'
+                            }`}
+                          >
+                            Literata
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateTypography({ fontFamily: 'sans' })}
+                            className={`p-1.5 rounded text-xs font-sans transition-colors ${
+                              typography.fontFamily === 'sans'
+                                ? 'btn-accent shadow-sm'
+                                : 'bg-oros-900 text-oros-300 hover:bg-oros-850 border border-oros-800'
+                            }`}
+                          >
+                            Jakarta
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateTypography({ fontFamily: 'mono' })}
+                            className={`p-1.5 rounded text-xs font-mono transition-colors ${
+                              typography.fontFamily === 'mono'
+                                ? 'btn-accent shadow-sm'
+                                : 'bg-oros-900 text-oros-300 hover:bg-oros-850 border border-oros-800'
+                            }`}
+                          >
+                            Plex Mono
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Font Size */}
+                      <div>
+                        <div className="flex justify-between text-[10px] text-oros-400 font-medium mb-1 font-mono uppercase">
+                          <span>Size</span>
+                          <span className="text-oros-200">{typography.fontSize}px</span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-1">
+                          {[14, 16, 18, 20].map((size) => (
+                            <button
+                              key={size}
+                              type="button"
+                              onClick={() => updateTypography({ fontSize: size })}
+                              className={`p-1 rounded text-xs font-mono transition-colors ${
+                                typography.fontSize === size
+                                  ? 'btn-accent shadow-sm'
+                                  : 'bg-oros-900 text-oros-400 hover:bg-oros-850 border border-oros-800'
+                              }`}
+                            >
+                              {size}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Line Spacing */}
+                      <div>
+                        <div className="flex justify-between text-[10px] text-oros-400 font-medium mb-1 font-mono uppercase">
+                          <span>Line Spacing</span>
+                          <span className="text-oros-200">{typography.lineHeight}x</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1">
+                          {[
+                            { label: 'Compact', val: 1.5 },
+                            { label: 'Normal', val: 1.75 },
+                            { label: 'Relaxed', val: 2.0 }
+                          ].map((line) => (
+                            <button
+                              key={line.val}
+                              type="button"
+                              onClick={() => updateTypography({ lineHeight: line.val })}
+                              className={`p-1 rounded text-[11px] transition-colors ${
+                                typography.lineHeight === line.val
+                                  ? 'btn-accent shadow-sm'
+                                  : 'bg-oros-900 text-oros-400 hover:bg-oros-850 border border-oros-800'
+                              }`}
+                            >
+                              {line.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Reading Column Width */}
+                      <div>
+                        <label className="text-[10px] text-oros-400 font-medium block mb-1 font-mono uppercase">Reading Width</label>
+                        <div className="grid grid-cols-3 gap-1">
+                          {[
+                            { label: 'Compact', val: 'max-w-2xl' },
+                            { label: 'Default', val: 'max-w-3xl' },
+                            { label: 'Spacious', val: 'max-w-4xl' }
+                          ].map((col) => (
+                            <button
+                              key={col.val}
+                              type="button"
+                              onClick={() => updateTypography({ columnWidth: col.val as any })}
+                              className={`p-1 rounded text-[11px] transition-colors ${
+                                typography.columnWidth === col.val
+                                  ? 'btn-accent shadow-sm'
+                                  : 'bg-oros-900 text-oros-400 hover:bg-oros-850 border border-oros-800'
+                              }`}
+                            >
+                              {col.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Zen Mode */}
                 <button
@@ -374,6 +559,7 @@ export const StudioWriter: React.FC = () => {
               content={currentChapter.content}
               onChange={(newHtml) => updateChapter(currentChapter.id, newHtml)}
               placeholder="Write chapter prose here... (Type @ to link cards)"
+              typographyStyle={typographyStyle}
             />
           </div>
         ) : (
@@ -753,7 +939,7 @@ export const StudioWriter: React.FC = () => {
               <span>Exit Zen (Esc)</span>
             </button>
           </div>
-          <div className="max-w-2xl mx-auto w-full pb-32">
+          <div className={`${typography.columnWidth} mx-auto w-full pb-32 transition-all duration-200`}>
             <input
               type="text"
               value={currentChapter.title}
@@ -764,10 +950,17 @@ export const StudioWriter: React.FC = () => {
               content={currentChapter.content}
               onChange={(newHtml) => updateChapter(currentChapter.id, newHtml)}
               placeholder="Write in uninterrupted focus... (Type @ to link cards)"
+              typographyStyle={typographyStyle}
             />
           </div>
         </div>
       )}
+
+      {/* Manuscript Book Compiler Modal */}
+      <ManuscriptCompilerModal
+        isOpen={isCompilerModalOpen}
+        onClose={() => setIsCompilerModalOpen(false)}
+      />
     </div>
   )
 }

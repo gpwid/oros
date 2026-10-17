@@ -1,14 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { useWorldStore, ActiveNavTab } from '../../store/useWorldStore'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
 import { 
   Search, BookOpen, Map, Feather, Shield, Plus, FolderOpen, 
-  Download, Layers, ArrowRight, Clock, Users, Network 
+  Download, ArrowRight, Calendar, FileText, Sparkles, X,
+  Layers, Users, Network
 } from 'lucide-react'
+import { searchDeepVault, SearchDomain, DeepSearchResult } from '../../utils/deepSearchEngine'
 
-interface PaletteItem {
+interface PaletteActionItem {
   id: string;
-  category: 'Articles' | 'Maps' | 'Chapters' | 'Actions';
+  category: 'Actions';
   title: string;
   subtitle?: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -18,22 +20,24 @@ interface PaletteItem {
 export const CommandPalette: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const [selectedDomain, setSelectedDomain] = useState<SearchDomain>('all')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const { 
-    entities, maps, manuscripts, activeWorldId, 
+    entities, maps, manuscripts, timelines, activeWorldId, 
     setActiveTab, setSelectedEntityId, setSelectedMapId, setSelectedChapterId,
     toggleGmMode, gmMode, exportWorld, createEntity, openTab 
   } = useWorldStore()
 
   const { addToast } = useToastStore()
 
-  const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
-  const worldMaps = activeWorldId ? maps[activeWorldId] || [] : []
-  const worldChapters = activeWorldId ? manuscripts[activeWorldId] || [] : []
+  const worldEntities = useMemo(() => activeWorldId ? entities[activeWorldId] || [] : [], [activeWorldId, entities])
+  const worldMaps = useMemo(() => activeWorldId ? maps[activeWorldId] || [] : [], [activeWorldId, maps])
+  const worldChapters = useMemo(() => activeWorldId ? manuscripts[activeWorldId] || [] : [], [activeWorldId, manuscripts])
+  const worldTimelines = useMemo(() => activeWorldId ? timelines[activeWorldId] || [] : [], [activeWorldId, timelines])
 
-  // Global keydown shortcut listener
+  // Global keydown shortcut listener (Ctrl+K or Cmd+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -51,176 +55,187 @@ export const CommandPalette: React.FC = () => {
   useEffect(() => {
     if (isOpen) {
       setSearch('')
+      setSelectedDomain('all')
       setSelectedIndex(0)
       setTimeout(() => inputRef.current?.focus(), 50)
     }
   }, [isOpen])
 
-  // Assemble searchable items
-  const items: PaletteItem[] = []
+  // Quick Actions List
+  const quickActions = useMemo<PaletteActionItem[]>(() => {
+    const acts: PaletteActionItem[] = [
+      {
+        id: 'act-new-char',
+        category: 'Actions',
+        title: 'New Character Article',
+        subtitle: 'Create a pre-structured character sheet',
+        icon: Plus,
+        onSelect: () => {
+          const ent = createEntity('character', 'Untitled Character')
+          setSelectedEntityId(ent.id)
+          openTab({ title: ent.title, type: 'wiki', targetId: ent.id })
+          addToast('Created new character article', 'success')
+        }
+      },
+      {
+        id: 'act-new-loc',
+        category: 'Actions',
+        title: 'New Settlement / Location',
+        subtitle: 'Create a realm or landmark card',
+        icon: Plus,
+        onSelect: () => {
+          const ent = createEntity('location', 'Untitled Location')
+          setSelectedEntityId(ent.id)
+          openTab({ title: ent.title, type: 'wiki', targetId: ent.id })
+          addToast('Created new location article', 'success')
+        }
+      },
+      {
+        id: 'act-nav-writer',
+        category: 'Actions',
+        title: 'Open Studio Writer',
+        subtitle: 'Continue writing chapter prose',
+        icon: Feather,
+        onSelect: () => {
+          openTab({ title: 'Studio Writer', type: 'writer' })
+        }
+      },
+      {
+        id: 'act-nav-timeline',
+        category: 'Actions',
+        title: 'Open Timeline & Chronicles',
+        subtitle: 'Inspect fantasy epochs and events',
+        icon: Calendar,
+        onSelect: () => {
+          openTab({ title: 'Timeline & Chronicles', type: 'timeline' })
+        }
+      },
+      {
+        id: 'act-nav-relations',
+        category: 'Actions',
+        title: 'Open Relationship Graph',
+        subtitle: 'View factions, allegiances, and lineage trees',
+        icon: Users,
+        onSelect: () => {
+          openTab({ title: 'Relation Network', type: 'relations' })
+        }
+      },
+      {
+        id: 'act-toggle-gm',
+        category: 'Actions',
+        title: gmMode ? 'Switch to Reader / Player Mode' : 'Enable Director / GM Mode',
+        subtitle: 'Toggle confidential DM lore and spoiler tags',
+        icon: Shield,
+        onSelect: () => {
+          toggleGmMode()
+          addToast(`Switched to ${!gmMode ? 'Director / GM Mode' : 'Reader Mode'}`, 'info')
+        }
+      },
+      {
+        id: 'act-open-folder',
+        category: 'Actions',
+        title: 'Open Local Vault Directory',
+        subtitle: 'Reveal storage in Windows File Explorer',
+        icon: FolderOpen,
+        onSelect: async () => {
+          if (window.oros) {
+            await window.oros.openVaultFolder()
+            addToast('Opened vault directory in Explorer', 'info')
+          } else {
+            addToast('Vault directory explorer requires desktop app', 'warning')
+          }
+        }
+      },
+      {
+        id: 'act-export',
+        category: 'Actions',
+        title: 'Export World Archive',
+        subtitle: 'Save complete .oros.json bundle',
+        icon: Download,
+        onSelect: async () => {
+          await exportWorld()
+          addToast('World exported successfully', 'success')
+        }
+      }
+    ]
+    return acts
+  }, [createEntity, exportWorld, gmMode, openTab, setSelectedEntityId, toggleGmMode, addToast])
 
-  // 1. Quick Actions
-  items.push({
-    id: 'act-nav-relations',
-    category: 'Actions',
-    title: 'Open Relations',
-    subtitle: 'View and edit entity relationships',
-    icon: Users,
-    onSelect: () => {
-      setActiveTab('relations')
+  // Deep Vault Search Results
+  const deepResults = useMemo(() => {
+    if (!search.trim()) return []
+    return searchDeepVault(
+      search,
+      selectedDomain,
+      worldEntities,
+      worldChapters,
+      worldTimelines,
+      worldMaps
+    )
+  }, [search, selectedDomain, worldEntities, worldChapters, worldTimelines, worldMaps])
+
+  // Filter actions if searching
+  const matchingActions = useMemo(() => {
+    if (!search.trim()) return quickActions
+    const q = search.toLowerCase()
+    return quickActions.filter(a => 
+      a.title.toLowerCase().includes(q) || (a.subtitle && a.subtitle.toLowerCase().includes(q))
+    )
+  }, [search, quickActions])
+
+  // Unified list for keyboard navigation
+  type CombinedItem = 
+    | { type: 'action'; data: PaletteActionItem }
+    | { type: 'deep'; data: DeepSearchResult }
+
+  const combinedItems = useMemo<CombinedItem[]>(() => {
+    const list: CombinedItem[] = []
+    if (search.trim()) {
+      deepResults.slice(0, 16).forEach(r => list.push({ type: 'deep', data: r }))
+      matchingActions.slice(0, 4).forEach(a => list.push({ type: 'action', data: a }))
+    } else {
+      matchingActions.forEach(a => list.push({ type: 'action', data: a }))
     }
-  })
-  items.push({
-    id: 'act-nav-wiki-network',
-    category: 'Actions',
-    title: 'Open Network Graph',
-    subtitle: 'Inspect card connections and backlinks',
-    icon: Network,
-    onSelect: () => {
-      setActiveTab('wiki-network')
-    }
-  })
-  items.push({
-    id: 'act-new-char',
-    category: 'Actions',
-    title: 'New Character',
-    subtitle: 'Create a character card',
-    icon: Plus,
-    onSelect: () => {
-      const ent = createEntity('character', 'Untitled Character')
-      setSelectedEntityId(ent.id)
-      openTab({
-        title: ent.title,
-        type: 'wiki',
-        targetId: ent.id
-      })
-      addToast('Created new character article', 'success')
-    }
-  })
-  items.push({
-    id: 'act-new-loc',
-    category: 'Actions',
-    title: 'New Location',
-    subtitle: 'Create a location card',
-    icon: Plus,
-    onSelect: () => {
-      const ent = createEntity('location', 'Untitled Location')
-      setSelectedEntityId(ent.id)
-      openTab({
-        title: ent.title,
-        type: 'wiki',
-        targetId: ent.id
-      })
-      addToast('Created new location article', 'success')
-    }
-  })
-  items.push({
-    id: 'act-toggle-gm',
-    category: 'Actions',
-    title: gmMode ? 'Switch to Player View' : 'Enable GM Mode',
-    subtitle: 'Toggle visibility of hidden GM notes',
-    icon: Shield,
-    onSelect: () => {
-      toggleGmMode()
-      addToast(`Switched to ${!gmMode ? 'GM Mode' : 'Player View'}`, 'info')
-    }
-  })
-  items.push({
-    id: 'act-open-folder',
-    category: 'Actions',
-    title: 'Open Vault Folder',
-    subtitle: 'Reveal world folder in file explorer',
-    icon: FolderOpen,
-    onSelect: async () => {
-      if (window.oros) {
-        await window.oros.openVaultFolder()
-        addToast('Opened vault directory in Explorer', 'info')
-      } else {
-        addToast('Vault folder only available in desktop app', 'warning')
+    return list
+  }, [search, deepResults, matchingActions])
+
+  const handleSelectResult = (item: CombinedItem) => {
+    if (item.type === 'action') {
+      item.data.onSelect()
+    } else {
+      const res = item.data
+      switch (res.domain) {
+        case 'lore':
+          setSelectedEntityId(res.targetId)
+          openTab({ title: res.title, type: 'wiki', targetId: res.targetId })
+          break
+        case 'manuscript':
+          setSelectedChapterId(res.targetId)
+          openTab({ title: res.title, type: 'writer', targetId: res.targetId })
+          break
+        case 'timeline':
+          openTab({ title: 'Timeline & Chronicles', type: 'timeline' })
+          break
+        case 'map':
+          setSelectedMapId(res.targetId)
+          openTab({ title: res.title, type: 'map', targetId: res.targetId })
+          break
       }
     }
-  })
-  items.push({
-    id: 'act-export',
-    category: 'Actions',
-    title: 'Export World',
-    subtitle: 'Export as .oros.json package',
-    icon: Download,
-    onSelect: async () => {
-      await exportWorld()
-      addToast('World exported successfully', 'success')
-    }
-  })
-
-  // 2. Entities / Articles
-  worldEntities.forEach((ent) => {
-    items.push({
-      id: `ent-${ent.id}`,
-      category: 'Articles',
-      title: ent.title,
-      subtitle: `${ent.type.toUpperCase()}${ent.summary ? ` · ${ent.summary}` : ''}`,
-      icon: BookOpen,
-      onSelect: () => {
-        setSelectedEntityId(ent.id)
-        openTab({
-          title: ent.title,
-          type: 'wiki',
-          targetId: ent.id
-        })
-      }
-    })
-  })
-
-  // 3. Maps
-  worldMaps.forEach((map) => {
-    items.push({
-      id: `map-${map.id}`,
-      category: 'Maps',
-      title: map.name,
-      subtitle: `${map.pins.length} Pins`,
-      icon: Map,
-      onSelect: () => {
-        setSelectedMapId(map.id)
-        setActiveTab('maps')
-      }
-    })
-  })
-
-  // 4. Chapters
-  worldChapters.forEach((ch) => {
-    items.push({
-      id: `ch-${ch.id}`,
-      category: 'Chapters',
-      title: ch.title,
-      subtitle: `${ch.wordCount || 0} words`,
-      icon: Feather,
-      onSelect: () => {
-        setSelectedChapterId(ch.id)
-        setActiveTab('writer')
-      }
-    })
-  })
-
-  // Filter items
-  const filtered = items.filter((item) =>
-    search === '' ||
-    item.title.toLowerCase().includes(search.toLowerCase()) ||
-    (item.subtitle && item.subtitle.toLowerCase().includes(search.toLowerCase())) ||
-    item.category.toLowerCase().includes(search.toLowerCase())
-  ).slice(0, 12)
+    setIsOpen(false)
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setSelectedIndex((prev) => (prev + 1) % Math.max(filtered.length, 1))
+      setSelectedIndex((prev) => (prev + 1) % Math.max(combinedItems.length, 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setSelectedIndex((prev) => (prev - 1 + filtered.length) % Math.max(filtered.length, 1))
+      setSelectedIndex((prev) => (prev - 1 + combinedItems.length) % Math.max(combinedItems.length, 1))
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      if (filtered[selectedIndex]) {
-        filtered[selectedIndex].onSelect()
-        setIsOpen(false)
+      if (combinedItems[selectedIndex]) {
+        handleSelectResult(combinedItems[selectedIndex])
       }
     }
   }
@@ -228,11 +243,17 @@ export const CommandPalette: React.FC = () => {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start justify-center pt-20 p-4 animate-fade-in select-none">
-      <div className="bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl max-w-xl w-full overflow-hidden flex flex-col animate-modal-in">
+    <div 
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-start justify-center pt-20 p-4 animate-fade-in select-none"
+      onClick={() => setIsOpen(false)}
+    >
+      <div 
+        className="bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col animate-modal-in"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Search Input Bar */}
         <div className="p-3 border-b border-oros-800 flex items-center gap-2.5 bg-oros-950">
-          <Search className="w-4 h-4 text-oros-400 shrink-0" />
+          <Search className="w-4 h-4 text-accent shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -242,72 +263,152 @@ export const CommandPalette: React.FC = () => {
               setSelectedIndex(0)
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Type a command or search world lore, maps, chapters..."
-            className="w-full bg-transparent border-none text-xs text-oros-100 placeholder-oros-500 focus:outline-none font-sans"
+            placeholder="Search whole vault (prose, cards, timelines, commands)..."
+            className="flex-1 bg-transparent border-none text-xs text-oros-100 placeholder-oros-500 focus:outline-none font-sans"
           />
-          <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded-[2px] bg-oros-900 text-oros-400 border border-oros-750 shrink-0">
-            ESC
-          </kbd>
+          {search && (
+            <button
+              onClick={() => {
+                setSearch('')
+                setSelectedIndex(0)
+              }}
+              className="text-oros-500 hover:text-oros-300 p-0.5"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <span className="text-[10px] font-mono text-oros-500 px-1.5 py-0.5 rounded-[2px] bg-oros-900 border border-oros-800">
+            Esc
+          </span>
         </div>
 
-        {/* Results List */}
-        <div className="max-h-96 overflow-y-auto p-1.5 space-y-0.5">
-          {filtered.map((item, idx) => {
-            const isSelected = idx === selectedIndex
-            const Icon = item.icon
-            return (
+        {/* Filter Domain Pills (when search query is entered) */}
+        {search.trim() && (
+          <div className="px-3 py-1.5 border-b border-oros-850 bg-oros-950/60 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider">
+            <span className="text-oros-500 mr-1">Filter:</span>
+            {(['all', 'lore', 'manuscript', 'timeline', 'map'] as SearchDomain[]).map((dom) => (
               <button
-                key={item.id}
+                key={dom}
                 onClick={() => {
-                  item.onSelect()
-                  setIsOpen(false)
+                  setSelectedDomain(dom)
+                  setSelectedIndex(0)
                 }}
-                onMouseEnter={() => setSelectedIndex(idx)}
-                className={`w-full text-left p-2 rounded-[3px] text-xs flex items-center justify-between transition-colors group ${
-                  isSelected
-                    ? 'bg-accent-muted border-l-2 border-accent border-t-transparent border-r-transparent border-b-transparent text-oros-100 font-medium'
-                    : 'text-oros-300 hover:bg-oros-850/60 border-l-2 border-transparent'
+                className={`px-2 py-0.5 rounded-[2px] transition-colors ${
+                  selectedDomain === dom
+                    ? 'btn-accent font-semibold shadow-sm'
+                    : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
                 }`}
               >
-                <div className="flex items-center gap-2.5 truncate">
-                  <div className={`p-1.5 rounded-[2px] transition-colors ${
-                    isSelected ? 'btn-accent shadow-sm' : 'bg-oros-950 text-oros-400 border border-oros-800'
-                  }`}>
-                    <Icon className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="truncate">
-                    <div className="truncate">{item.title}</div>
-                    {item.subtitle && (
-                      <div className="text-[10px] text-oros-400 truncate mt-0.5 font-mono">{item.subtitle}</div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded-[2px] bg-oros-950 text-oros-400 border border-oros-800">
-                    {item.category}
-                  </span>
-                  {isSelected && <ArrowRight className="w-3.5 h-3.5 text-accent" />}
-                </div>
+                {dom === 'all' ? 'All Domains' : dom === 'lore' ? 'Cards' : dom === 'manuscript' ? 'Prose' : dom === 'timeline' ? 'Timeline' : 'Maps'}
               </button>
-            )
-          })}
+            ))}
+            <span className="ml-auto text-oros-500 font-mono">
+              {deepResults.length} matches
+            </span>
+          </div>
+        )}
 
-          {filtered.length === 0 && (
-            <div className="p-8 text-center text-xs text-oros-500">
-              No results found for "{search}".
+        {/* Results List */}
+        <div className="max-h-96 overflow-y-auto p-2 space-y-1">
+          {combinedItems.length === 0 ? (
+            <div className="p-8 text-center text-oros-500 text-xs font-sans">
+              No results found for <span className="text-oros-300">"{search}"</span>.
             </div>
+          ) : (
+            combinedItems.map((item, idx) => {
+              const isSelected = idx === selectedIndex
+
+              if (item.type === 'action') {
+                const act = item.data
+                const IconComponent = act.icon
+                return (
+                  <div
+                    key={act.id}
+                    onClick={() => handleSelectResult(item)}
+                    onMouseEnter={() => setSelectedIndex(idx)}
+                    className={`p-2.5 rounded-[3px] flex items-center justify-between text-xs cursor-pointer transition-colors border ${
+                      isSelected
+                        ? 'bg-accent-muted border-accent/40 text-oros-100 shadow-sm'
+                        : 'border-transparent text-oros-300 hover:bg-oros-850'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 truncate mr-2">
+                      <div className={`p-1.5 rounded-[2px] shrink-0 ${isSelected ? 'btn-accent' : 'bg-oros-950 text-oros-400 border border-oros-800'}`}>
+                        <IconComponent className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="truncate">
+                        <div className="font-medium truncate">{act.title}</div>
+                        {act.subtitle && (
+                          <div className="text-[10px] text-oros-400 font-sans truncate">
+                            {act.subtitle}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono uppercase text-oros-500 shrink-0">
+                      Action
+                    </span>
+                  </div>
+                )
+              }
+
+              // Deep Search Item
+              const res = item.data
+              let Icon = FileText
+              let iconColor = 'text-sky-400'
+              if (res.domain === 'manuscript') {
+                Icon = Feather
+                iconColor = 'text-amber-400'
+              } else if (res.domain === 'timeline') {
+                Icon = Calendar
+                iconColor = 'text-purple-400'
+              } else if (res.domain === 'map') {
+                Icon = Map
+                iconColor = 'text-emerald-400'
+              }
+
+              return (
+                <div
+                  key={res.id}
+                  onClick={() => handleSelectResult(item)}
+                  onMouseEnter={() => setSelectedIndex(idx)}
+                  className={`p-2.5 rounded-[3px] text-xs cursor-pointer transition-colors border flex flex-col justify-between ${
+                    isSelected
+                      ? 'bg-accent-muted border-accent/40 text-oros-100 shadow-sm'
+                      : 'border-transparent text-oros-300 hover:bg-oros-850'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2 truncate mr-2">
+                      <Icon className={`w-3.5 h-3.5 ${iconColor} shrink-0`} />
+                      <span className="font-semibold text-oros-100 truncate font-sans">
+                        {res.title}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono text-oros-400 px-1.5 py-0.2 rounded-[2px] bg-oros-950 border border-oros-800 shrink-0">
+                      {res.badge}
+                    </span>
+                  </div>
+
+                  {res.snippet && (
+                    <div className="text-[11px] text-oros-400 font-serif italic line-clamp-1 bg-oros-950/40 p-1 rounded-[2px] border border-oros-850 mt-0.5">
+                      "{res.snippet}"
+                    </div>
+                  )}
+                </div>
+              )
+            })
           )}
         </div>
 
-        {/* Footer Hint Bar */}
-        <div className="p-2 bg-oros-950 border-t border-oros-800 text-[10px] text-oros-400 flex items-center justify-between font-mono">
+        {/* Footer Hints */}
+        <div className="p-2 border-t border-oros-800 bg-oros-950 flex items-center justify-between text-[10px] font-mono text-oros-500">
           <div className="flex items-center gap-3">
             <span>↑↓ Navigate</span>
             <span>↵ Select</span>
-            <span>ESC Close</span>
+            <span>Esc Close</span>
           </div>
-          <span className="text-oros-500 uppercase tracking-wider">Command Palette</span>
+          <span>Deep Search across {worldChapters.length} chapters · {worldEntities.length} cards</span>
         </div>
       </div>
     </div>

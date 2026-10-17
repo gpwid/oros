@@ -344,8 +344,8 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
       className="flex-1 w-full h-full relative overflow-hidden select-none bg-oros-950 oros-dotted-surface cursor-grab active:cursor-grabbing"
       data-pan-target="true"
     >
-      {/* Zoom / View Instruments Mini Bar (Top Right) */}
-      <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 p-1 bg-oros-900/90 backdrop-blur-md border border-oros-750 rounded-[3px] shadow-lg">
+      {/* Zoom / View Instruments Mini Bar (Bottom Right) */}
+      <div className="absolute bottom-4 right-4 z-30 flex items-center gap-1.5 p-1 bg-oros-900/95 backdrop-blur-md border border-oros-750/90 rounded-[4px] shadow-2xl">
         {/* Wheel Mode Segmented Toggle */}
         <div className="flex items-center bg-oros-850 border border-oros-750/80 rounded-[2px] p-0.5 mr-1">
           <button
@@ -400,8 +400,8 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
         </button>
       </div>
 
-      {/* Axis Instruction Hint */}
-      <div className="absolute top-4 left-4 z-20 pointer-events-none text-[11px] font-mono text-oros-400 bg-oros-900/80 backdrop-blur-md px-2.5 py-1 border border-oros-750/70 rounded-[3px] flex items-center gap-2">
+      {/* Axis Instruction Hint (Bottom Left) */}
+      <div className="absolute bottom-4 left-4 z-30 pointer-events-none text-[11px] font-mono text-oros-400 bg-oros-900/95 backdrop-blur-md px-2.5 py-1.5 border border-oros-750/90 rounded-[4px] shadow-2xl hidden md:flex items-center gap-2">
         <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
         <span>Click axis to add event · Drag to create period</span>
       </div>

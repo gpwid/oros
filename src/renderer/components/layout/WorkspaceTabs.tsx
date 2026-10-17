@@ -310,7 +310,7 @@ export const WorkspaceTabs: React.FC = () => {
           {/* Logo Mark: Click to Return to Homepage / Project Hub */}
           <button
             onClick={() => setAppView('home')}
-            className="w-5 h-5 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-accent/40 hover:border-accent flex items-center justify-center text-accent shrink-0 shadow-sm transition-all hover:scale-105 btn-interactive cursor-pointer group"
+            className="w-5 h-5 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-accent/40 hover:border-accent flex items-center justify-center text-accent shrink-0 shadow-sm transition-colors cursor-pointer group"
             title="Return to Project Hub (Home)"
           >
             <OrosLogoMark className="w-3.5 h-3.5 text-accent group-hover:brightness-110" />

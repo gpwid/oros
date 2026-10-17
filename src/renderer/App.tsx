@@ -38,8 +38,12 @@ export const App: React.FC = () => {
   const activeWorld = worlds.find((w) => w.id === activeWorldId) || worlds[0]
 
   useEffect(() => {
-    applyTheme(activeWorld?.theme, activeWorld?.customAccentColor)
-  }, [activeWorld?.theme, activeWorld?.customAccentColor])
+    if (appView === 'home') {
+      applyTheme('sovereign')
+    } else {
+      applyTheme(activeWorld?.theme, activeWorld?.customAccentColor)
+    }
+  }, [appView, activeWorld?.theme, activeWorld?.customAccentColor])
 
   const activeTabObj = openTabs.find((t) => t.id === activeTabId)
   const currentTabType = activeTabObj?.type || activeTab

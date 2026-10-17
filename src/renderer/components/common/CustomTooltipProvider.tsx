@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 
 interface TooltipState {
   text: string
@@ -9,9 +9,39 @@ interface TooltipState {
 
 export const CustomTooltipProvider: React.FC = () => {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
+  const tooltipRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<any>(null)
   const lastActiveTargetRef = useRef<HTMLElement | null>(null)
   const lastHideTimeRef = useRef<number>(0)
+
+  // Clamp tooltip strictly within screen viewport to prevent left/right screen edge clipping
+  useLayoutEffect(() => {
+    if (!tooltip || !tooltipRef.current) return
+    const el = tooltipRef.current
+    const rect = el.getBoundingClientRect()
+    const padding = 8
+
+    let left = tooltip.x - rect.width / 2
+
+    // Clamp horizontally
+    if (left < padding) {
+      left = padding
+    } else if (left + rect.width > window.innerWidth - padding) {
+      left = window.innerWidth - padding - rect.width
+    }
+
+    // Clamp vertically
+    let top = tooltip.position === 'top' ? tooltip.y - rect.height : tooltip.y
+    if (top < padding) {
+      top = padding
+    } else if (top + rect.height > window.innerHeight - padding) {
+      top = window.innerHeight - padding - rect.height
+    }
+
+    el.style.left = `${Math.round(left)}px`
+    el.style.top = `${Math.round(top)}px`
+    el.style.opacity = '1'
+  }, [tooltip])
 
   useEffect(() => {
     const handleMouseOver = (e: MouseEvent) => {
@@ -40,7 +70,7 @@ export const CustomTooltipProvider: React.FC = () => {
         const spaceBelow = window.innerHeight - rect.bottom
         const placeTop = spaceBelow < 36 && rect.top > 36
         const y = placeTop ? rect.top - 6 : rect.bottom + 6
-        const x = Math.max(12, Math.min(window.innerWidth - 12, rect.left + rect.width / 2))
+        const x = rect.left + rect.width / 2
 
         setTooltip({
           text,
@@ -98,14 +128,14 @@ export const CustomTooltipProvider: React.FC = () => {
 
   return (
     <div
-      className="fixed pointer-events-none select-none z-[9999999] animate-dropdown-in"
+      ref={tooltipRef}
+      className="fixed pointer-events-none select-none z-[9999999] opacity-0 transition-opacity duration-100"
       style={{
         left: `${tooltip.x}px`,
-        top: `${tooltip.y}px`,
-        transform: tooltip.position === 'top' ? 'translate(-50%, -100%)' : 'translate(-50%, 0)'
+        top: `${tooltip.y}px`
       }}
     >
-      <div className="bg-oros-900/95 backdrop-blur-md border border-oros-750/90 text-oros-100 font-sans text-[11px] font-medium px-2 py-1 rounded-[3px] shadow-2xl whitespace-nowrap max-w-xs truncate">
+      <div className="bg-oros-900/95 backdrop-blur-md border border-oros-750 text-oros-100 font-sans text-[11px] font-medium px-2.5 py-1 rounded-[3px] shadow-2xl whitespace-nowrap max-w-xs truncate">
         {tooltip.text}
       </div>
     </div>

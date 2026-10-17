@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
-import { X, Sparkles, Compass } from 'lucide-react'
+import { X, Plus, Compass } from 'lucide-react'
 import { World } from '@shared/types'
 import { THEME_PRESETS } from '../../utils/themeEngine'
 
@@ -199,10 +199,10 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
             </button>
             <button
               type="submit"
-              className="btn-accent px-4 py-1.5 rounded-[3px] text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5"
+              className="px-4 py-1.5 rounded-[3px] bg-white hover:bg-slate-200 text-oros-950 text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Create & Enter Project</span>
+              <Plus className="w-3.5 h-3.5 text-oros-950" />
+              <span>Create Project</span>
             </button>
           </div>
         </form>

@@ -5,7 +5,7 @@ import { confirmDialog } from '../../store/useConfirmStore'
 import { 
   Plus, Search, FolderOpen, Upload, Download, Trash2, 
   ArrowRight, BookOpen, Layers, Feather, Map as MapIcon, 
-  Sparkles, Compass, Clock, LayoutGrid
+  Compass, Clock, LayoutGrid
 } from 'lucide-react'
 import { OrosLogoFull } from '../common/OrosLogo'
 import { NewProjectModal } from './NewProjectModal'
@@ -131,35 +131,36 @@ export const HomePage: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col bg-oros-950 text-slate-100 overflow-y-auto select-none font-sans">
       {/* TOP HEADER NAVIGATION */}
-      <header className="h-14 border-b border-oros-800/80 bg-oros-950/90 backdrop-blur-md px-6 flex items-center justify-between shrink-0 sticky top-0 z-30">
-        <div className="flex items-center gap-4">
-          {/* Logo with Text */}
-          <div className="flex items-center gap-3">
-            <OrosLogoFull className="h-7 w-auto" />
-            <span className="text-[10px] px-2 py-0.5 rounded-[3px] bg-oros-900 border border-oros-750 text-oros-400 font-mono uppercase tracking-wider font-semibold">
-              Project Hub
-            </span>
-          </div>
+      <header 
+        className="h-10 border-b border-oros-800/80 bg-oros-950 px-5 flex items-center justify-between shrink-0 sticky top-0 z-30 pr-[152px] select-none"
+        style={{ WebkitAppRegion: 'drag' } as any}
+      >
+        <div className="flex items-center gap-3 shrink-0" style={{ WebkitAppRegion: 'no-drag' } as any}>
+          {/* Logo with Text: Clean Default White */}
+          <OrosLogoFull className="h-6 w-auto" emblemClassName="text-white" textClassName="text-white" />
+          <span className="text-[10px] px-2 py-0.5 rounded-[3px] bg-oros-900 border border-oros-750 text-oros-400 font-mono uppercase tracking-wider font-semibold">
+            Projects
+          </span>
         </div>
 
         {/* Global Hub Search */}
-        <div className="relative w-80 max-w-md hidden md:block">
+        <div className="relative w-80 max-w-md hidden md:block" style={{ WebkitAppRegion: 'no-drag' } as any}>
           <Search className="w-3.5 h-3.5 text-oros-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
             placeholder="Search projects by title, genre, premise..."
-            className="w-full bg-oros-900 border border-oros-800 rounded-[4px] pl-9 pr-3 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-accent transition-colors font-sans"
+            className="w-full bg-oros-900 border border-oros-800 rounded-[3px] pl-9 pr-3 py-1 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-white/50 transition-colors font-sans"
           />
         </div>
 
         {/* Header Action Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0" style={{ WebkitAppRegion: 'no-drag' } as any}>
           <button
             onClick={handleOpenFolder}
             title="Open Vault Folder in File Explorer"
-            className="p-1.5 px-2.5 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-800 text-oros-300 hover:text-oros-100 text-xs font-medium flex items-center gap-1.5 transition-colors btn-interactive"
+            className="p-1 px-2.5 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-800 text-oros-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <FolderOpen className="w-3.5 h-3.5 text-oros-400" />
             <span className="hidden sm:inline">Vault Directory</span>
@@ -168,7 +169,7 @@ export const HomePage: React.FC = () => {
           <button
             onClick={handleImportArchive}
             title="Import Standalone Project Archive (.oros.json)"
-            className="p-1.5 px-2.5 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-800 text-oros-300 hover:text-oros-100 text-xs font-medium flex items-center gap-1.5 transition-colors btn-interactive"
+            className="p-1 px-2.5 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-800 text-oros-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <Upload className="w-3.5 h-3.5 text-oros-400" />
             <span className="hidden sm:inline">Import Archive</span>
@@ -176,9 +177,9 @@ export const HomePage: React.FC = () => {
 
           <button
             onClick={() => setShowNewModal(true)}
-            className="btn-accent p-1.5 px-3 rounded-[3px] text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors"
+            className="p-1 px-3 rounded-[3px] bg-white hover:bg-slate-200 text-oros-950 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3.5 h-3.5 text-oros-950" />
             <span>New Project</span>
           </button>
 
@@ -194,77 +195,46 @@ export const HomePage: React.FC = () => {
       </header>
 
       {/* MAIN HUB BODY */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-8 space-y-8">
-        {/* HERO METRICS RIBBON */}
-        <div className="relative overflow-hidden rounded-[6px] border border-oros-800/80 bg-gradient-to-r from-oros-900 via-oros-900/90 to-oros-950 p-6 shadow-xl">
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-8 space-y-6">
+        {/* SUBTLE PROJECTS TOOLBAR & METRICS */}
+        <div className="flex items-center justify-between pb-3 border-b border-oros-800/80">
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-sans font-semibold text-sm text-white uppercase tracking-wider">
+              Your Projects
+            </h1>
+            <span className="text-xs font-mono px-2 py-0.5 rounded-[3px] bg-oros-900 text-oros-400 border border-oros-800">
+              {filteredWorlds.length}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs font-mono text-oros-400">
             <div>
-              <span className="text-[10px] uppercase font-mono tracking-widest text-accent font-semibold block mb-1">
-                Worldbuilder & Author Atelier
-              </span>
-              <h1 className="font-serif text-2xl font-bold text-oros-100 tracking-tight">
-                Your Universes & Manuscripts
-              </h1>
-              <p className="text-xs text-oros-400 font-sans mt-1 max-w-xl leading-relaxed">
-                Enter an existing creative codex, manage timelines and cartography, or create a new world to architect lore cards, whiteboard canvases, and complete book manuscripts.
-              </p>
+              <span className="text-oros-500 uppercase text-[10px] mr-1.5">Total Words:</span>
+              <span className="text-white font-medium">{formatNumber(aggregateStats.totalWords)}</span>
             </div>
-
-            {/* Aggregated Totals */}
-            <div className="flex items-center gap-6 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-oros-800/80">
-              <div className="text-center md:text-right">
-                <span className="text-[10px] font-mono uppercase text-oros-500 font-semibold block">
-                  Projects
-                </span>
-                <span className="font-mono text-xl font-bold text-oros-100">
-                  {worlds.length}
-                </span>
-              </div>
-
-              <div className="w-[1px] h-8 bg-oros-800/80" />
-
-              <div className="text-center md:text-right">
-                <span className="text-[10px] font-mono uppercase text-oros-500 font-semibold block">
-                  Total Words
-                </span>
-                <span className="font-mono text-xl font-bold text-accent">
-                  {formatNumber(aggregateStats.totalWords)}
-                </span>
-              </div>
-
-              <div className="w-[1px] h-8 bg-oros-800/80" />
-
-              <div className="text-center md:text-right">
-                <span className="text-[10px] font-mono uppercase text-oros-500 font-semibold block">
-                  Total Documents
-                </span>
-                <span className="font-mono text-xl font-bold text-oros-200">
-                  {formatNumber(aggregateStats.totalDocs)}
-                </span>
-              </div>
+            <div className="h-3 w-[1px] bg-oros-800" />
+            <div>
+              <span className="text-oros-500 uppercase text-[10px] mr-1.5">Documents:</span>
+              <span className="text-white font-medium">{formatNumber(aggregateStats.totalDocs)}</span>
             </div>
           </div>
         </div>
 
         {/* PROJECTS SECTION */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <LayoutGrid className="w-4 h-4 text-accent" />
-              <h2 className="font-sans font-semibold text-sm text-oros-100 uppercase tracking-wider">
-                Active Projects ({filteredWorlds.length})
-              </h2>
-            </div>
-
-            {searchFilter && (
+          {searchFilter && (
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xs text-oros-400 font-sans">
+                Showing results for &ldquo;{searchFilter}&rdquo;
+              </span>
               <button
                 onClick={() => setSearchFilter('')}
-                className="text-[11px] font-mono text-accent hover:underline"
+                className="text-[11px] font-mono text-white hover:underline cursor-pointer"
               >
                 Clear Search Filter
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Grid of Project Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -272,17 +242,17 @@ export const HomePage: React.FC = () => {
               const themePreset = THEME_PRESETS.find((t) => t.id === w.theme)
               const accentColor = w.theme === 'custom' && w.customAccentColor 
                 ? w.customAccentColor 
-                : themePreset?.hex || 'var(--oros-accent)'
+                : themePreset?.hex || '#ffffff'
 
               return (
                 <div
                   key={w.id}
                   onClick={() => handleEnterWorld(w.id)}
-                  className="card-interactive group bg-oros-900 border border-oros-800 hover:border-oros-700/80 rounded-[5px] p-5 flex flex-col justify-between cursor-pointer transition-all shadow-md relative overflow-hidden"
+                  className="card-interactive group bg-oros-900 border border-oros-800 hover:border-oros-700 rounded-[4px] p-5 flex flex-col justify-between cursor-pointer transition-all shadow-sm relative overflow-hidden"
                 >
-                  {/* Atmospheric Top Halo Strip */}
+                  {/* Atmospheric Top Halo Strip using project's theme */}
                   <div 
-                    className="absolute top-0 left-0 right-0 h-[3px] opacity-80 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-0 left-0 right-0 h-[2.5px] opacity-80 group-hover:opacity-100 transition-opacity"
                     style={{ backgroundColor: accentColor }}
                   />
 
@@ -305,7 +275,7 @@ export const HomePage: React.FC = () => {
                         <button
                           onClick={(e) => handleDeleteWorld(w.id, w.name, e)}
                           title="Delete Project"
-                          className="p-1 rounded-[2px] text-oros-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
+                          className="p-1 rounded-[2px] text-oros-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -327,8 +297,8 @@ export const HomePage: React.FC = () => {
                   <div className="mt-5 pt-3.5 border-t border-oros-800/80 flex items-center justify-between text-xs font-mono">
                     <div className="flex items-center gap-3">
                       {/* Word Count */}
-                      <span className="text-oros-200 font-semibold flex items-center gap-1" title="Total Words Written">
-                        <span className="text-accent font-bold">📝</span>
+                      <span className="text-oros-200 font-medium flex items-center gap-1" title="Total Words Written">
+                        <span>📝</span>
                         <span>{formatNumber(stats.totalWords)}</span>
                         <span className="text-[10px] text-oros-500 font-normal">words</span>
                       </span>
@@ -344,8 +314,11 @@ export const HomePage: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Enter Action */}
-                    <div className="flex items-center gap-1 text-[11px] font-sans font-medium text-accent group-hover:translate-x-0.5 transition-transform">
+                    {/* Enter Action in project accent color */}
+                    <div 
+                      className="flex items-center gap-1 text-[11px] font-sans font-medium group-hover:translate-x-0.5 transition-transform"
+                      style={{ color: accentColor }}
+                    >
                       <span>Enter</span>
                       <ArrowRight className="w-3 h-3" />
                     </div>
@@ -357,12 +330,12 @@ export const HomePage: React.FC = () => {
             {/* Create New Project Grid Card */}
             <div
               onClick={() => setShowNewModal(true)}
-              className="card-interactive border border-dashed border-oros-800 hover:border-accent/60 bg-oros-950/40 hover:bg-oros-900/60 rounded-[5px] p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[170px] group"
+              className="card-interactive border border-dashed border-oros-800 hover:border-white/40 bg-oros-950/40 hover:bg-oros-900/60 rounded-[4px] p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[170px] group"
             >
-              <div className="w-9 h-9 rounded-full bg-oros-900 border border-oros-750 group-hover:border-accent group-hover:bg-accent-muted flex items-center justify-center text-oros-400 group-hover:text-accent transition-all mb-2.5 shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-oros-900 border border-oros-750 group-hover:border-white/40 group-hover:bg-white/10 flex items-center justify-center text-oros-400 group-hover:text-white transition-all mb-2.5 shadow-sm">
                 <Plus className="w-4 h-4" />
               </div>
-              <h4 className="font-sans font-semibold text-sm text-oros-200 group-hover:text-white transition-colors">
+              <h4 className="font-sans font-medium text-xs text-oros-200 group-hover:text-white transition-colors">
                 Create New Project
               </h4>
               <p className="text-[11px] text-oros-500 font-sans mt-0.5">
@@ -379,7 +352,7 @@ export const HomePage: React.FC = () => {
               <p className="text-xs text-oros-400 mt-1">Try another search keyword or clear your filter.</p>
               <button
                 onClick={() => setSearchFilter('')}
-                className="btn-accent px-3 py-1 rounded-[3px] text-xs font-semibold mt-3"
+                className="px-3 py-1 rounded-[3px] bg-white hover:bg-slate-200 text-oros-950 text-xs font-semibold mt-3 cursor-pointer"
               >
                 Clear Filter
               </button>

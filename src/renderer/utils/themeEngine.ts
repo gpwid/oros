@@ -24,7 +24,7 @@ export interface ThemePresetOption {
 }
 
 export const THEME_PRESETS: ThemePresetOption[] = [
-  { id: 'sovereign', name: 'Platinum Sovereign', hex: '#e2e8f0' },
+  { id: 'sovereign', name: 'Platinum Sovereign', hex: '#ffffff' },
   { id: 'mythic', name: 'Mythic Gold', hex: '#f5c542' },
   { id: 'cyber', name: 'Cyber Cyan', hex: '#06b6d4' },
   { id: 'crimson', name: 'Crimson Ember', hex: '#f43f5e' },
@@ -34,13 +34,13 @@ export const THEME_PRESETS: ThemePresetOption[] = [
 
 export const PRESET_THEMES: Record<string, ThemeTokens> = {
   sovereign: {
-    accent: '#e2e8f0',
-    muted: 'rgba(226, 232, 240, 0.12)',
-    subtle: 'rgba(226, 232, 240, 0.05)',
-    border: 'rgba(226, 232, 240, 0.30)',
+    accent: '#ffffff',
+    muted: 'rgba(255, 255, 255, 0.12)',
+    subtle: 'rgba(255, 255, 255, 0.05)',
+    border: 'rgba(255, 255, 255, 0.30)',
     hover: '#ffffff',
-    ring: 'rgba(226, 232, 240, 0.25)',
-    glow: 'rgba(226, 232, 240, 0.20)',
+    ring: 'rgba(255, 255, 255, 0.25)',
+    glow: 'rgba(255, 255, 255, 0.20)',
     contrast: '#090a0d',
   },
   mythic: {

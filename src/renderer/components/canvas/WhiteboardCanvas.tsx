@@ -922,7 +922,9 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
 
   // Active Tool state: 'select' | 'pan' | 'pen' | 'text'
   const [activeTool, setActiveTool] = useState<'select' | 'pan' | 'pen' | 'text'>('select')
-  const [penColor, setPenColor] = useState('#ffffff')
+  const [penColor, setPenColor] = useState('#f5c542')
+  const [penWidth, setPenWidth] = useState<number>(3.5)
+  const [showPenOptions, setShowPenOptions] = useState<boolean>(false)
   const [showShapePicker, setShowShapePicker] = useState(false)
   const [showCardPicker, setShowCardPicker] = useState(false)
   const [showCanvasDropdown, setShowCanvasDropdown] = useState(false)
@@ -1126,7 +1128,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
           height,
           initialWidth: width,
           initialHeight: height,
-          strokeWidth: 3.5
+          strokeWidth: penWidth
         }
       }
 
@@ -1191,7 +1193,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
               <path
                 d={pointsToSvgPath(currentStroke)}
                 stroke={penColor}
-                strokeWidth={3.5}
+                strokeWidth={penWidth}
                 fill="none"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -1291,7 +1293,10 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
         <div className="flex items-center gap-1 px-1.5 py-1 rounded-[4px] bg-oros-900 border border-oros-750 shadow-2xl">
           {/* 1. Select Tool (Pointer) */}
           <button
-            onClick={() => setActiveTool('select')}
+            onClick={() => {
+              setActiveTool('select')
+              setShowPenOptions(false)
+            }}
             title="Select & Move (V)"
             className={`p-1.5 rounded-[3px] transition-colors ${
               activeTool === 'select'
@@ -1304,7 +1309,10 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
 
           {/* 2. Pan / Hand Tool */}
           <button
-            onClick={() => setActiveTool('pan')}
+            onClick={() => {
+              setActiveTool('pan')
+              setShowPenOptions(false)
+            }}
             title="Pan / Hand tool (H)"
             className={`p-1.5 rounded-[3px] transition-colors ${
               activeTool === 'pan'
@@ -1320,7 +1328,11 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
           {/* 3. Shapes Picker */}
           <div className="relative">
             <button
-              onClick={() => setShowShapePicker(!showShapePicker)}
+              onClick={() => {
+                setShowShapePicker(!showShapePicker)
+                setShowPenOptions(false)
+                setShowCardPicker(false)
+              }}
               title="Add Geometric Shape"
               className={`p-1.5 rounded-[3px] transition-colors ${
                 showShapePicker
@@ -1412,22 +1424,148 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
 
           <div className="w-[1px] h-4 bg-oros-800 mx-0.5" />
 
-          {/* 6. Pen / Freehand Draw Tool */}
-          <button
-            onClick={() => setActiveTool(activeTool === 'pen' ? 'select' : 'pen')}
-            title="Pen / Freehand Sketch (Draw circles & loops)"
-            className={`p-1.5 rounded-[3px] transition-colors ${
-              activeTool === 'pen'
-                ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
-                : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
-            }`}
-          >
-            <PenTool className="w-3.5 h-3.5" />
-          </button>
+          {/* 6. Pen / Freehand Draw Tool with Options Popover */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                if (activeTool !== 'pen') {
+                  setActiveTool('pen')
+                  setShowPenOptions(true)
+                  setShowShapePicker(false)
+                  setShowCardPicker(false)
+                } else {
+                  setShowPenOptions(!showPenOptions)
+                }
+              }}
+              title="Pen / Freehand Sketch (Click for thickness & color)"
+              className={`p-1.5 rounded-[3px] transition-colors flex items-center gap-1 ${
+                activeTool === 'pen'
+                  ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
+                  : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
+              }`}
+            >
+              <PenTool className="w-3.5 h-3.5" />
+              <span 
+                className="w-1.5 h-1.5 rounded-full shrink-0 shadow-sm" 
+                style={{ backgroundColor: penColor }} 
+              />
+            </button>
+
+            {/* Pen Options Popover (Thickness & Color) */}
+            {showPenOptions && (
+              <div 
+                className="absolute bottom-11 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 bg-oros-900 border border-oros-750 rounded-[4px] p-2.5 shadow-2xl z-40 w-64 animate-in fade-in zoom-in-95 duration-100 select-none text-oros-100"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-oros-800 text-[10px] font-mono uppercase font-bold text-oros-400 tracking-wider">
+                  <span>Pen Settings</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPenOptions(false)}
+                    className="p-0.5 rounded text-oros-500 hover:text-oros-200"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+
+                {/* Thickness Selector */}
+                <div className="mb-2.5">
+                  <div className="text-[10px] font-mono font-semibold uppercase text-oros-400 tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Stroke Weight</span>
+                    <span className="text-accent font-bold">{penWidth}px</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1 bg-oros-950/70 p-1 rounded-[3px] border border-oros-800">
+                    {[
+                      { width: 1.5, label: 'Fine' },
+                      { width: 3.5, label: 'Med' },
+                      { width: 6, label: 'Bold' },
+                      { width: 10, label: 'Thick' }
+                    ].map((th) => (
+                      <button
+                        key={th.width}
+                        type="button"
+                        onClick={() => setPenWidth(th.width)}
+                        className={`py-1 rounded-[2px] flex flex-col items-center justify-center gap-1 transition-colors ${
+                          penWidth === th.width
+                            ? 'bg-oros-800 text-oros-100 border border-oros-700 shadow-sm'
+                            : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
+                        }`}
+                      >
+                        <span 
+                          className="rounded-full bg-current transition-all"
+                          style={{ 
+                            width: Math.min(14, th.width * 1.4 + 2), 
+                            height: Math.min(14, th.width * 1.4 + 2) 
+                          }}
+                        />
+                        <span className="text-[9px] font-mono">{th.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Color Palette Selector */}
+                <div>
+                  <div className="text-[10px] font-mono font-semibold uppercase text-oros-400 tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Stroke Color</span>
+                    <span className="font-mono text-[9px] text-oros-400 uppercase">{penColor}</span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-1.5 mb-1">
+                    {[
+                      { color: '#f5c542', label: 'Gold' },
+                      { color: '#ffffff', label: 'White' },
+                      { color: '#f43f5e', label: 'Crimson' },
+                      { color: '#10b981', label: 'Emerald' },
+                      { color: '#06b6d4', label: 'Cyan' },
+                      { color: '#f97316', label: 'Hazard' },
+                      { color: '#a855f7', label: 'Arcane' },
+                      { color: '#ec4899', label: 'Rose' },
+                      { color: '#64748b', label: 'Slate' }
+                    ].map((c) => (
+                      <button
+                        key={c.color}
+                        type="button"
+                        onClick={() => setPenColor(c.color)}
+                        className={`w-full aspect-square rounded-[3px] border transition-transform flex items-center justify-center hover:scale-110 shadow-sm ${
+                          penColor.toLowerCase() === c.color.toLowerCase()
+                            ? 'ring-2 ring-accent border-white scale-105'
+                            : 'border-oros-750'
+                        }`}
+                        style={{ backgroundColor: c.color }}
+                        title={c.label}
+                      >
+                        {penColor.toLowerCase() === c.color.toLowerCase() && (
+                          <Check className={`w-3 h-3 ${c.color === '#ffffff' || c.color === '#f5c542' ? 'text-black' : 'text-white'}`} />
+                        )}
+                      </button>
+                    ))}
+
+                    {/* Custom Color Picker Swatch */}
+                    <label
+                      className="w-full aspect-square rounded-[3px] border border-oros-750 cursor-pointer overflow-hidden flex items-center justify-center hover:scale-110 transition-transform shadow-sm relative bg-oros-950"
+                      title="Custom Color"
+                    >
+                      <input
+                        type="color"
+                        value={penColor}
+                        onChange={(e) => setPenColor(e.target.value)}
+                        className="opacity-0 w-0 h-0 absolute cursor-pointer"
+                      />
+                      <Palette className="w-3.5 h-3.5 text-oros-300" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* 7. Freeform Text Tool */}
           <button
-            onClick={handleAddText}
+            onClick={() => {
+              handleAddText()
+              setShowPenOptions(false)
+            }}
             title="Add Text (T)"
             className="p-1.5 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-850 transition-colors"
           >

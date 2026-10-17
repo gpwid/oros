@@ -1242,7 +1242,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
           )}
 
           {showCanvasDropdown && (
-            <div className="absolute left-0 mt-1.5 w-56 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl py-1 z-30">
+            <div className="absolute left-0 mt-1.5 w-56 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl py-1 z-30 animate-dropdown-in">
               <div className="px-2.5 py-1 text-[10px] font-mono text-oros-500 uppercase tracking-wider">
                 Canvases
               </div>
@@ -1344,7 +1344,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             </button>
 
             {showShapePicker && (
-              <div className="absolute bottom-11 left-1/2 -translate-x-1/2 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-1 flex items-center gap-1 z-30">
+              <div className="absolute bottom-11 left-1/2 -translate-x-1/2 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-1 flex items-center gap-1 z-30 animate-dropdown-in">
                 <button
                   onClick={() => handleAddShape('parallelogram')}
                   title="Parallelogram"
@@ -1397,7 +1397,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             </button>
 
             {showCardPicker && (
-              <div className="absolute bottom-11 left-1/2 -translate-x-1/2 w-64 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-1.5 max-h-72 overflow-y-auto z-30">
+              <div className="absolute bottom-11 left-1/2 -translate-x-1/2 w-64 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-1.5 max-h-72 overflow-y-auto z-30 animate-dropdown-in">
                 <div className="px-2 py-1 text-[10px] font-mono text-oros-500 uppercase tracking-wider">
                   Pick Lore Entity
                 </div>
@@ -1454,7 +1454,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             {/* Pen Options Popover (Thickness & Color) */}
             {showPenOptions && (
               <div 
-                className="absolute bottom-11 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 bg-oros-900 border border-oros-750 rounded-[4px] p-2.5 shadow-2xl z-40 w-64 animate-in fade-in zoom-in-95 duration-100 select-none text-oros-100"
+                className="absolute bottom-11 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 bg-oros-900 border border-oros-750 rounded-[4px] p-2.5 shadow-2xl z-40 w-64 animate-dropdown-in select-none text-oros-100"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}

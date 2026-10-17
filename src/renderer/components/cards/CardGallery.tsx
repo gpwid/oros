@@ -157,7 +157,7 @@ export const CardGallery: React.FC = () => {
               <div
                 key={ent.id}
                 onClick={() => navigateToWiki(ent)}
-                className="bg-oros-900 border border-oros-800 hover:border-oros-600 rounded-[4px] overflow-hidden shadow-sm transition-all group flex flex-col justify-between cursor-pointer"
+                className="card-interactive bg-oros-900 border border-oros-800 hover:border-oros-600 rounded-[4px] overflow-hidden shadow-sm group flex flex-col justify-between cursor-pointer"
               >
                 <div>
                   {/* Card Banner / Portrait */}
@@ -166,7 +166,7 @@ export const CardGallery: React.FC = () => {
                       <img
                         src={ent.avatar}
                         alt={ent.title}
-                        className="w-full h-full object-cover transition-opacity duration-200 opacity-90 group-hover:opacity-100"
+                        className="w-full h-full object-cover transition-all duration-300 ease-snappy opacity-90 group-hover:opacity-100 group-hover:scale-105"
                       />
                     ) : (
                       <div className="w-full h-full bg-oros-950 flex items-center justify-center text-oros-700">
@@ -250,8 +250,8 @@ export const CardGallery: React.FC = () => {
 
       {/* Modal for Creating Card */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-100">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-[4px] shadow-2xl flex flex-col max-h-[320px] overflow-hidden select-text text-oros-100">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-[4px] shadow-2xl flex flex-col max-h-[320px] overflow-hidden select-text text-oros-100 animate-modal-in">
             {/* Header */}
             <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
               <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100">

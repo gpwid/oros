@@ -128,9 +128,9 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
   const FormIconComponent = getCategoryIconComponent(formIcon)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-oros-950/80 backdrop-blur-sm animate-in fade-in duration-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-oros-950/80 backdrop-blur-sm animate-fade-in">
       <div 
-        className="w-full max-w-md bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl overflow-hidden flex flex-col max-h-[460px] select-text text-oros-100"
+        className="w-full max-w-md bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl overflow-hidden flex flex-col max-h-[460px] select-text text-oros-100 animate-modal-in"
         role="dialog"
         aria-modal="true"
       >

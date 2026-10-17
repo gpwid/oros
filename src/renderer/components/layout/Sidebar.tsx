@@ -7,7 +7,7 @@ import {
   Search, LayoutGrid, BookOpen, Layers, Users, Clock, 
   Map as MapIcon, Feather, Trash2, Edit2, MoreVertical,
   FolderPlus, FilePlus, User, Compass, Shield, Gem,
-  Flame, Sparkles, Move, Check, X, FolderTree
+  Flame, Sparkles, Move, Check, X, FolderTree, PanelLeftClose
 } from 'lucide-react'
 import { DirectoryItem, DirectoryFolder, DirectoryItemType, LoreEntity } from '@shared/types'
 import { 
@@ -19,7 +19,7 @@ import {
 export const Sidebar: React.FC = () => {
   const { 
     activeWorldId, folders, directoryItems, openTab, setSelectedEntityId,
-    openTabs, activeTabId,
+    openTabs, activeTabId, sidebarCollapsed, toggleSidebar,
     createFolder, renameFolder, deleteFolder, toggleFolderOpen, moveFolderToFolder,
     createDirectoryItem, deleteDirectoryItem, moveItemToFolder,
     createCanvas, createEntity, createMap, createChapter,
@@ -302,13 +302,9 @@ export const Sidebar: React.FC = () => {
                 e.stopPropagation()
                 toggleFolderOpen(folder.id)
               }}
-              className="text-oros-400 hover:text-oros-100 p-0.5"
+              className="text-oros-400 hover:text-oros-100 p-0.5 rounded transition-colors"
             >
-              {folder.isOpen ? (
-                <ChevronDown className="w-3.5 h-3.5" />
-              ) : (
-                <ChevronRight className="w-3.5 h-3.5" />
-              )}
+              <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-150 ease-snappy ${folder.isOpen ? 'rotate-90 text-oros-200' : 'text-oros-400'}`} />
             </button>
             {folder.isOpen ? (
               <FolderOpen className="w-3.5 h-3.5 text-oros-300 shrink-0" />
@@ -479,43 +475,59 @@ export const Sidebar: React.FC = () => {
   const allFolderHierarchy = getFolderHierarchy(null)
 
   return (
-    <aside className="w-64 bg-oros-950/95 border-r border-oros-800/40 flex flex-col justify-between select-none h-full">
-      {/* TOP SEARCH & ACTION HEADER */}
-      <div className="p-2 border-b border-oros-800/60">
-        <div className="flex items-center gap-1.5">
-          <div className="relative flex-1">
-            <Search className="w-3.5 h-3.5 text-oros-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchFilter}
-              onChange={(e) => setSearchFilter(e.target.value)}
-              placeholder="Filter vault..."
-              className="w-full bg-oros-900 border border-oros-800 rounded-[3px] pl-8 pr-2 py-1 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-600 transition-colors font-sans"
-            />
+    <>
+      <aside 
+        className={`h-full bg-oros-950/95 border-r border-oros-800/40 select-none transition-[width,opacity] duration-250 ease-snappy overflow-hidden shrink-0 ${
+          sidebarCollapsed ? 'w-0 opacity-0 border-r-0 pointer-events-none' : 'w-64 opacity-100'
+        }`}
+        style={{ minWidth: sidebarCollapsed ? '0px' : '16rem' }}
+      >
+        <div className="w-64 h-full flex flex-col justify-between">
+          {/* TOP SEARCH & ACTION HEADER */}
+          <div className="p-2 border-b border-oros-800/60">
+            <div className="flex items-center gap-1.5">
+              <div className="relative flex-1">
+                <Search className="w-3.5 h-3.5 text-oros-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                  placeholder="Filter vault..."
+                  className="w-full bg-oros-900 border border-oros-800 rounded-[3px] pl-8 pr-2 py-1 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-600 transition-colors font-sans"
+                />
+              </div>
+
+              {/* New Folder Button */}
+              <button
+                onClick={() => {
+                  setNewFolderParentId(null)
+                  setShowNewFolderModal(true)
+                }}
+                className="p-1 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-800 text-oros-400 hover:text-oros-100 transition-colors btn-interactive"
+                title="Create New Folder"
+              >
+                <FolderPlus className="w-3.5 h-3.5" />
+              </button>
+
+              {/* New Element Button */}
+              <button
+                onClick={() => openNewElementForFolder(null, 'card')}
+                className="p-1 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-800 text-oros-400 hover:text-oros-100 transition-colors btn-interactive"
+                title="Create New Element in Vault"
+              >
+                <FilePlus className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Collapse Sidebar Button */}
+              <button
+                onClick={toggleSidebar}
+                className="p-1 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-800 text-oros-400 hover:text-oros-100 transition-colors btn-interactive"
+                title="Collapse Vault (Ctrl+B)"
+              >
+                <PanelLeftClose className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-
-          {/* New Folder Button */}
-          <button
-            onClick={() => {
-              setNewFolderParentId(null)
-              setShowNewFolderModal(true)
-            }}
-            className="p-1 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-800 text-oros-400 hover:text-oros-100 transition-colors"
-            title="Create New Folder"
-          >
-            <FolderPlus className="w-3.5 h-3.5" />
-          </button>
-
-          {/* New Element Button */}
-          <button
-            onClick={() => openNewElementForFolder(null, 'card')}
-            className="p-1 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-800 text-oros-400 hover:text-oros-100 transition-colors"
-            title="Create New Element in Vault"
-          >
-            <FilePlus className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
 
       {/* DIRECTORY TREE BODY */}
       <div 
@@ -676,11 +688,13 @@ export const Sidebar: React.FC = () => {
           </button>
         </div>
       </div>
+    </div>
+  </aside>
 
       {/* NEW FOLDER MODAL */}
       {showNewFolderModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-xs rounded-md shadow-2xl p-4 animate-in fade-in duration-100">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-xs rounded-md shadow-2xl p-4 animate-modal-in">
             <h4 className="text-xs font-sans font-semibold text-oros-100 mb-2 flex items-center gap-1.5">
               <FolderPlus className="w-3.5 h-3.5 text-oros-300" />
               <span>New Directory Folder</span>
@@ -737,8 +751,8 @@ export const Sidebar: React.FC = () => {
 
       {/* CREATE NEW ELEMENT MODAL */}
       {showNewElementModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-md shadow-2xl p-4 animate-in fade-in duration-100">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-md shadow-2xl p-4 animate-modal-in">
             <h4 className="text-sm font-sans font-semibold text-oros-100 mb-3 flex items-center gap-2">
               <FilePlus className="w-4 h-4 text-oros-300" />
               <span>New Item</span>
@@ -849,8 +863,8 @@ export const Sidebar: React.FC = () => {
 
       {/* MOVE ITEM MODAL */}
       {movingItemId && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-xs rounded-md shadow-2xl p-4 animate-in fade-in duration-100">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-xs rounded-md shadow-2xl p-4 animate-modal-in">
             <h4 className="text-xs font-sans font-semibold text-oros-100 mb-2 flex items-center gap-1.5">
               <Move className="w-3.5 h-3.5 text-oros-300" />
               <span>Move Record to Folder</span>
@@ -891,6 +905,6 @@ export const Sidebar: React.FC = () => {
           </div>
         </div>
       )}
-    </aside>
+    </>
   )
 }

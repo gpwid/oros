@@ -27,7 +27,7 @@ export const ToastContainer: React.FC = () => {
         return (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-center justify-between px-3 py-2 rounded-[3px] border shadow-xl text-xs font-sans animate-in fade-in slide-in-from-bottom-2 duration-150 ${borderClass}`}
+            className={`pointer-events-auto flex items-center justify-between px-3 py-2 rounded-[3px] border shadow-xl text-xs font-sans animate-toast-in ${borderClass}`}
           >
             <div className="flex items-center gap-2 truncate mr-2">
               {icon}

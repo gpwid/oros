@@ -32,6 +32,7 @@ interface WorldState {
   searchQuery: string;
   isSaving: boolean;
   gmMode: boolean; // Toggle GM / Private notes and hidden layers
+  sidebarCollapsed: boolean;
 
   // Data Store
   worlds: World[];
@@ -59,6 +60,8 @@ interface WorldState {
   setSelectedCanvasId: (id: string | null) => void;
   setSearchQuery: (query: string) => void;
   toggleGmMode: () => void;
+  toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
 
   // Workspace Tabs Actions
   openTab: (tab: { title: string; type: DirectoryItemType; targetId?: string; id?: string }) => void;
@@ -155,6 +158,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   searchQuery: '',
   isSaving: false,
   gmMode: false,
+  sidebarCollapsed: typeof window !== 'undefined' ? localStorage.getItem('oros_sidebar_collapsed') === 'true' : false,
 
   worlds: [sampleWorld],
   entities: { [sampleWorld.id]: sampleEntities },
@@ -309,6 +313,23 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   setSelectedCanvasId: (id) => set({ selectedCanvasId: id }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   toggleGmMode: () => set((state) => ({ gmMode: !state.gmMode })),
+  toggleSidebar: () => {
+    const next = !get().sidebarCollapsed;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('oros_sidebar_collapsed', String(next));
+      } catch (e) {}
+    }
+    set({ sidebarCollapsed: next });
+  },
+  setSidebarCollapsed: (collapsed: boolean) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('oros_sidebar_collapsed', String(collapsed));
+      } catch (e) {}
+    }
+    set({ sidebarCollapsed: collapsed });
+  },
 
   // Workspace Tabs Actions
   openTab: (tab) => {

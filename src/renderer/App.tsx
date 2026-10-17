@@ -88,7 +88,12 @@ export const App: React.FC = () => {
         <Sidebar />
         <main className="flex-1 flex overflow-hidden bg-oros-950">
           <Suspense fallback={<ViewFallback />}>
-            {renderActiveView()}
+            <div 
+              key={activeTabId || currentTabType} 
+              className="flex-1 flex overflow-hidden animate-fade-in"
+            >
+              {renderActiveView()}
+            </div>
           </Suspense>
         </main>
       </div>

@@ -42,9 +42,9 @@ export const ConfirmModal: React.FC = () => {
   const cancelText = options.cancelText || 'Cancel'
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-3 animate-in fade-in duration-100 select-none">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-3 animate-fade-in select-none">
       <div 
-        className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-[4px] shadow-2xl flex flex-col overflow-hidden text-oros-100 animate-in zoom-in-95 duration-100 select-text"
+        className="bg-oros-900 border border-oros-750 w-full max-w-sm rounded-[4px] shadow-2xl flex flex-col overflow-hidden text-oros-100 animate-modal-in select-text"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

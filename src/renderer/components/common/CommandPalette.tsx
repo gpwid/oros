@@ -228,8 +228,8 @@ export const CommandPalette: React.FC = () => {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start justify-center pt-20 p-4 animate-in fade-in duration-100 select-none">
-      <div className="bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl max-w-xl w-full overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start justify-center pt-20 p-4 animate-fade-in select-none">
+      <div className="bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl max-w-xl w-full overflow-hidden flex flex-col animate-modal-in">
         {/* Search Input Bar */}
         <div className="p-3 border-b border-oros-800 flex items-center gap-2.5 bg-oros-950">
           <Search className="w-4 h-4 text-oros-400 shrink-0" />

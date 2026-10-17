@@ -6,7 +6,7 @@ import {
   Clock, Map as MapIcon, Feather, Compass, ChevronDown, 
   Check, FolderOpen, Shield, Download, Upload, Search, 
   Network, ArrowRight, CornerDownLeft, EyeOff, PlusCircle,
-  Palette
+  Palette, PanelLeft
 } from 'lucide-react'
 import { DirectoryItemType, LoreEntity, World } from '@shared/types'
 
@@ -15,7 +15,7 @@ export const WorkspaceTabs: React.FC = () => {
     openTabs, activeTabId, setActiveTabId, closeTab, closeOtherTabs,
     closeTabsToTheRight, closeAllTabs, openTab,
     worlds, activeWorldId, setActiveWorldId, createWorld, exportWorld, importWorld,
-    setWorldTheme,
+    setWorldTheme, sidebarCollapsed, toggleSidebar,
     isSaving, gmMode, toggleGmMode, createCanvas, createEntity,
     createMap, createTimelineEvent, createChapter,
     entities, maps, manuscripts, canvases
@@ -71,6 +71,16 @@ export const WorkspaceTabs: React.FC = () => {
         setPlusModalOpen(false)
         setWorldDropdownOpen(false)
         setContextMenu(null)
+      } else if (e.key.toLowerCase() === 'b' && (e.ctrlKey || e.metaKey)) {
+        // If focus is in ProseMirror or an input, don't hijack unless it's not text editing
+        const active = document.activeElement
+        const isEditingText = active?.classList.contains('ProseMirror') || 
+          active?.tagName === 'TEXTAREA' || 
+          (active?.tagName === 'INPUT' && (active as HTMLInputElement).type === 'text')
+        if (!isEditingText) {
+          e.preventDefault()
+          toggleSidebar()
+        }
       }
     }
 
@@ -284,6 +294,18 @@ export const WorkspaceTabs: React.FC = () => {
       <header className="h-9 bg-oros-950 border-b border-oros-800/70 flex items-center justify-between px-2 select-none z-30 relative">
         {/* Left: World Switcher & Brand Glyph */}
         <div className="flex items-center gap-1.5 shrink-0 pr-2 border-r border-oros-800/60">
+          <button
+            onClick={toggleSidebar}
+            title={sidebarCollapsed ? "Expand Vault Sidebar (Ctrl+B)" : "Collapse Vault Sidebar (Ctrl+B)"}
+            className={`p-1 rounded-[3px] transition-colors btn-interactive ${
+              sidebarCollapsed
+                ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
+                : 'text-oros-400 hover:text-oros-100 hover:bg-oros-900 border border-transparent'
+            }`}
+          >
+            <PanelLeft className="w-3.5 h-3.5" />
+          </button>
+
           <div className="w-5 h-5 rounded-[3px] bg-oros-900 border border-accent/40 flex items-center justify-center text-accent font-mono font-bold text-[10px] tracking-tight shrink-0 shadow-sm">
             Ω
           </div>
@@ -292,14 +314,14 @@ export const WorkspaceTabs: React.FC = () => {
           <div className="relative" ref={worldMenuRef}>
             <button
               onClick={() => setWorldDropdownOpen(!worldDropdownOpen)}
-              className="flex items-center gap-1.5 px-2 py-0.5 rounded-[3px] bg-oros-900/80 hover:bg-oros-850 border border-oros-800/80 text-xs font-medium text-oros-200 transition-colors"
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-[3px] bg-oros-900/80 hover:bg-oros-850 border border-oros-800/80 text-xs font-medium text-oros-200 transition-colors btn-interactive"
             >
               <span className="max-w-[130px] truncate">{activeWorld?.name || 'World'}</span>
               <ChevronDown className="w-3 h-3 text-oros-400" />
             </button>
 
             {worldDropdownOpen && (
-              <div className="absolute left-0 mt-1.5 w-72 bg-oros-900 border border-oros-750 rounded-md shadow-2xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
+              <div className="absolute left-0 mt-1.5 w-72 bg-oros-900 border border-oros-750 rounded-md shadow-2xl py-1 z-50 animate-dropdown-in overflow-hidden">
                 <div className="px-3 py-1 text-[10px] font-mono font-bold text-oros-400 uppercase tracking-wider">
                   World Vaults
                 </div>
@@ -577,11 +599,11 @@ export const WorkspaceTabs: React.FC = () => {
       {/* COMMAND ATELIER (Pick or Create Document / Card / Feature) */}
       {plusModalOpen && (
         <div 
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-100"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setPlusModalOpen(false)}
         >
           <div 
-            className="bg-oros-900 border border-oros-750 w-full max-w-2xl rounded-md shadow-2xl overflow-hidden flex flex-col max-h-[82vh] animate-in zoom-in-95 duration-100"
+            className="bg-oros-900 border border-oros-750 w-full max-w-2xl rounded-md shadow-2xl overflow-hidden flex flex-col max-h-[82vh] animate-modal-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header & Live Search */}
@@ -881,7 +903,7 @@ export const WorkspaceTabs: React.FC = () => {
         <div
           ref={contextMenuRef}
           style={{ top: `${contextMenu.y + 4}px`, left: `${contextMenu.x}px` }}
-          className="fixed z-50 bg-oros-900 border border-oros-750 rounded-md shadow-2xl py-1 min-w-[190px] animate-in fade-in duration-75 select-none text-xs"
+          className="fixed z-50 bg-oros-900 border border-oros-750 rounded-md shadow-2xl py-1 min-w-[190px] animate-dropdown-in select-none text-xs"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         >
@@ -974,8 +996,8 @@ export const WorkspaceTabs: React.FC = () => {
 
       {/* New World Vault Modal */}
       {showNewWorldModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-md shadow-2xl p-5">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-md shadow-2xl p-5 animate-modal-in">
             <h3 className="font-sans text-sm font-semibold text-oros-100 mb-4 flex items-center gap-2">
               <Compass className="w-4 h-4 text-oros-300" />
               <span>New World</span>

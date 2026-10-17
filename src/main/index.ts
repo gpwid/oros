@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, protocol, net } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, protocol, net, nativeImage } from 'electron'
 import { join, dirname, extname, basename } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs'
@@ -68,8 +68,42 @@ function saveVaultData(jsonContent: string): boolean {
   }
 }
 
+function getPreloadPath(): string {
+  const candidates = [
+    join(__dirname, 'preload.cjs'),
+    join(__dirname, 'index.cjs'),
+    join(__dirname, 'index.mjs')
+  ]
+  for (const p of candidates) {
+    if (existsSync(p)) return p
+  }
+  return join(__dirname, 'preload.cjs')
+}
+
+function getAppIcon(): Electron.NativeImage | undefined {
+  const candidates = [
+    join(__dirname, '../public/icon.png'),
+    join(__dirname, '../dist/icon.png'),
+    join(__dirname, '../build/icon.png'),
+    join(__dirname, 'icon.png'),
+    join(process.cwd(), 'public/icon.png')
+  ]
+  for (const c of candidates) {
+    if (existsSync(c)) {
+      try {
+        const icon = nativeImage.createFromPath(c)
+        if (!icon.isEmpty()) return icon
+      } catch (err) {
+        console.warn('Failed to load icon from', c, err)
+      }
+    }
+  }
+  return undefined
+}
+
 function createWindow(): void {
-  const preloadPath = join(__dirname, 'index.mjs')
+  const preloadPath = getPreloadPath()
+  const icon = getAppIcon()
 
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -80,6 +114,7 @@ function createWindow(): void {
     autoHideMenuBar: true,
     backgroundColor: '#0e141c',
     title: 'Oros — Worldbuilding Studio',
+    icon,
     titleBarStyle: 'hidden',
     titleBarOverlay: {
       color: '#0e141c',
@@ -111,6 +146,9 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.oros.studio')
+  }
   ensureDirectories()
 
   // Protocol handler for oros-asset://<assetFilename>

@@ -566,9 +566,14 @@ export const WorkspaceTabs: React.FC = () => {
           </button>
 
           {/* Sync Status Readout */}
-          <div className="flex items-center gap-1 text-[10px] text-oros-400 font-mono px-1.5 py-0.5 rounded-[3px] bg-oros-900/50 border border-oros-800/50">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80"></span>
-            <span className="hidden sm:inline tracking-wider uppercase">VAULT READY</span>
+          <div 
+            className="flex items-center gap-1.5 text-[10px] text-oros-400 font-mono px-2 py-0.5 rounded-[3px] bg-oros-900/50 border border-oros-800/60"
+            title={isSaving ? "Saving changes locally..." : "Vault Synchronized — All chapters, lore cards, and maps are saved locally to disk"}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${isSaving ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400/90'}`} />
+            <span className="hidden sm:inline tracking-wider uppercase">
+              {isSaving ? 'SAVING...' : 'SAVED'}
+            </span>
           </div>
 
           {/* Vault Folder */}

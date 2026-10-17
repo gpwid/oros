@@ -39,10 +39,12 @@ interface WorldState {
   directoryItems: Record<string, DirectoryItem[]>;
   canvases: Record<string, WhiteboardCanvasData[]>;
   categories: Record<string, EntityCategory[]>;
+  relationNodePositions: Record<string, Record<string, { x: number; y: number }>>;
 
   // Actions
   initStore: () => Promise<void>;
   persistStore: () => Promise<void>;
+  flushSave: () => Promise<void>;
   setActiveTab: (tab: ActiveNavTab) => void;
   setActiveWorldId: (id: string) => void;
   setSelectedEntityId: (id: string | null) => void;
@@ -111,6 +113,7 @@ interface WorldState {
   createRelation: (relation: Omit<RelationEdge, 'id' | 'worldId'>) => void;
   updateRelation: (relationId: string, updates: Partial<RelationEdge>) => void;
   deleteRelation: (relationId: string) => void;
+  saveRelationNodePosition: (entityId: string, position: { x: number; y: number }) => void;
 
   // Timeline CRUD
   createTimelineEvent: (event: Omit<TimelineEvent, 'id' | 'worldId'>) => void;
@@ -122,7 +125,7 @@ interface WorldState {
   deleteChapter: (chapterId: string) => void;
 
   // Export
-  exportWorld: () => Promise<void>;
+  exportWorld: () => Promise<boolean>;
 }
 
 let persistDebounceTimer: any = null;
@@ -151,35 +154,79 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   directoryItems: { [sampleWorld.id]: sampleDirectoryItems },
   canvases: { [sampleWorld.id]: sampleCanvases },
   categories: { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES },
+  relationNodePositions: {},
 
   initStore: async () => {
     try {
-      if (window.oros) {
-        const raw = await window.oros.loadVault();
-        if (raw) {
-          const parsed: StorageData = JSON.parse(raw);
-          set({
-            worlds: parsed.worlds || [sampleWorld],
-            activeWorldId: parsed.activeWorldId || sampleWorld.id,
-            entities: parsed.entities || { [sampleWorld.id]: sampleEntities },
-            maps: parsed.maps || { [sampleWorld.id]: [sampleMap] },
-            relations: parsed.relations || { [sampleWorld.id]: sampleRelations },
-            timelines: parsed.timelines || { [sampleWorld.id]: sampleTimelines },
-            manuscripts: parsed.manuscripts || { [sampleWorld.id]: sampleManuscript },
-            folders: parsed.folders || { [sampleWorld.id]: sampleFolders },
-            directoryItems: parsed.directoryItems || { [sampleWorld.id]: sampleDirectoryItems },
-            canvases: parsed.canvases || { [sampleWorld.id]: sampleCanvases },
-            categories: parsed.categories || { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES }
-          });
-          get().syncVaultDirectory();
-          return;
-        }
+      let raw: string | null = null;
+      if (typeof window !== 'undefined' && window.oros) {
+        raw = await window.oros.loadVault();
+      }
+      if (!raw && typeof window !== 'undefined') {
+        raw = localStorage.getItem('oros_vault');
+      }
+
+      if (raw) {
+        const parsed: StorageData = JSON.parse(raw);
+        set({
+          worlds: parsed.worlds || [sampleWorld],
+          activeWorldId: parsed.activeWorldId || sampleWorld.id,
+          entities: parsed.entities || { [sampleWorld.id]: sampleEntities },
+          maps: parsed.maps || { [sampleWorld.id]: [sampleMap] },
+          relations: parsed.relations || { [sampleWorld.id]: sampleRelations },
+          timelines: parsed.timelines || { [sampleWorld.id]: sampleTimelines },
+          manuscripts: parsed.manuscripts || { [sampleWorld.id]: sampleManuscript },
+          folders: parsed.folders || { [sampleWorld.id]: sampleFolders },
+          directoryItems: parsed.directoryItems || { [sampleWorld.id]: sampleDirectoryItems },
+          canvases: parsed.canvases || { [sampleWorld.id]: sampleCanvases },
+          categories: parsed.categories || { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES },
+          relationNodePositions: parsed.relationNodePositions || {}
+        });
+        get().syncVaultDirectory();
+        return;
       }
     } catch (err) {
       console.warn('Failed to load from desktop vault, falling back to default:', err);
     }
     // Run sync for initial sample state
     get().syncVaultDirectory();
+  },
+
+  flushSave: async () => {
+    if (persistDebounceTimer) {
+      clearTimeout(persistDebounceTimer);
+      persistDebounceTimer = null;
+    }
+    const s = get();
+    const payload: StorageData = {
+      version: '1.0.0',
+      worlds: s.worlds,
+      activeWorldId: s.activeWorldId,
+      entities: s.entities,
+      maps: s.maps,
+      relations: s.relations,
+      timelines: s.timelines,
+      manuscripts: s.manuscripts,
+      folders: s.folders,
+      directoryItems: s.directoryItems,
+      canvases: s.canvases,
+      categories: s.categories,
+      relationNodePositions: s.relationNodePositions
+    };
+    try {
+      const jsonStr = JSON.stringify(payload, null, 2);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('oros_vault', jsonStr);
+      }
+      if (typeof window !== 'undefined' && window.oros) {
+        await window.oros.saveVault(jsonStr);
+      }
+    } catch (err) {
+      console.error('Failed to flush vault save:', err);
+    } finally {
+      isSavingActive = false;
+      set({ isSaving: false });
+    }
   },
 
   persistStore: async () => {
@@ -194,34 +241,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
     return new Promise<void>((resolve) => {
       persistDebounceTimer = setTimeout(async () => {
-        const s = get();
-        const payload: StorageData = {
-          version: '1.0.0',
-          worlds: s.worlds,
-          activeWorldId: s.activeWorldId,
-          entities: s.entities,
-          maps: s.maps,
-          relations: s.relations,
-          timelines: s.timelines,
-          manuscripts: s.manuscripts,
-          folders: s.folders,
-          directoryItems: s.directoryItems,
-          canvases: s.canvases,
-          categories: s.categories
-        };
-        try {
-          if (window.oros) {
-            await window.oros.saveVault(JSON.stringify(payload, null, 2));
-          } else {
-            localStorage.setItem('oros_vault', JSON.stringify(payload));
-          }
-        } catch (err) {
-          console.error('Failed to persist store:', err);
-        } finally {
-          isSavingActive = false;
-          set({ isSaving: false });
-          resolve();
-        }
+        await get().flushSave();
+        resolve();
       }, 350);
     });
   },
@@ -1409,32 +1430,71 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     get().persistStore();
   },
 
+  saveRelationNodePosition: (entityId, position) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+
+    set((state) => ({
+      relationNodePositions: {
+        ...state.relationNodePositions,
+        [worldId]: {
+          ...(state.relationNodePositions[worldId] || {}),
+          [entityId]: position
+        }
+      }
+    }));
+
+    get().persistStore();
+  },
+
   exportWorld: async () => {
     const s = get();
     const activeWorld = s.worlds.find((w) => w.id === s.activeWorldId);
-    if (!activeWorld || !s.activeWorldId) return;
+    if (!activeWorld || !s.activeWorldId) return false;
 
     const exportData = {
+      version: '1.0.0',
       world: activeWorld,
       entities: s.entities[s.activeWorldId] || [],
       maps: s.maps[s.activeWorldId] || [],
       relations: s.relations[s.activeWorldId] || [],
       timelines: s.timelines[s.activeWorldId] || [],
-      manuscripts: s.manuscripts[s.activeWorldId] || []
+      manuscripts: s.manuscripts[s.activeWorldId] || [],
+      folders: s.folders[s.activeWorldId] || [],
+      directoryItems: s.directoryItems[s.activeWorldId] || [],
+      canvases: s.canvases[s.activeWorldId] || [],
+      categories: s.categories[s.activeWorldId] || [],
+      relationNodePositions: s.relationNodePositions[s.activeWorldId] || {}
     };
 
     const json = JSON.stringify(exportData, null, 2);
-    if (window.oros) {
-      await window.oros.exportWorld(activeWorld.name.replace(/[^a-z0-9_-]/gi, '_'), json);
-    } else {
-      // Browser fallback download
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${activeWorld.name}.oros.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+    try {
+      if (typeof window !== 'undefined' && window.oros) {
+        const success = await window.oros.exportWorld(activeWorld.name.replace(/[^a-z0-9_-]/gi, '_'), json);
+        return Boolean(success);
+      } else if (typeof window !== 'undefined') {
+        // Browser fallback download
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${activeWorld.name}.oros.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to export world:', err);
+      return false;
     }
   }
 }))
+
+// Auto-flush pending debounced saves on window unload
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    useWorldStore.getState().flushSave();
+  });
+}
+

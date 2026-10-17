@@ -405,7 +405,10 @@ export const WorkspaceTabs: React.FC = () => {
         </div>
 
         {/* Right: Instrumentation & Telemetry */}
-        <div className="flex items-center gap-1.5 shrink-0 pr-24">
+        <div 
+          className="flex items-center gap-1.5 shrink-0 pr-[148px]"
+          style={{ WebkitAppRegion: 'no-drag' } as any}
+        >
           {/* Quick Search Ctrl+K */}
           <button
             onClick={triggerCommandPalette}
@@ -451,8 +454,10 @@ export const WorkspaceTabs: React.FC = () => {
           {/* Export World */}
           <button
             onClick={async () => {
-              await exportWorld()
-              addToast('World exported as standalone archive', 'success')
+              const success = await exportWorld()
+              if (success) {
+                addToast('World exported as standalone archive', 'success')
+              }
             }}
             title="Export World Archive (.oros.json)"
             className="p-1 rounded-[3px] hover:bg-oros-850 text-oros-400 hover:text-oros-200 transition-colors"

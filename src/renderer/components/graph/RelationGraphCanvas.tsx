@@ -306,7 +306,8 @@ export const RelationGraphCanvas: React.FC = () => {
 const RelationGraphCanvasContent: React.FC = () => {
   const { 
     entities, relations, activeWorldId, setSelectedEntityId, setActiveTab,
-    createRelation, updateRelation, deleteRelation, createEntity 
+    createRelation, updateRelation, deleteRelation, createEntity,
+    relationNodePositions, saveRelationNodePosition 
   } = useWorldStore()
 
   const { addToast } = useToastStore()
@@ -345,9 +346,9 @@ const RelationGraphCanvasContent: React.FC = () => {
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
   const worldRelations = activeWorldId ? relations[activeWorldId] || [] : []
 
-  // Clean initial coordinates for genealogy layout
+  // Clean initial coordinates for genealogy layout, with persistence support
   const initialNodes: Node[] = useMemo(() => {
-    const positions: Record<string, { x: number; y: number }> = {
+    const defaultPositions: Record<string, { x: number; y: number }> = {
       'char-katherine': { x: 180, y: 100 },
       'char-ronald': { x: 480, y: 100 },
       'char-vespera': { x: 760, y: 100 },
@@ -358,8 +359,10 @@ const RelationGraphCanvasContent: React.FC = () => {
       'item-astral-crown': { x: 480, y: -140 }
     }
 
+    const savedPositions = (activeWorldId && relationNodePositions[activeWorldId]) || {}
+
     return worldEntities.map((ent, idx) => {
-      const pos = positions[ent.id] || { 
+      const pos = savedPositions[ent.id] || defaultPositions[ent.id] || { 
         x: 180 + (idx % 4) * 280, 
         y: 100 + Math.floor(idx / 4) * 260 
       }
@@ -387,7 +390,7 @@ const RelationGraphCanvasContent: React.FC = () => {
         }
       }
     })
-  }, [worldEntities])
+  }, [worldEntities, activeWorldId, relationNodePositions])
 
   // Generate smoothstep auto-following edges
   const initialEdges: Edge[] = useMemo(() => {
@@ -652,6 +655,9 @@ const RelationGraphCanvasContent: React.FC = () => {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onNodeDragStop={(_, node) => {
+            saveRelationNodePosition(node.id, node.position)
+          }}
           fitView
           fitViewOptions={{ padding: 0.2 }}
           minZoom={0.2}

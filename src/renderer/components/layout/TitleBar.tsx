@@ -129,7 +129,10 @@ export const TitleBar: React.FC = () => {
         </div>
 
         {/* Right: Actions & Indicators */}
-        <div className="flex items-center gap-2 pr-28">
+        <div 
+          className="flex items-center gap-2 pr-[148px]"
+          style={{ WebkitAppRegion: 'no-drag' } as any}
+        >
           {/* Auto-Save Indicator */}
           <div className="flex items-center gap-1.5 text-[10px] text-oros-400 font-mono uppercase tracking-wider">
             {isSaving ? (
@@ -171,8 +174,10 @@ export const TitleBar: React.FC = () => {
           {/* Export World */}
           <button
             onClick={async () => {
-              await exportWorld()
-              addToast('World exported as standalone archive', 'success')
+              const success = await exportWorld()
+              if (success) {
+                addToast('World exported as standalone archive', 'success')
+              }
             }}
             title="Export World Archive (.oros.json)"
             className="p-1.5 rounded-[2px] hover:bg-oros-850 text-oros-400 hover:text-oros-100 transition-colors"

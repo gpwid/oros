@@ -151,6 +151,7 @@ export interface StorageData {
   directoryItems?: Record<string, DirectoryItem[]>; // key: worldId
   canvases?: Record<string, WhiteboardCanvasData[]>; // key: worldId
   categories?: Record<string, EntityCategory[]>; // key: worldId
+  relationNodePositions?: Record<string, Record<string, { x: number; y: number }>>; // key: worldId -> entityId -> { x, y }
 }
 
 export type DirectoryItemType = 

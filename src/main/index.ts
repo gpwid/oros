@@ -179,7 +179,12 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('oros:open-vault-folder', async () => {
-    shell.openPath(vaultPath)
+    ensureDirectories()
+    const err = await shell.openPath(vaultPath)
+    if (err) {
+      console.error('Failed to open vault path:', err)
+      return false
+    }
     return true
   })
 

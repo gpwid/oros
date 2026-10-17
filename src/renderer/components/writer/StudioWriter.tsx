@@ -5,7 +5,8 @@ import { WikiEditor } from '../wiki/WikiEditor'
 import { PromptModal, ConfirmModal } from '../common/PromptModal'
 import { QuickPeekCard } from '../common/QuickPeekCard'
 import { 
-  Feather, Plus, BookOpen, Search, Eye, Trash2, ChevronRight, X
+  Feather, Plus, BookOpen, Search, Eye, Trash2, ChevronRight, X,
+  ChevronsLeft, ChevronsRight
 } from 'lucide-react'
 import { LoreEntity } from '@shared/types'
 
@@ -17,6 +18,7 @@ export const StudioWriter: React.FC = () => {
 
   const { addToast } = useToastStore()
 
+  const [isChapterSidebarOpen, setIsChapterSidebarOpen] = useState(true)
   const [codexSearch, setCodexSearch] = useState('')
   const [showCodexDrawer, setShowCodexDrawer] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -50,66 +52,107 @@ export const StudioWriter: React.FC = () => {
 
   return (
     <div className="flex-1 flex overflow-hidden bg-oros-950 relative">
-      {/* Chapter Outline Navigation */}
-      <aside className="w-64 bg-oros-950 border-r border-oros-800 flex flex-col justify-between shrink-0 select-none">
-        <div>
-          <div className="p-3 border-b border-oros-800 flex items-center justify-between">
-            <div className="text-xs font-sans font-semibold text-oros-100 uppercase tracking-wide flex items-center gap-2">
-              <Feather className="w-3.5 h-3.5 text-oros-400" />
-              Chapters
-            </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-750 text-oros-200 hover:text-oros-100 text-xs font-medium flex items-center gap-1 transition-colors"
-            >
-              <Plus className="w-3 h-3" />
-              <span>New</span>
-            </button>
-          </div>
-
-          <div className="p-2 space-y-1 overflow-y-auto">
-            {worldChapters.map((ch) => {
-              const isSelected = ch.id === currentChapter?.id
-              return (
+      {/* Collapsed Chapter Sidebar Rail */}
+      {!isChapterSidebarOpen ? (
+        <div className="w-8 bg-oros-950 border-r border-oros-800 flex flex-col items-center py-2.5 shrink-0 select-none">
+          <button
+            onClick={() => setIsChapterSidebarOpen(true)}
+            title="Open Chapters"
+            className="p-1 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 transition-colors mb-3"
+          >
+            <ChevronsRight className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setIsChapterSidebarOpen(true)}
+            className="text-[10px] tracking-wider uppercase text-oros-500 hover:text-oros-300 font-medium select-none py-2"
+            style={{ writingMode: 'vertical-rl' }}
+          >
+            Chapters
+          </button>
+        </div>
+      ) : (
+        /* Chapter Outline Navigation */
+        <aside className="w-64 bg-oros-950 border-r border-oros-800 flex flex-col justify-between shrink-0 select-none">
+          <div>
+            <div className="p-3 border-b border-oros-800 flex items-center justify-between">
+              <div className="text-xs font-sans font-semibold text-oros-100 uppercase tracking-wide flex items-center gap-2">
+                <Feather className="w-3.5 h-3.5 text-oros-400" />
+                Chapters
+              </div>
+              <div className="flex items-center gap-1">
                 <button
-                  key={ch.id}
-                  onClick={() => setSelectedChapterId(ch.id)}
-                  className={`w-full text-left p-2 rounded-[3px] text-xs transition-colors flex items-center justify-between group ${
-                    isSelected
-                      ? 'bg-oros-800 text-oros-100 font-medium border border-oros-600 shadow-sm'
-                      : 'text-oros-300 hover:bg-oros-900 border border-transparent'
-                  }`}
+                  onClick={() => setShowCreateModal(true)}
+                  className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-750 text-oros-200 hover:text-oros-100 text-xs font-medium flex items-center gap-1 transition-colors"
                 >
-                  <div className="truncate pr-2">
-                    <div className="truncate">{ch.title}</div>
-                    <div className="text-[10px] text-oros-400 font-mono mt-0.5">
-                      {ch.wordCount || 0} words
-                    </div>
-                  </div>
-                  <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'opacity-100 text-oros-300' : 'opacity-0 group-hover:opacity-60 text-oros-500'}`} />
+                  <Plus className="w-3 h-3" />
+                  <span>New</span>
                 </button>
-              )
-            })}
-          </div>
-        </div>
+                <button
+                  onClick={() => setIsChapterSidebarOpen(false)}
+                  title="Close Chapters Sidebar"
+                  className="p-1 rounded-[3px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 transition-colors"
+                >
+                  <ChevronsLeft className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
 
-        {/* Total stats */}
-        <div className="p-3 border-t border-oros-800 text-[10px] text-oros-400 font-mono tracking-wider uppercase">
-          {worldChapters.length} Chapters · {worldChapters.reduce((acc, c) => acc + (c.wordCount || 0), 0)} Total Words
-        </div>
-      </aside>
+            <div className="p-2 space-y-1 overflow-y-auto">
+              {worldChapters.map((ch) => {
+                const isSelected = ch.id === currentChapter?.id
+                return (
+                  <button
+                    key={ch.id}
+                    onClick={() => setSelectedChapterId(ch.id)}
+                    className={`w-full text-left p-2 rounded-[3px] text-xs transition-colors flex items-center justify-between group ${
+                      isSelected
+                        ? 'bg-oros-800 text-oros-100 font-medium border border-oros-600 shadow-sm'
+                        : 'text-oros-300 hover:bg-oros-900 border border-transparent'
+                    }`}
+                  >
+                    <div className="truncate pr-2">
+                      <div className="truncate">{ch.title}</div>
+                      <div className="text-[10px] text-oros-400 font-mono mt-0.5">
+                        {ch.wordCount || 0} words
+                      </div>
+                    </div>
+                    <ChevronRight className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'opacity-100 text-oros-300' : 'opacity-0 group-hover:opacity-60 text-oros-500'}`} />
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Total stats */}
+          <div className="p-3 border-t border-oros-800 text-[10px] text-oros-400 font-mono tracking-wider uppercase">
+            {worldChapters.length} Chapters · {worldChapters.reduce((acc, c) => acc + (c.wordCount || 0), 0)} Total Words
+          </div>
+        </aside>
+      )}
 
       {/* Main Manuscript Writing Canvas */}
       <main className="flex-1 overflow-y-auto p-8 select-text">
         {currentChapter ? (
           <div className="max-w-3xl mx-auto">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-oros-800">
-              <input
-                type="text"
-                value={currentChapter.title}
-                onChange={(e) => updateChapter(currentChapter.id, currentChapter.content, e.target.value)}
-                className="font-serif text-2xl font-bold text-oros-100 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-oros-500 rounded-[2px] px-1 w-full mr-4"
-              />
+              <div className="flex items-center gap-2 mr-4 flex-1">
+                {!isChapterSidebarOpen && (
+                  <button
+                    onClick={() => setIsChapterSidebarOpen(true)}
+                    className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-oros-100 border border-oros-750 text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0"
+                    title="Open Chapters Sidebar"
+                  >
+                    <Feather className="w-3.5 h-3.5 text-oros-400" />
+                    <span>Chapters</span>
+                  </button>
+                )}
+                <input
+                  type="text"
+                  value={currentChapter.title}
+                  onChange={(e) => updateChapter(currentChapter.id, currentChapter.content, e.target.value)}
+                  className="font-serif text-2xl font-bold text-oros-100 bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-oros-500 rounded-[2px] px-1 w-full"
+                />
+              </div>
 
               <div className="flex items-center gap-2 shrink-0">
                 <span className="text-xs font-mono text-oros-300 px-2 py-1 rounded-[2px] bg-oros-900 border border-oros-750">

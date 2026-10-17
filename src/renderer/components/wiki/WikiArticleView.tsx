@@ -374,8 +374,17 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                       </div>
                     )
                   })()}
-                  {currentEntity.aliases.length > 0 && (
-                    <span className="text-xs text-oros-400 italic font-sans">
+                  {currentEntity.isSecret && (
+                    <span className="px-1.5 py-0.5 rounded-[2px] bg-rose-950/70 border border-rose-800/80 text-[10px] font-mono font-medium text-rose-300 uppercase tracking-wider">
+                      Secret
+                    </span>
+                  )}
+                  {currentEntity.aliases && currentEntity.aliases.length > 0 && (
+                    <span 
+                      onClick={() => setIsEditing(true)}
+                      className="text-xs text-oros-400 italic font-sans cursor-pointer hover:text-oros-200 transition-colors"
+                      title="Click to edit aliases"
+                    >
                       Also known as: {currentEntity.aliases.join(', ')}
                     </span>
                   )}
@@ -419,15 +428,45 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
               <div className="flex-1 min-w-0">
                 {isEditing ? (
                   <div className="space-y-3.5">
-                    <div>
-                      <label className="block text-xs font-medium text-oros-400 mb-1 font-sans">Article Summary</label>
-                      <input
-                        type="text"
-                        value={currentEntity.summary}
-                        onChange={(e) => updateEntity(currentEntity.id, { summary: e.target.value })}
-                        className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
-                        placeholder="A concise, high-level summary..."
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-oros-400 mb-1 font-sans">Article Summary</label>
+                        <input
+                          type="text"
+                          value={currentEntity.summary}
+                          onChange={(e) => updateEntity(currentEntity.id, { summary: e.target.value })}
+                          className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                          placeholder="A concise, high-level summary..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-oros-400 mb-1 font-sans">
+                          Also known as / Aliases <span className="text-oros-500 font-normal">(comma-separated)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={currentEntity.aliases ? currentEntity.aliases.join(', ') : ''}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            const parsed = val.split(',').map((s) => s.trim()).filter(Boolean)
+                            updateEntity(currentEntity.id, { aliases: parsed })
+                          }}
+                          className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                          placeholder="E.g. The Silk Seer, Master Weaver (leave empty to hide)"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <label className="flex items-center gap-2 cursor-pointer text-xs text-oros-300 select-none">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(currentEntity.isSecret)}
+                          onChange={(e) => updateEntity(currentEntity.id, { isSecret: e.target.checked })}
+                          className="rounded border-oros-750 bg-oros-900 text-oros-300 focus:ring-0"
+                        />
+                        <span>Mark as Secret / Spoiler Note (distinguished for GM / Director view)</span>
+                      </label>
                     </div>
                     <WikiEditor
                       content={currentEntity.content}

@@ -623,3 +623,33 @@ export interface AppSettings {
     maxBackups: number;
   };
 }
+
+export interface AppUpdateReleaseAsset {
+  id: number;
+  name: string;
+  size: number;
+  downloadUrl: string;
+  type: 'installer' | 'portable' | 'other';
+}
+
+export interface AppUpdateInfo {
+  updateAvailable: boolean;
+  currentVersion: string;
+  latestVersion: string;
+  releaseTitle: string;
+  releaseNotes: string;
+  publishedAt: string;
+  releaseUrl: string;
+  installerAsset?: AppUpdateReleaseAsset;
+  portableAsset?: AppUpdateReleaseAsset;
+  allAssets: AppUpdateReleaseAsset[];
+  checkedAt: string;
+  error?: string;
+}
+
+export interface UpdateDownloadProgress {
+  percent: number;
+  transferredBytes: number;
+  totalBytes: number;
+}
+

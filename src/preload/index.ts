@@ -16,6 +16,11 @@ export interface OrosBridge {
   getStorageStats: () => Promise<{ vaultPath: string; assetsCount: number; assetsSizeMb: number; backupsCount: number }>;
   createManualBackup: () => Promise<{ success: boolean; filename?: string }>;
   getSystemInfo: () => Promise<{ version: string; electron: string; chrome: string; node: string; platform: string; arch: string }>;
+  checkForUpdates: () => Promise<any>;
+  openExternal: (url: string) => Promise<boolean>;
+  downloadReleaseAsset: (downloadUrl: string, fileName: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+  onUpdateDownloadProgress: (callback: (data: { percent: number; transferredBytes: number; totalBytes: number }) => void) => () => void;
+  launchDownloadedInstaller: (filePath: string) => Promise<boolean>;
 }
 
 const api: OrosBridge = {
@@ -35,6 +40,34 @@ const api: OrosBridge = {
   getStorageStats: () => ipcRenderer.invoke('oros:get-storage-stats'),
   createManualBackup: () => ipcRenderer.invoke('oros:create-manual-backup'),
   getSystemInfo: () => ipcRenderer.invoke('oros:get-system-info'),
+  checkForUpdates: () => ipcRenderer.invoke('oros:check-for-updates'),
+  openExternal: (url: string) => ipcRenderer.invoke('oros:open-external', url),
+  downloadReleaseAsset: (downloadUrl: string, fileName: string) => 
+    ipcRenderer.invoke('oros:download-release-asset', downloadUrl, fileName),
+  onUpdateDownloadProgress: (callback) => {
+    const handler = (_event: any, data: any) => callback(data)
+    ipcRenderer.on('oros:update-download-progress', handler)
+    return () => {
+      ipcRenderer.removeListener('oros:update-download-progress', handler)
+    }
+  },
+  launchDownloadedInstaller: (filePath: string) => ipcRenderer.invoke('oros:launch-installer', filePath)
 }
 
 contextBridge.exposeInMainWorld('oros', api)
+
+const splashApi = {
+  onStatus: (callback: (status: any) => void) => {
+    const handler = (_event: any, status: any) => callback(status)
+    ipcRenderer.on('oros:splash-status', handler)
+    return () => {
+      ipcRenderer.removeListener('oros:splash-status', handler)
+    }
+  },
+  skipUpdate: () => ipcRenderer.send('oros:splash-skip'),
+  startUpdate: () => ipcRenderer.send('oros:splash-start-download')
+}
+
+contextBridge.exposeInMainWorld('orosSplash', splashApi)
+
+

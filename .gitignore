@@ -16,4 +16,7 @@ oros_vault.json
 release
 release/
 *.zip
+*.exe
+*.7z
 *.tmp
+

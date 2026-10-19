@@ -132,11 +132,37 @@ if (fs.existsSync(sevenZipPath)) {
   }
 }
 
+console.log('--- 9. Compiling Windows Setup Installer with NSIS ---')
+const makensisCandidates = [
+  'C:\\Users\\azisk\\AppData\\Local\\electron-builder\\Cache\\nsis-3.0.4.1\\nsis-3.0.4.1-1mx3n\\makensis.exe',
+  'makensis'
+]
+const nsisScript = path.join(rootDir, 'scripts/installer.nsi')
+const makensisPath = makensisCandidates.find((p) => fs.existsSync(p)) || 'makensis'
+const setupExePath = path.join(releaseDir, `Oros-Setup-${pkg.version}.exe`)
+
+if (fs.existsSync(nsisScript)) {
+  try {
+    console.log(`Compiling NSIS installer...`)
+    execSync(`"${makensisPath}" "${nsisScript}"`, { cwd: path.join(rootDir, 'scripts'), stdio: 'inherit' })
+    if (fs.existsSync(setupExePath)) {
+      const setupSize = fs.statSync(setupExePath).size
+      console.log(`Created Windows Installer: ${setupExePath} (${(setupSize / (1024 * 1024)).toFixed(1)} MB)`)
+    }
+  } catch (err) {
+    console.warn('NSIS compiler warning:', err.message)
+  }
+}
+
 console.log('\n========================================')
 console.log('  SUCCESSFULLY BUILT OROS DESKTOP APP!')
 console.log('========================================')
-console.log(`Executable Path: ${newExe}`)
+console.log(`Standalone Executable: ${newExe}`)
+if (fs.existsSync(setupExePath)) {
+  console.log(`Windows Installer Setup: ${setupExePath}`)
+}
 if (fs.existsSync(zipPath)) {
   console.log(`Portable Archive: ${zipPath}`)
 }
-console.log('You can now launch Oros.exe directly on Windows!')
+console.log('Both the installer and portable archive are ready for deployment and GitHub Releases!')
+

@@ -23,6 +23,7 @@ import {
 } from '../../utils/themeEngine'
 import { SettingsTab, World, ThemeConfig, ThemePresetId, ThemeScope } from '@shared/types'
 import { OrosLogoMark } from '../common/OrosLogo'
+import { UpdateModal } from '../common/UpdateModal'
 
 export const SettingsModal: React.FC = () => {
   const { 
@@ -70,6 +71,7 @@ export const SettingsModal: React.FC = () => {
   const [themeImportJson, setThemeImportJson] = useState('')
   const [themeImportError, setThemeImportError] = useState('')
   const fileThemeInputRef = useRef<HTMLInputElement>(null)
+  const [showUpdateModal, setShowUpdateModal] = useState(false)
 
   // Helper to trigger browser JSON file download
   const downloadJsonFile = (content: string, filename: string) => {
@@ -1336,6 +1338,26 @@ export const SettingsModal: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Software Updates & Releases */}
+                <div className="space-y-2.5 pt-2 border-t border-oros-800/80">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-medium text-oros-100 block">Software Updates & Releases</span>
+                      <span className="text-[11px] text-oros-400 block">
+                        Client fetches new builds directly from GitHub (<code className="text-accent font-mono text-[10px]">gpwid/oros</code>)
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowUpdateModal(true)}
+                      className="px-3 py-1.5 rounded-[3px] btn-accent font-semibold text-xs shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Check for Updates</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Database Integrity Health Validator */}
                 <div className="space-y-2.5 pt-2 border-t border-oros-800/80">
                   <div className="flex items-center justify-between">
@@ -1536,6 +1558,12 @@ export const SettingsModal: React.FC = () => {
           </div>
         </div>
       )}
+      
+      {/* Update Client Modal */}
+      <UpdateModal
+        isOpen={showUpdateModal}
+        onClose={() => setShowUpdateModal(false)}
+      />
 
     </div>
   )

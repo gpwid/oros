@@ -3,6 +3,7 @@ import { join, dirname, extname, basename } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, statSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
+import { checkGitHubRelease, downloadAssetToFile, launchInstaller } from './updater.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -143,6 +144,164 @@ function getAppIcon(): Electron.NativeImage | undefined {
   return undefined
 }
 
+let splashWindow: BrowserWindow | null = null
+let hasLaunchedMain = false
+
+function launchMainWindow(): void {
+  if (hasLaunchedMain) return
+  hasLaunchedMain = true
+
+  createWindow()
+
+  mainWindow?.once('ready-to-show', () => {
+    mainWindow?.show()
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.close()
+      splashWindow = null
+    }
+  })
+}
+
+function createSplashWindow(): void {
+  const preloadPath = getPreloadPath()
+  const icon = getAppIcon()
+
+  splashWindow = new BrowserWindow({
+    width: 440,
+    height: 250,
+    frame: false,
+    resizable: false,
+    show: false,
+    center: true,
+    alwaysOnTop: true,
+    transparent: true,
+    backgroundColor: '#00000000',
+    title: 'Oros Launcher',
+    icon,
+    webPreferences: {
+      preload: preloadPath,
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: false
+    }
+  })
+
+  splashWindow.on('ready-to-show', () => {
+    splashWindow?.show()
+    runStartupAutoUpdater()
+  })
+
+  if (process.env.VITE_DEV_SERVER_URL) {
+    splashWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}/splash.html`)
+  } else {
+    const splashCandidates = [
+      join(__dirname, '../dist/splash.html'),
+      join(__dirname, 'splash.html'),
+      join(process.cwd(), 'dist/splash.html'),
+      join(process.cwd(), 'public/splash.html')
+    ]
+    const found = splashCandidates.find((p) => existsSync(p))
+    if (found) {
+      splashWindow.loadFile(found)
+    } else {
+      launchMainWindow()
+    }
+  }
+}
+
+async function runStartupAutoUpdater(): Promise<void> {
+  const currentVer = app.getVersion() || '0.1.0'
+
+  // Tell splash we're checking
+  splashWindow?.webContents.send('oros:splash-status', {
+    state: 'checking',
+    text: 'Checking for updates...',
+    currentVersion: currentVer
+  })
+
+  try {
+    const result = await checkGitHubRelease(3500) // 3.5s timeout for snappy offline experience
+
+    if (result.error && (result.error.includes('Offline') || result.error.includes('timed out') || result.error.includes('HTTP') || result.error.includes('failed'))) {
+      splashWindow?.webContents.send('oros:splash-status', {
+        state: 'offline',
+        text: 'No internet connection — launching offline mode',
+        currentVersion: currentVer
+      })
+      setTimeout(() => {
+        launchMainWindow()
+      }, 550)
+      return
+    }
+
+    if (!result.updateAvailable) {
+      splashWindow?.webContents.send('oros:splash-status', {
+        state: 'up-to-date',
+        text: `Oros is up to date (v${currentVer})`,
+        currentVersion: currentVer
+      })
+      setTimeout(() => {
+        launchMainWindow()
+      }, 450)
+      return
+    }
+
+    // Update found!
+    splashWindow?.webContents.send('oros:splash-status', {
+      state: 'found',
+      text: `Update found: v${result.latestVersion}!`,
+      newVersion: result.latestVersion,
+      currentVersion: currentVer
+    })
+
+    if (result.installerAsset) {
+      const tempPath = join(app.getPath('temp'), result.installerAsset.name)
+      splashWindow?.webContents.send('oros:splash-status', {
+        state: 'downloading',
+        text: `Downloading update v${result.latestVersion}...`,
+        percent: 0,
+        transferredMb: 0,
+        totalMb: result.installerAsset.size / (1024 * 1024)
+      })
+
+      const ok = await downloadAssetToFile(result.installerAsset.downloadUrl, tempPath, (progress) => {
+        if (!hasLaunchedMain) {
+          splashWindow?.webContents.send('oros:splash-status', {
+            state: 'downloading',
+            text: `Downloading update... (${Math.round(progress.percent)}%)`,
+            percent: progress.percent,
+            transferredMb: progress.transferredMb,
+            totalMb: progress.totalMb
+          })
+        }
+      })
+
+      if (ok && !hasLaunchedMain) {
+        splashWindow?.webContents.send('oros:splash-status', {
+          state: 'ready-to-install',
+          text: 'Update ready! Installing...'
+        })
+        setTimeout(() => {
+          launchInstaller(tempPath)
+        }, 700)
+        return
+      }
+    }
+
+    launchMainWindow()
+  } catch (err) {
+    splashWindow?.webContents.send('oros:splash-status', {
+      state: 'offline',
+      text: 'Starting Oros Studio...',
+      currentVersion: currentVer
+    })
+    setTimeout(() => {
+      launchMainWindow()
+    }, 450)
+  }
+}
+
 function createWindow(): void {
   const preloadPath = getPreloadPath()
   const icon = getAppIcon()
@@ -201,6 +360,7 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../dist/index.html'))
   }
 }
+
 
 app.whenReady().then(() => {
   if (process.platform === 'win32') {
@@ -457,12 +617,48 @@ app.whenReady().then(() => {
     }
   })
 
-  createWindow()
+  // Splash & Updater IPC Handlers
+  ipcMain.on('oros:splash-skip', () => {
+    launchMainWindow()
+  })
+
+  ipcMain.handle('oros:check-for-updates', async () => {
+    return await checkGitHubRelease(5000)
+  })
+
+  ipcMain.handle('oros:open-external', async (_event, url: string) => {
+    if (typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://'))) {
+      await shell.openExternal(url)
+      return true
+    }
+    return false
+  })
+
+  ipcMain.handle('oros:download-release-asset', async (_event, downloadUrl: string, fileName: string) => {
+    const destPath = join(app.getPath('downloads'), fileName)
+    const ok = await downloadAssetToFile(downloadUrl, destPath, (progress) => {
+      mainWindow?.webContents.send('oros:update-download-progress', progress)
+    })
+    if (ok) {
+      return { success: true, filePath: destPath }
+    }
+    return { success: false, error: 'Download failed' }
+  })
+
+  ipcMain.handle('oros:launch-installer', async (_event, filePath: string) => {
+    launchInstaller(filePath)
+    return true
+  })
+
+  createSplashWindow()
 
   app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) {
+      launchMainWindow()
+    }
   })
 })
+
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

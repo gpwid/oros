@@ -139,20 +139,15 @@ const makensisCandidates = [
 ]
 const nsisScript = path.join(rootDir, 'scripts/installer.nsi')
 const makensisPath = makensisCandidates.find((p) => fs.existsSync(p)) || 'makensis'
-const setupExeTmpPath = path.join(releaseDir, `Oros-Setup-${pkg.version}.exe.tmp`)
 const setupExePath = path.join(releaseDir, `Oros-Setup-${pkg.version}.exe`)
 
 if (fs.existsSync(nsisScript)) {
   try {
-    console.log(`Compiling NSIS installer with zlib solid compression...`)
+    console.log(`Compiling NSIS installer...`)
     execSync(`"${makensisPath}" "${nsisScript}"`, { cwd: path.join(rootDir, 'scripts'), stdio: 'inherit' })
-    if (fs.existsSync(setupExeTmpPath)) {
-      if (fs.existsSync(setupExePath)) {
-        fs.unlinkSync(setupExePath)
-      }
-      fs.renameSync(setupExeTmpPath, setupExePath)
+    if (fs.existsSync(setupExePath)) {
       const setupSize = fs.statSync(setupExePath).size
-      console.log(`Created verified Windows Installer: ${setupExePath} (${(setupSize / (1024 * 1024)).toFixed(1)} MB)`)
+      console.log(`Created Windows Installer: ${setupExePath} (${(setupSize / (1024 * 1024)).toFixed(1)} MB)`)
     }
   } catch (err) {
     console.warn('NSIS compiler warning:', err.message)

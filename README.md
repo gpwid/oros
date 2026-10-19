@@ -55,10 +55,16 @@ pnpm install
 pnpm dev
 ```
 
-### Production Build
+### Production Build & Packaging
 ```bash
+# Build web renderer & electron main/preload
 pnpm build
+
+# Package standalone Windows desktop application (.exe and .zip)
+pnpm run package
 ```
+The output executable will be created in `release/Oros-win32-x64/Oros.exe`, and a portable `.zip` bundle ready for GitHub Releases will be placed in `release/Oros-v0.1.0-Windows-x64.zip`.
+
 
 ---
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oros Studio - Launcher</title>
+  <title>Oros Launcher</title>
   <style>
     * {
       box-sizing: border-box;
@@ -11,12 +11,11 @@
       padding: 0;
       user-select: none;
       -webkit-user-select: none;
-      -webkit-app-region: drag;
     }
 
     body {
       background-color: transparent;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Plus Jakarta Sans", "Inter", "Segoe UI", Roboto, sans-serif;
       height: 100vh;
       display: flex;
       align-items: center;
@@ -24,224 +23,305 @@
       overflow: hidden;
     }
 
-    .splash-card {
-      width: 420px;
+    /* Architectural Tactile Frame matching DESIGN.md */
+    .app-frame {
+      width: 440px;
       height: 240px;
-      background: #0d0f12;
-      border: 1px solid rgba(212, 175, 55, 0.25);
-      border-radius: 12px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 20px rgba(212, 175, 55, 0.08);
+      background: #090a0d;
+      border: 1px solid #212732;
+      border-radius: 4px;
+      box-shadow: 
+        0 24px 48px -12px rgba(0, 0, 0, 0.95),
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+        0 1px 0 rgba(255, 255, 255, 0.08) inset;
       display: flex;
       flex-direction: column;
       position: relative;
       overflow: hidden;
-      padding: 24px;
+      padding: 14px 18px 14px 18px;
     }
 
-    .ambient-glow {
+    /* Subtle Architectural Grid Background Watermark */
+    .app-frame::before {
+      content: "";
       position: absolute;
-      top: -60px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 200px;
-      height: 120px;
-      background: radial-gradient(circle, rgba(212, 175, 55, 0.18) 0%, rgba(13, 15, 18, 0) 70%);
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 20px 20px;
       pointer-events: none;
+      opacity: 0.6;
     }
 
+    /* Top Drag Header */
     .header-bar {
+      -webkit-app-region: drag;
       display: flex;
       justify-content: space-between;
       align-items: center;
       z-index: 2;
+      height: 24px;
+      padding-bottom: 8px;
+      border-b: 1px solid rgba(33, 39, 50, 0.6);
     }
 
-    .version-tag {
+    .brand-id {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: #8793a7;
+      text-transform: uppercase;
+    }
+
+    .brand-id svg {
+      width: 11px;
+      height: 14px;
+      color: #d4af37;
+    }
+
+    .controls-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .version-chip {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 10px;
       font-weight: 600;
-      color: #94a3b8;
-      background: #181b22;
-      border: 1px solid #282e3c;
-      padding: 2px 8px;
-      border-radius: 10px;
-      letter-spacing: 0.5px;
+      color: #8793a7;
+      background: #14171f;
+      border: 1px solid #212732;
+      padding: 1px 6px;
+      border-radius: 2px;
+      letter-spacing: 0.05em;
     }
 
     .skip-btn {
       -webkit-app-region: no-drag;
-      background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #94a3b8;
-      font-size: 11px;
-      font-weight: 500;
-      padding: 3px 10px;
-      border-radius: 4px;
+      background: #14171f;
+      border: 1px solid #212732;
+      color: #b4bdcd;
+      font-family: inherit;
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 2px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.12s ease;
     }
 
     .skip-btn:hover {
-      background: #1e232d;
-      color: #f1f5f9;
-      border-color: rgba(212, 175, 55, 0.4);
+      background: #1b1f28;
+      color: #edf0f4;
+      border-color: #333d4f;
     }
 
-    .main-content {
+    .skip-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* Central Sigil & Wordmark */
+    .center-stage {
       flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
-      margin-top: -6px;
       z-index: 2;
+      padding-top: 4px;
     }
 
-    .logo-container {
-      position: relative;
-      width: 48px;
+    .emblem-wrapper {
+      width: 38px;
       height: 48px;
-      margin-bottom: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
+      margin-bottom: 6px;
     }
 
-    .logo-svg {
-      width: 42px;
-      height: 42px;
+    .emblem-svg {
+      width: 36px;
+      height: 46px;
       fill: none;
-      stroke: #d4af37;
-      stroke-width: 2.2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.5));
-      animation: pulse-glow 3s infinite ease-in-out;
+      filter: drop-shadow(0 2px 8px rgba(212, 175, 55, 0.25));
     }
 
-    @keyframes pulse-glow {
-      0%, 100% { filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.35)); }
-      50% { filter: drop-shadow(0 0 14px rgba(212, 175, 55, 0.75)); }
-    }
-
-    .app-title {
-      font-family: Georgia, serif;
-      font-size: 17px;
+    .title-wordmark {
+      font-family: "Playfair Display", "Cinzel", Georgia, serif;
+      font-size: 15px;
       font-weight: 700;
-      letter-spacing: 2px;
-      color: #f8fafc;
+      letter-spacing: 0.32em;
+      color: #edf0f4;
       text-transform: uppercase;
-      margin-bottom: 4px;
+      margin-bottom: 5px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     }
 
-    .status-text {
-      font-size: 12px;
-      color: #94a3b8;
-      font-weight: 400;
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       min-height: 18px;
-      transition: color 0.3s ease;
     }
 
-    .status-text.highlight {
-      color: #38bdf8;
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 1px;
+      background: #f59e0b;
+      box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+      transition: all 0.2s ease;
     }
 
-    .status-text.success {
-      color: #34d399;
+    .status-dot.ready {
+      background: #10b981;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
     }
 
-    .status-text.offline {
-      color: #fbbf24;
+    .status-dot.offline {
+      background: #d97706;
+      box-shadow: 0 0 6px rgba(217, 119, 6, 0.4);
     }
 
-    .progress-container {
+    .status-dot.downloading {
+      background: #06b6d4;
+      box-shadow: 0 0 6px rgba(6, 182, 212, 0.6);
+    }
+
+    .status-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: #b4bdcd;
+      letter-spacing: 0.02em;
+    }
+
+    /* Tactile Recessed Progress Trench */
+    .progress-track {
       width: 100%;
-      height: 4px;
-      background: #181b22;
-      border-radius: 2px;
+      height: 3px;
+      background: #14171f;
+      border: 1px solid #212732;
+      border-radius: 1px;
       overflow: hidden;
       position: relative;
-      margin-top: 14px;
+      margin-top: 12px;
       z-index: 2;
     }
 
-    .progress-bar-determinate {
+    .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, #d4af37, #f59e0b);
+      background: linear-gradient(90deg, #b88e28, #d4af37);
       width: 0%;
-      transition: width 0.2s ease;
-      box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+      transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .progress-bar-indeterminate {
+    .progress-sweep {
       height: 100%;
-      background: linear-gradient(90deg, transparent, #d4af37, #f59e0b, transparent);
+      width: 35%;
+      background: linear-gradient(90deg, transparent, #d4af37, transparent);
       position: absolute;
-      width: 50%;
-      animation: indeterminate-slide 1.5s infinite linear;
+      animation: sweep-line 1.4s infinite cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    @keyframes indeterminate-slide {
-      0% { left: -50%; }
+    @keyframes sweep-line {
+      0% { left: -35%; }
       100% { left: 100%; }
     }
 
-    .footer-detail {
+    /* Metadata Footer */
+    .footer-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 6px;
-      font-size: 10px;
-      color: #64748b;
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(33, 39, 50, 0.4);
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 9.5px;
+      color: #606b81;
       z-index: 2;
     }
   </style>
 </head>
 <body>
-  <div class="splash-card">
-    <div class="ambient-glow"></div>
-
+  <div class="app-frame">
+    <!-- Top Header -->
     <div class="header-bar">
-      <span class="version-tag" id="currentVersionTag">v0.1.0</span>
-      <button class="skip-btn" id="skipBtn" title="Bypass update check and open Oros Studio">Launch App</button>
+      <div class="brand-id">
+        <!-- Oros Micro Spire -->
+        <svg viewBox="0 0 75 100" fill="currentColor">
+          <path d="M37.0415 42.8804C38.2879 43.9416 44.7482 54.0385 45.9126 55.9505C47.1051 55.8713 48.4438 55.8458 49.6492 55.7977L71.3132 81.4564C68.6134 79.7851 65.9354 78.0784 63.2802 76.3367C55.7509 82.4572 50.5841 85.3693 41.0242 86.9197C41.2164 84.0453 42.2715 76.573 42.8544 73.8533C44.4847 73.2758 46.6515 72.2005 48.2676 71.4523C46.3012 68.5154 44.1721 65.6951 42.1956 62.7509C42.0941 64.8057 41.5016 68.0269 41.1981 70.1537L38.7573 87.519C38.248 91.1633 37.4706 95.5665 37.4542 99.1765L37.4174 99.0551C36.2434 95.0401 36.0212 91.3461 35.3418 87.3176C34.0173 79.4635 33.3533 70.4656 31.8557 62.7287L31.9021 62.3806C32.9054 62.5489 36.0243 65.9705 36.9454 66.9174C37.0656 60.072 37.0696 53.2247 36.9576 46.3791C34.8533 49.7335 32.3256 53.2958 30.1239 56.619C28.7594 58.6787 26.3589 62.4132 24.8516 64.119C25.3396 62.6424 26.6427 59.221 25.9801 57.8827L25.5395 57.7578C23.8382 58.4865 20.2553 63.6366 18.4916 65.4997C21.4187 69.3047 26.9331 72.3612 31.4151 73.8804C31.7828 77.8601 32.6275 82.749 33.0925 86.8951C25.153 86.0258 16.8468 81.7742 11.0319 76.3826C8.24006 77.8927 5.47701 79.8204 2.84521 81.6057C7.12771 76.2638 11.4679 70.9681 15.8647 65.72C18.3801 62.7001 22.1969 58.3217 24.4244 55.2092C25.7186 55.4541 26.8012 55.7213 28.0717 56.0492C30.7527 51.8515 34.1308 46.9126 37.0415 42.8804Z"/>
+          <path d="M41.0354 12.8506C46.2067 13.7628 49.85 14.6 54.4827 17.2552C61.6168 21.1922 65.1716 24.1081 69.1018 31.2621C76.449 44.6363 75.7245 56.5608 68.3846 69.7822L66.5602 72.6603C65.3389 70.8542 59.5815 64.3362 57.9388 62.5416C58.3131 61.8469 60.3484 58.1262 60.4681 57.6375C61.6874 52.6657 61.903 45.4904 59.8189 40.8108C56.0061 32.2493 51.1637 28.9446 42.657 25.7567C42.0702 22.744 41.2536 15.8778 41.0354 12.8506Z"/>
+          <path d="M32.1036 13.0306C32.4247 12.9198 32.5616 12.9912 32.8904 13.0759C33.2706 14.33 31.7282 23.8859 31.4523 25.8216C29.3439 26.5805 27.6763 27.4334 25.7493 28.3798C20.8731 30.7744 18.7909 32.7758 16.1329 37.5237C15.3093 38.9947 14.0338 41.0075 13.5639 42.7461C12.4684 46.7977 12.4703 53.3225 13.7118 57.3446C14.0823 58.5455 15.5094 61.1851 16.134 62.3661C13.2569 65.5564 10.314 69.1845 7.53013 72.4899C7.16615 72.0134 6.57177 71.0412 6.21951 70.505C4.15513 68.0832 1.00372 59.7842 0.518099 56.6192C-2.84467 34.6986 10.4474 16.8521 32.1036 13.0306Z"/>
+          <path d="M37.2611 0C37.7195 6.15328 38.9127 13.5698 39.7504 19.7756C41.1072 29.5088 42.3885 39.2524 43.5944 49.0052C41.8713 45.9792 39.1466 42.2454 37.0884 39.333C36.9578 32.9993 37.1134 26.6627 36.9351 20.3295C36.9056 19.283 36.9102 18.2412 36.9684 17.1954C37.1605 16.357 37.3722 14.3126 36.8786 13.5504L36.5941 13.8305L36.8777 13.5396C36.3032 14.1881 36.4422 15.3722 36.4773 16.2445C35.7688 22.2996 35.0106 28.3486 34.2027 34.3912C33.4127 40.4334 33.6156 43.7473 30.4141 49.1213C31.9991 38.2917 33.2859 27.3673 34.8393 16.5333C35.6008 11.2233 36.2226 5.2057 37.2611 0Z"/>
+        </svg>
+        <span>Oros Codex</span>
+      </div>
+      <div class="controls-group">
+        <span class="version-chip" id="currentVersionTag">v0.1.0</span>
+        <button class="skip-btn" id="skipBtn" title="Bypass update check and launch studio">Launch</button>
+      </div>
     </div>
 
-    <div class="main-content">
-      <div class="logo-container">
-        <!-- Mountain Glyph Logo -->
-        <svg class="logo-svg" viewBox="0 0 24 24">
-          <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
-          <path d="M4.14 15h15.72" stroke-dasharray="2 2" stroke-width="1.2" />
+    <!-- Center Stage -->
+    <div class="center-stage">
+      <div class="emblem-wrapper">
+        <svg class="emblem-svg" viewBox="0 0 75 100">
+          <defs>
+            <linearGradient id="sigilGold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#f5e08b" />
+              <stop offset="50%" stop-color="#d4af37" />
+              <stop offset="100%" stop-color="#99781e" />
+            </linearGradient>
+          </defs>
+          <path fill="url(#sigilGold)" d="M37.0415 42.8804C38.2879 43.9416 44.7482 54.0385 45.9126 55.9505C47.1051 55.8713 48.4438 55.8458 49.6492 55.7977L71.3132 81.4564C68.6134 79.7851 65.9354 78.0784 63.2802 76.3367C55.7509 82.4572 50.5841 85.3693 41.0242 86.9197C41.2164 84.0453 42.2715 76.573 42.8544 73.8533C44.4847 73.2758 46.6515 72.2005 48.2676 71.4523C46.3012 68.5154 44.1721 65.6951 42.1956 62.7509C42.0941 64.8057 41.5016 68.0269 41.1981 70.1537L38.7573 87.519C38.248 91.1633 37.4706 95.5665 37.4542 99.1765L37.4174 99.0551C36.2434 95.0401 36.0212 91.3461 35.3418 87.3176C34.0173 79.4635 33.3533 70.4656 31.8557 62.7287L31.9021 62.3806C32.9054 62.5489 36.0243 65.9705 36.9454 66.9174C37.0656 60.072 37.0696 53.2247 36.9576 46.3791C34.8533 49.7335 32.3256 53.2958 30.1239 56.619C28.7594 58.6787 26.3589 62.4132 24.8516 64.119C25.3396 62.6424 26.6427 59.221 25.9801 57.8827L25.5395 57.7578C23.8382 58.4865 20.2553 63.6366 18.4916 65.4997C21.4187 69.3047 26.9331 72.3612 31.4151 73.8804C31.7828 77.8601 32.6275 82.749 33.0925 86.8951C25.153 86.0258 16.8468 81.7742 11.0319 76.3826C8.24006 77.8927 5.47701 79.8204 2.84521 81.6057C7.12771 76.2638 11.4679 70.9681 15.8647 65.72C18.3801 62.7001 22.1969 58.3217 24.4244 55.2092C25.7186 55.4541 26.8012 55.7213 28.0717 56.0492C30.7527 51.8515 34.1308 46.9126 37.0415 42.8804Z"/>
+          <path fill="url(#sigilGold)" d="M41.0354 12.8506C46.2067 13.7628 49.85 14.6 54.4827 17.2552C61.6168 21.1922 65.1716 24.1081 69.1018 31.2621C76.449 44.6363 75.7245 56.5608 68.3846 69.7822L66.5602 72.6603C65.3389 70.8542 59.5815 64.3362 57.9388 62.5416C58.3131 61.8469 60.3484 58.1262 60.4681 57.6375C61.6874 52.6657 61.903 45.4904 59.8189 40.8108C56.0061 32.2493 51.1637 28.9446 42.657 25.7567C42.0702 22.744 41.2536 15.8778 41.0354 12.8506Z"/>
+          <path fill="url(#sigilGold)" d="M32.1036 13.0306C32.4247 12.9198 32.5616 12.9912 32.8904 13.0759C33.2706 14.33 31.7282 23.8859 31.4523 25.8216C29.3439 26.5805 27.6763 27.4334 25.7493 28.3798C20.8731 30.7744 18.7909 32.7758 16.1329 37.5237C15.3093 38.9947 14.0338 41.0075 13.5639 42.7461C12.4684 46.7977 12.4703 53.3225 13.7118 57.3446C14.0823 58.5455 15.5094 61.1851 16.134 62.3661C13.2569 65.5564 10.314 69.1845 7.53013 72.4899C7.16615 72.0134 6.57177 71.0412 6.21951 70.505C4.15513 68.0832 1.00372 59.7842 0.518099 56.6192C-2.84467 34.6986 10.4474 16.8521 32.1036 13.0306Z"/>
+          <path fill="url(#sigilGold)" d="M37.2611 0C37.7195 6.15328 38.9127 13.5698 39.7504 19.7756C41.1072 29.5088 42.3885 39.2524 43.5944 49.0052C41.8713 45.9792 39.1466 42.2454 37.0884 39.333C36.9578 32.9993 37.1134 26.6627 36.9351 20.3295C36.9056 19.283 36.9102 18.2412 36.9684 17.1954C37.1605 16.357 37.3722 14.3126 36.8786 13.5504L36.5941 13.8305L36.8777 13.5396C36.3032 14.1881 36.4422 15.3722 36.4773 16.2445C35.7688 22.2996 35.0106 28.3486 34.2027 34.3912C33.4127 40.4334 33.6156 43.7473 30.4141 49.1213C31.9991 38.2917 33.2859 27.3673 34.8393 16.5333C35.6008 11.2233 36.2226 5.2057 37.2611 0Z"/>
         </svg>
       </div>
-      <div class="app-title">Oros Studio</div>
-      <div class="status-text" id="statusText">Checking for updates...</div>
+
+      <div class="title-wordmark">OROS</div>
+
+      <div class="status-row">
+        <div class="status-dot" id="statusDot"></div>
+        <div class="status-label" id="statusText">Checking for updates...</div>
+      </div>
     </div>
 
-    <div class="progress-container">
-      <div class="progress-bar-indeterminate" id="progressIndeterminate"></div>
-      <div class="progress-bar-determinate" id="progressDeterminate" style="display: none;"></div>
+    <!-- Progress Trench -->
+    <div class="progress-track">
+      <div class="progress-sweep" id="progressSweep"></div>
+      <div class="progress-fill" id="progressFill" style="display: none;"></div>
     </div>
 
-    <div class="footer-detail">
-      <span id="targetRepo">github.com/gpwid/oros</span>
-      <span id="detailSubtext">Starting...</span>
+    <!-- Micro Footer -->
+    <div class="footer-bar">
+      <span>github.com/gpwid/oros</span>
+      <span id="detailSubtext">Archival Sync</span>
     </div>
   </div>
 
   <script>
     const statusText = document.getElementById('statusText');
+    const statusDot = document.getElementById('statusDot');
     const versionTag = document.getElementById('currentVersionTag');
     const skipBtn = document.getElementById('skipBtn');
-    const progressIndeterminate = document.getElementById('progressIndeterminate');
-    const progressDeterminate = document.getElementById('progressDeterminate');
+    const progressSweep = document.getElementById('progressSweep');
+    const progressFill = document.getElementById('progressFill');
     const detailSubtext = document.getElementById('detailSubtext');
 
     if (window.orosSplash) {
       skipBtn.addEventListener('click', () => {
-        statusText.textContent = 'Launching application...';
+        statusText.textContent = 'Launching studio...';
         window.orosSplash.skipUpdate();
       });
 
@@ -253,49 +333,44 @@
         }
 
         if (status.state === 'checking') {
-          statusText.className = 'status-text';
+          statusDot.className = 'status-dot';
           statusText.textContent = status.text || 'Checking for updates...';
-          detailSubtext.textContent = 'Contacting GitHub Releases';
-          progressIndeterminate.style.display = 'block';
-          progressDeterminate.style.display = 'none';
+          detailSubtext.textContent = 'GitHub Releases';
+          progressSweep.style.display = 'block';
+          progressFill.style.display = 'none';
         } else if (status.state === 'offline') {
-          statusText.className = 'status-text offline';
-          statusText.textContent = status.text || 'No internet connection — launching offline mode';
-          detailSubtext.textContent = 'Offline';
-          progressIndeterminate.style.display = 'none';
-          progressDeterminate.style.display = 'block';
-          progressDeterminate.style.width = '100%';
+          statusDot.className = 'status-dot offline';
+          statusText.textContent = status.text || 'Offline mode — opening studio';
+          detailSubtext.textContent = 'Offline Mode';
+          progressSweep.style.display = 'none';
+          progressFill.style.display = 'block';
+          progressFill.style.width = '100%';
         } else if (status.state === 'up-to-date') {
-          statusText.className = 'status-text success';
-          statusText.textContent = status.text || "You're running the latest version!";
-          detailSubtext.textContent = 'Ready';
-          progressIndeterminate.style.display = 'none';
-          progressDeterminate.style.display = 'block';
-          progressDeterminate.style.width = '100%';
+          statusDot.className = 'status-dot ready';
+          statusText.textContent = status.text || 'Up to date (v' + (status.currentVersion || '0.1.0') + ')';
+          detailSubtext.textContent = 'Synchronized';
+          progressSweep.style.display = 'none';
+          progressFill.style.display = 'block';
+          progressFill.style.width = '100%';
         } else if (status.state === 'downloading') {
-          statusText.className = 'status-text highlight';
+          statusDot.className = 'status-dot downloading';
           const pct = Math.round(status.percent || 0);
           statusText.textContent = status.text || `Downloading update... (${pct}%)`;
           detailSubtext.textContent = `${(status.transferredMb || 0).toFixed(1)} MB / ${(status.totalMb || 0).toFixed(1)} MB`;
-          progressIndeterminate.style.display = 'none';
-          progressDeterminate.style.display = 'block';
-          progressDeterminate.style.width = pct + '%';
+          progressSweep.style.display = 'none';
+          progressFill.style.display = 'block';
+          progressFill.style.width = pct + '%';
         } else if (status.state === 'ready-to-install') {
-          statusText.className = 'status-text success';
-          statusText.textContent = status.text || 'Update ready! Installing...';
+          statusDot.className = 'status-dot ready';
+          statusText.textContent = status.text || 'Update ready — installing...';
           detailSubtext.textContent = 'Restarting';
-          progressDeterminate.style.width = '100%';
+          progressFill.style.width = '100%';
         } else if (status.state === 'launching') {
-          statusText.className = 'status-text';
-          statusText.textContent = status.text || 'Launching Oros Studio...';
-          detailSubtext.textContent = 'Loading Vault';
+          statusDot.className = 'status-dot ready';
+          statusText.textContent = status.text || 'Launching studio...';
+          detailSubtext.textContent = 'Opening Workspace';
         }
       });
-    } else {
-      // Fallback for preview in browser
-      setTimeout(() => {
-        statusText.textContent = 'Offline preview mode';
-      }, 1000);
     }
   </script>
 </body>

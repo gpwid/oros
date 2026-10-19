@@ -37,7 +37,7 @@ import {
   User, Image as ImageIcon, Check, RefreshCw, Palette,
   ArrowRight, Undo, Layers, Move, ZoomIn, ZoomOut,
   Magnet, GitBranch, ArrowRightLeft, Spline, Activity, Frame, Link2, Edit3,
-  Bold, Italic, Minus, CornerDownRight
+  Bold, Italic, Minus, CornerDownRight, AlignLeft, AlignCenter, AlignRight
 } from 'lucide-react'
 import { LoreEntity, CanvasStroke } from '@shared/types'
 import { ExportDropdown, ExportOption } from '../common/ExportDropdown'
@@ -760,18 +760,22 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     fillMode?: 'solid' | 'outline';
     isBold?: boolean;
     isItalic?: boolean;
+    textAlign?: 'left' | 'center' | 'right';
+    fontSize?: number;
   }
   const themeTokens = useActiveThemeTokens()
   const [text, setText] = useState(shapeData.text || '')
   const [isEditing, setIsEditing] = useState(false)
   const [showColorPicker, setShowColorPicker] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const type = shapeData.shapeType || 'parallelogram'
   const reactFlow = useReactFlow()
   const color = shapeData.color || '#334155'
   const fillMode = shapeData.fillMode || 'solid'
   const isBold = Boolean(shapeData.isBold)
   const isItalic = Boolean(shapeData.isItalic)
+  const textAlign = shapeData.textAlign || 'center'
+  const fontSize = Number(shapeData.fontSize) || 12
 
   const updateShapeData = useCallback((patch: Partial<typeof shapeData>) => {
     reactFlow.setNodes((nds) =>
@@ -780,9 +784,15 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   }, [id, reactFlow])
 
   useEffect(() => {
+    if (shapeData.text !== undefined) {
+      setText(shapeData.text)
+    }
+  }, [shapeData.text])
+
+  useEffect(() => {
     if (isEditing) {
-      inputRef.current?.focus()
-      inputRef.current?.select()
+      textareaRef.current?.focus()
+      textareaRef.current?.select()
     }
   }, [isEditing])
 
@@ -861,6 +871,57 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       : isColorBright(color)
       ? '#0f172a'
       : '#ffffff'
+
+  const renderShapeText = (paddingClass: string) => (
+    <>
+      {isEditing ? (
+        <div className={`absolute inset-0 flex items-center justify-center ${paddingClass} z-10`}>
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value)
+              syncText(e.target.value)
+            }}
+            onBlur={() => setIsEditing(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' || ((e.ctrlKey || e.metaKey) && e.key === 'Enter')) {
+                e.preventDefault()
+                setIsEditing(false)
+              }
+            }}
+            placeholder="Shape text..."
+            style={{
+              color: textColor,
+              fontSize: `${fontSize}px`,
+              lineHeight: 1.35,
+              textAlign
+            }}
+            className={`nodrag nopan w-full max-h-full bg-transparent font-sans ${
+              isBold ? 'font-bold' : 'font-medium'
+            } ${isItalic ? 'italic' : ''} outline-none resize-none overflow-y-auto break-words whitespace-pre-wrap cursor-text scrollbar-none`}
+            rows={Math.max(1, text.split('\n').length)}
+          />
+        </div>
+      ) : (
+        <div className={`absolute inset-0 flex items-center justify-center ${paddingClass} select-none pointer-events-none z-10`}>
+          <div 
+            style={{
+              color: textColor,
+              fontSize: `${fontSize}px`,
+              lineHeight: 1.35,
+              textAlign
+            }}
+            className={`w-full max-h-full font-sans ${isBold ? 'font-bold' : 'font-medium'} ${
+              isItalic ? 'italic' : ''
+            } break-words whitespace-pre-wrap overflow-hidden`}
+          >
+            {text || (selected ? <span className="opacity-40 italic font-normal text-[10px]">Double-click to write</span> : '')}
+          </div>
+        </div>
+      )}
+    </>
+  )
 
   return (
     <div className="relative select-none w-full h-full">
@@ -966,6 +1027,61 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
                 {fillMode === 'solid' ? '■' : '□'}
               </button>
 
+              {/* Text Alignment */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const alignments: ('left' | 'center' | 'right')[] = ['center', 'left', 'right']
+                  const next = alignments[(alignments.indexOf(textAlign) + 1) % alignments.length]
+                  updateShapeData({ textAlign: next })
+                }}
+                className="p-1 rounded hover:bg-oros-850 text-oros-400 hover:text-oros-100 transition-colors cursor-pointer"
+                title={`Text align: ${textAlign} (click to cycle)`}
+              >
+                {textAlign === 'left' ? (
+                  <AlignLeft className="w-3.5 h-3.5" />
+                ) : textAlign === 'right' ? (
+                  <AlignRight className="w-3.5 h-3.5" />
+                ) : (
+                  <AlignCenter className="w-3.5 h-3.5" />
+                )}
+              </button>
+
+              {/* Font Size Stepper */}
+              <div 
+                className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-oros-950/80 border border-oros-800 text-[10px] font-mono text-oros-300 select-none"
+                title="Font size inside shape"
+              >
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const next = Math.max(8, fontSize - 2)
+                    updateShapeData({ fontSize: next })
+                  }}
+                  className="p-0.5 hover:bg-oros-800 hover:text-white rounded cursor-pointer"
+                  title="Smaller text"
+                >
+                  <Minus className="w-2.5 h-2.5" />
+                </button>
+                <span className="min-w-6 text-center text-[10px] text-accent font-semibold">
+                  {fontSize}px
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const next = Math.min(48, fontSize + 2)
+                    updateShapeData({ fontSize: next })
+                  }}
+                  className="p-0.5 hover:bg-oros-800 hover:text-white rounded cursor-pointer"
+                  title="Larger text"
+                >
+                  <Plus className="w-2.5 h-2.5" />
+                </button>
+              </div>
+
               {/* Bold Toggle */}
               <button
                 type="button"
@@ -1060,37 +1176,7 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
                 strokeWidth={fillMode === 'outline' ? '2.5' : '1.5'}
               />
             </svg>
-            {isEditing ? (
-              <input
-                ref={inputRef}
-                type="text"
-                value={text}
-                onChange={(e) => {
-                  setText(e.target.value)
-                  syncText(e.target.value)
-                }}
-                onBlur={() => setIsEditing(false)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === 'Escape') setIsEditing(false)
-                }}
-                placeholder="Shape text..."
-                style={{ color: textColor }}
-                className={`nodrag nopan absolute inset-0 bg-transparent text-center font-sans ${
-                  isBold ? 'font-bold' : 'font-medium'
-                } ${isItalic ? 'italic' : ''} text-xs outline-none px-6 cursor-text`}
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center p-3 select-none pointer-events-none">
-                <span 
-                  style={{ color: textColor }}
-                  className={`font-sans ${isBold ? 'font-bold' : 'font-medium'} ${
-                    isItalic ? 'italic' : ''
-                  } text-xs text-center truncate`}
-                >
-                  {text || (selected ? <span className="opacity-40 italic font-normal text-[10px]">Double-click</span> : '')}
-                </span>
-              </div>
-            )}
+            {renderShapeText('px-7 py-3')}
           </div>
         )}
 
@@ -1104,37 +1190,7 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
                 strokeWidth={fillMode === 'outline' ? '2.5' : '1.5'}
               />
             </svg>
-            {isEditing ? (
-              <input
-                ref={inputRef}
-                type="text"
-                value={text}
-                onChange={(e) => {
-                  setText(e.target.value)
-                  syncText(e.target.value)
-                }}
-                onBlur={() => setIsEditing(false)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === 'Escape') setIsEditing(false)
-                }}
-                placeholder="Shape text..."
-                style={{ color: textColor }}
-                className={`nodrag nopan absolute inset-0 bg-transparent text-center font-sans ${
-                  isBold ? 'font-bold' : 'font-medium'
-                } ${isItalic ? 'italic' : ''} text-xs outline-none px-4 cursor-text`}
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center p-3 select-none pointer-events-none">
-                <span 
-                  style={{ color: textColor }}
-                  className={`font-sans ${isBold ? 'font-bold' : 'font-medium'} ${
-                    isItalic ? 'italic' : ''
-                  } text-xs text-center truncate`}
-                >
-                  {text || (selected ? <span className="opacity-40 italic font-normal text-[10px]">Double-click</span> : '')}
-                </span>
-              </div>
-            )}
+            {renderShapeText('p-5')}
           </div>
         )}
 
@@ -1145,39 +1201,9 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
               borderColor: fillMode === 'outline' ? color : '#94a3b8',
               borderWidth: fillMode === 'outline' ? 2 : 1
             }}
-            className="w-full h-full rounded-xl border shadow-xl flex items-center justify-center p-3 relative"
+            className="w-full h-full rounded-xl border shadow-xl flex items-center justify-center relative overflow-hidden"
           >
-            {isEditing ? (
-              <input
-                ref={inputRef}
-                type="text"
-                value={text}
-                onChange={(e) => {
-                  setText(e.target.value)
-                  syncText(e.target.value)
-                }}
-                onBlur={() => setIsEditing(false)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === 'Escape') setIsEditing(false)
-                }}
-                placeholder="Text..."
-                style={{ color: textColor }}
-                className={`nodrag nopan w-full bg-transparent text-center font-sans ${
-                  isBold ? 'font-bold' : 'font-medium'
-                } ${isItalic ? 'italic' : ''} text-xs outline-none cursor-text`}
-              />
-            ) : (
-              <div className="w-full flex items-center justify-center select-none pointer-events-none">
-                <span 
-                  style={{ color: textColor }}
-                  className={`font-sans ${isBold ? 'font-bold' : 'font-medium'} ${
-                    isItalic ? 'italic' : ''
-                  } text-xs text-center truncate`}
-                >
-                  {text || (selected ? <span className="opacity-40 italic font-normal text-[10px]">Double-click</span> : '')}
-                </span>
-              </div>
-            )}
+            {renderShapeText('p-3')}
           </div>
         )}
 
@@ -1188,39 +1214,9 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
               borderColor: fillMode === 'outline' ? color : '#94a3b8',
               borderWidth: fillMode === 'outline' ? 2 : 1
             }}
-            className="w-full h-full rounded-full border shadow-xl flex items-center justify-center p-3 relative"
+            className="w-full h-full rounded-full border shadow-xl flex items-center justify-center relative overflow-hidden"
           >
-            {isEditing ? (
-              <input
-                ref={inputRef}
-                type="text"
-                value={text}
-                onChange={(e) => {
-                  setText(e.target.value)
-                  syncText(e.target.value)
-                }}
-                onBlur={() => setIsEditing(false)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === 'Escape') setIsEditing(false)
-                }}
-                placeholder="Text..."
-                style={{ color: textColor }}
-                className={`nodrag nopan w-full bg-transparent text-center font-sans ${
-                  isBold ? 'font-bold' : 'font-medium'
-                } ${isItalic ? 'italic' : ''} text-xs outline-none cursor-text`}
-              />
-            ) : (
-              <div className="w-full flex items-center justify-center select-none pointer-events-none">
-                <span 
-                  style={{ color: textColor }}
-                  className={`font-sans ${isBold ? 'font-bold' : 'font-medium'} ${
-                    isItalic ? 'italic' : ''
-                  } text-xs text-center truncate`}
-                >
-                  {text || (selected ? <span className="opacity-40 italic font-normal text-[10px]">Double-click</span> : '')}
-                </span>
-              </div>
-            )}
+            {renderShapeText('p-4')}
           </div>
         )}
       </div>
@@ -1240,6 +1236,7 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     color?: string;
     fontFamily?: 'serif' | 'sans' | 'mono';
     fontSize?: 'sm' | 'base' | 'lg' | 'xl';
+    textAlign?: 'left' | 'center' | 'right';
     isBold?: boolean;
     isItalic?: boolean;
   }
@@ -1247,12 +1244,13 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const [text, setText] = useState(textData.text || '')
   const [isEditing, setIsEditing] = useState(false)
   const [showColorPicker, setShowColorPicker] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const reactFlow = useReactFlow()
 
   const color = textData.color || '#e2e8f0'
   const fontFamily = textData.fontFamily || 'serif'
   const fontSize = textData.fontSize || 'base'
+  const textAlign = textData.textAlign || 'left'
   const isBold = Boolean(textData.isBold)
   const isItalic = Boolean(textData.isItalic)
 
@@ -1263,9 +1261,15 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   }, [id, reactFlow])
 
   useEffect(() => {
+    if (textData.text !== undefined) {
+      setText(textData.text)
+    }
+  }, [textData.text])
+
+  useEffect(() => {
     if (isEditing) {
-      inputRef.current?.focus()
-      inputRef.current?.select()
+      textareaRef.current?.focus()
+      textareaRef.current?.select()
     }
   }, [isEditing])
 
@@ -1287,7 +1291,7 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const handleScale = (factor: number, e: React.MouseEvent) => {
     e.stopPropagation()
     const nextW = Math.round(Math.max(100, Math.min(800, currentW * factor)))
-    const nextH = Math.round(Math.max(30, Math.min(200, currentH * factor)))
+    const nextH = Math.round(Math.max(30, Math.min(400, currentH * factor)))
     reactFlow.setNodes((nds) =>
       nds.map((n) =>
         n.id === id
@@ -1437,6 +1441,27 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
                 {fontSize.toUpperCase()}
               </button>
 
+              {/* Text Alignment */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const alignments: ('left' | 'center' | 'right')[] = ['left', 'center', 'right']
+                  const next = alignments[(alignments.indexOf(textAlign) + 1) % alignments.length]
+                  updateTextData({ textAlign: next })
+                }}
+                className="p-1 rounded hover:bg-oros-850 text-oros-400 hover:text-oros-100 transition-colors cursor-pointer"
+                title={`Text align: ${textAlign} (click to cycle)`}
+              >
+                {textAlign === 'center' ? (
+                  <AlignCenter className="w-3.5 h-3.5" />
+                ) : textAlign === 'right' ? (
+                  <AlignRight className="w-3.5 h-3.5" />
+                ) : (
+                  <AlignLeft className="w-3.5 h-3.5" />
+                )}
+              </button>
+
               {/* Bold Toggle */}
               <button
                 type="button"
@@ -1504,9 +1529,8 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-accent !border !border-oros-950 !-right-1" />
 
         {isEditing ? (
-          <input
-            ref={inputRef}
-            type="text"
+          <textarea
+            ref={textareaRef}
             value={text}
             onChange={(e) => {
               setText(e.target.value)
@@ -1514,21 +1538,30 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             }}
             onBlur={() => setIsEditing(false)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === 'Escape') setIsEditing(false)
+              if (e.key === 'Escape' || ((e.ctrlKey || e.metaKey) && e.key === 'Enter')) {
+                e.preventDefault()
+                setIsEditing(false)
+              }
             }}
-            style={{ color }}
-            className={`nodrag nopan w-full bg-transparent ${fontFamilyClass} ${fontSizeClass} ${
+            style={{ color, textAlign }}
+            className={`nodrag nopan w-full h-full bg-transparent ${fontFamilyClass} ${fontSizeClass} ${
               isBold ? 'font-bold' : ''
-            } ${isItalic ? 'italic' : ''} tracking-wide outline-none cursor-text`}
+            } ${isItalic ? 'italic' : ''} tracking-wide outline-none resize-none break-words whitespace-pre-wrap overflow-y-auto cursor-text scrollbar-none`}
+            placeholder="Type text..."
+            rows={Math.max(1, text.split('\n').length)}
           />
         ) : (
           <div 
-            style={{ color }}
-            className={`w-full ${fontFamilyClass} ${fontSizeClass} ${
-              isBold ? 'font-bold' : ''
-            } ${isItalic ? 'italic' : ''} tracking-wide select-none pointer-events-none truncate cursor-move`}
+            style={{ color, textAlign }}
+            className="w-full h-full flex items-center select-none pointer-events-none cursor-move overflow-hidden"
           >
-            {text || <span className="opacity-40 italic">Double-click to write...</span>}
+            <div 
+              className={`w-full ${fontFamilyClass} ${fontSizeClass} ${
+                isBold ? 'font-bold' : ''
+              } ${isItalic ? 'italic' : ''} tracking-wide break-words whitespace-pre-wrap overflow-hidden`}
+            >
+              {text || <span className="opacity-40 italic">Double-click to write...</span>}
+            </div>
           </div>
         )}
       </div>
@@ -2944,6 +2977,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
   const [snapGuides, setSnapGuides] = useState<SnapGuideLine[]>([])
   const isAltPressedRef = useRef(false)
   const [isAltPressed, setIsAltPressed] = useState(false)
+  const lastMousePosRef = useRef<{ clientX: number; clientY: number } | null>(null)
 
   // Track Alt key press globally to temporarily bypass snapping
   useEffect(() => {
@@ -2968,6 +3002,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     }
 
     const handlePointerMove = (e: PointerEvent | MouseEvent) => {
+      lastMousePosRef.current = { clientX: e.clientX, clientY: e.clientY }
       if (e.altKey !== isAltPressedRef.current) {
         isAltPressedRef.current = e.altKey
         setIsAltPressed(e.altKey)
@@ -3415,19 +3450,34 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     }
   }, [reactFlowInstance, insertImageNode])
 
-  // Global paste handler for image data
+  // Global paste handler for image and text data
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
       const target = e.target as HTMLElement
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+         target.tagName === 'TEXTAREA' ||
+         target.isContentEditable ||
+         target.closest('[contenteditable="true"]') ||
+         target.closest('.tiptap') ||
+         target.closest('textarea') ||
+         target.closest('input'))
+      ) {
         return
       }
 
-      const center = reactFlowInstance.screenToFlowPosition({
-        x: window.innerWidth / 2,
-        y: window.innerHeight / 2
+      // Target position: use mouse position if available, fallback to center of viewport
+      const screenPos = lastMousePosRef.current || {
+        clientX: window.innerWidth / 2,
+        clientY: window.innerHeight / 2
+      }
+      const pastePos = reactFlowInstance.screenToFlowPosition({
+        x: screenPos.clientX,
+        y: screenPos.clientY
       })
 
+      // 1. Check for files (e.g. copied file or screenshot blob)
       if (e.clipboardData?.files && e.clipboardData.files.length > 0) {
         for (let i = 0; i < e.clipboardData.files.length; i++) {
           const file = e.clipboardData.files[i]
@@ -3436,13 +3486,16 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             const reader = new FileReader()
             reader.onload = (loadEv) => {
               const dataUrl = loadEv.target?.result as string
-              insertImageNode(dataUrl, center, file.name.replace(/\.[^/.]+$/, ''))
+              insertImageNode(dataUrl, pastePos, file.name.replace(/\.[^/.]+$/, ''))
             }
             reader.readAsDataURL(file)
             return
           }
         }
-      } else if (e.clipboardData?.items) {
+      }
+
+      // 2. Check for clipboard items (e.g. Snipping Tool, copied browser image)
+      if (e.clipboardData?.items) {
         for (let i = 0; i < e.clipboardData.items.length; i++) {
           const item = e.clipboardData.items[i]
           if (item.type.startsWith('image/')) {
@@ -3452,7 +3505,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
               const reader = new FileReader()
               reader.onload = (loadEv) => {
                 const dataUrl = loadEv.target?.result as string
-                insertImageNode(dataUrl, center, 'Pasted Image')
+                insertImageNode(dataUrl, pastePos, 'Pasted Image')
               }
               reader.readAsDataURL(file)
               return
@@ -3460,11 +3513,73 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
           }
         }
       }
+
+      // 3. Check for HTML data containing <img>
+      const htmlData = e.clipboardData?.getData('text/html')
+      if (htmlData) {
+        const match = htmlData.match(/<img[^>]+src=["']([^"']+)["']/i)
+        if (match && match[1]) {
+          e.preventDefault()
+          insertImageNode(match[1], pastePos, 'Pasted Image')
+          return
+        }
+      }
+
+      // 4. Check for plain text
+      const plainText = e.clipboardData?.getData('text/plain')
+      if (plainText && plainText.trim().length > 0) {
+        const trimmed = plainText.trim()
+
+        // Check if text is an image URL
+        if (
+          trimmed.startsWith('data:image/') ||
+          trimmed.match(/^https?:\/\/.*\.(png|jpg|jpeg|gif|webp|svg|avif)(\?.*)?$/i)
+        ) {
+          e.preventDefault()
+          insertImageNode(trimmed, pastePos, 'Pasted Image')
+          return
+        }
+
+        // Paste text note onto canvas with auto-wrap
+        e.preventDefault()
+        const lines = trimmed.split('\n')
+        const maxLineLen = Math.max(...lines.map((l) => l.length))
+        const width = Math.min(480, Math.max(220, Math.round(Math.min(maxLineLen, 50) * 8.5 + 40)))
+        const approxHeight = Math.max(44, Math.min(500, Math.round(lines.length * 22 + 24)))
+
+        const newNode: Node = {
+          id: `text-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          type: 'canvasText',
+          position: {
+            x: Math.round(pastePos.x - width / 2),
+            y: Math.round(pastePos.y - approxHeight / 2)
+          },
+          style: { width, height: approxHeight },
+          data: {
+            text: trimmed,
+            width,
+            height: approxHeight,
+            textAlign: 'left',
+            fontFamily: 'serif',
+            fontSize: 'base'
+          }
+        }
+
+        setNodes((nds) => {
+          const updated = [...nds, newNode]
+          if (currentCanvas) {
+            saveCanvasNodesAndEdges(currentCanvas.id, updated, edges)
+          }
+          return updated
+        })
+        addToast('Pasted text to canvas', 'success')
+        return
+      }
     }
 
     window.addEventListener('paste', handlePaste)
     return () => window.removeEventListener('paste', handlePaste)
-  }, [reactFlowInstance, insertImageNode])
+  }, [reactFlowInstance, insertImageNode, currentCanvas, edges, saveCanvasNodesAndEdges, addToast])
 
   // Add a Sticky Note at center of viewport
   const handleAddStickyNote = () => {

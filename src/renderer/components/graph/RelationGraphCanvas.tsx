@@ -4,7 +4,7 @@ import {
   MarkerType, Handle, Position, useNodesState, useEdgesState,
   EdgeLabelRenderer, EdgeProps, getStraightPath, getBezierPath,
   BaseEdge, ReactFlowProvider, useReactFlow, ConnectionMode,
-  BackgroundVariant, Connection
+  BackgroundVariant, Connection, SelectionMode
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useWorldStore } from '../../store/useWorldStore'
@@ -20,7 +20,7 @@ import {
   Spline, Minus, ArrowRight, ExternalLink,
   Scroll, Feather, Castle, Landmark, Flag, Scale, Key, Lock,
   Sparkles, Star, Eye, Compass, Crosshair, Coins, Sun, Moon,
-  Link2, Share2, GitFork, Magnet
+  Link2, Share2, GitFork, Magnet, MousePointer, Hand
 } from 'lucide-react'
 import { RelationEdge, LoreEntity } from '@shared/types'
 import { QuickPeekCard } from '../common/QuickPeekCard'
@@ -1201,6 +1201,9 @@ const RelationGraphCanvasContent: React.FC = () => {
     }
   }, [])
 
+  // Tool Selector: select vs pan
+  const [activeTool, setActiveTool] = useState<'select' | 'pan'>('select')
+
   // Modal controls
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingRelation, setEditingRelation] = useState<RelationEdge | null>(null)
@@ -1382,14 +1385,15 @@ const RelationGraphCanvasContent: React.FC = () => {
   // Smart snapping node movement & dynamic alignment guidelines (Alt key bypasses)
   const handleNodesChangeWrapped = useCallback((changes: any) => {
     if (smartSnapEnabled && !isAltPressedRef.current) {
-      const posChange = changes.find((c: any) => c.type === 'position' && c.dragging && c.position)
-      if (posChange) {
+      const posChanges = changes.filter((c: any) => c.type === 'position' && c.dragging && c.position)
+      if (posChanges.length === 1) {
+        const posChange = posChanges[0]
         const dragged = nodes.find((n) => n.id === posChange.id)
         if (dragged) {
           const dW = 144 // Card width (w-36 = 144px)
           const dH = 192 // Card height (h-48 = 192px)
           const others = nodes
-            .filter((n) => n.id !== dragged.id)
+            .filter((n) => n.id !== dragged.id && !n.selected)
             .map((n) => ({
               id: n.id,
               x: n.position.x,
@@ -1405,6 +1409,9 @@ const RelationGraphCanvasContent: React.FC = () => {
           posChange.position.y = snappedY
           setSnapGuides(guides)
         }
+      } else if (posChanges.length > 1) {
+        // Multi-select dragging: preserve relative offsets cleanly
+        if (snapGuides.length > 0) setSnapGuides([])
       } else if (snapGuides.length > 0) {
         setSnapGuides([])
       }
@@ -1417,8 +1424,16 @@ const RelationGraphCanvasContent: React.FC = () => {
 
   const handleNodeDragStop = useCallback((_: any, node: Node) => {
     setSnapGuides([])
-    saveRelationNodePosition(node.id, node.position)
-  }, [saveRelationNodePosition])
+    const currentNodes = reactFlowInstance.getNodes()
+    const selectedNodes = currentNodes.filter((n) => n.selected)
+    if (selectedNodes.length > 1) {
+      selectedNodes.forEach((n) => {
+        saveRelationNodePosition(n.id, n.position)
+      })
+    } else {
+      saveRelationNodePosition(node.id, node.position)
+    }
+  }, [reactFlowInstance, saveRelationNodePosition])
 
   const handleExportGraphImage = async (format: 'png' | 'svg') => {
     if (!containerRef.current) return
@@ -1549,11 +1564,30 @@ const RelationGraphCanvasContent: React.FC = () => {
         return
       }
 
-      // 2. If a node is selected in ReactFlow
-      const selectedNode = nodes.find((n) => n.selected)
-      if (selectedNode && selectedNode.id) {
+      // 2. If one or more nodes are selected in ReactFlow
+      const currentNodes = reactFlowInstance.getNodes()
+      const selectedNodes = currentNodes.filter((n) => n.selected)
+      if (selectedNodes.length > 0) {
         e.preventDefault()
-        handleDeleteEntity(selectedNode.id)
+        if (selectedNodes.length === 1) {
+          handleDeleteEntity(selectedNodes[0].id)
+        } else {
+          const count = selectedNodes.length
+          confirmDialog({
+            title: `Delete ${count} Entries`,
+            message: `Delete ${count} selected entries from Codex? All their relations will also be removed.`,
+            confirmText: `Delete ${count} Entries`,
+            variant: 'danger'
+          }).then((confirmed) => {
+            if (confirmed) {
+              selectedNodes.forEach((n) => deleteEntity(n.id))
+              if (activeEntityForPeek && selectedNodes.some((n) => n.id === activeEntityForPeek.id)) {
+                setActiveEntityForPeek(null)
+              }
+              addToast(`Deleted ${count} entities`, 'info')
+            }
+          })
+        }
         return
       }
 
@@ -1567,7 +1601,7 @@ const RelationGraphCanvasContent: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [edges, nodes, activeEntityForPeek, showAddModal, editingRelation, handleDeleteRelationEdge, handleDeleteEntity])
+  }, [edges, nodes, activeEntityForPeek, showAddModal, editingRelation, reactFlowInstance, deleteEntity, addToast, handleDeleteRelationEdge, handleDeleteEntity])
 
   // React Flow native drag-to-connect handler
   const onConnect = useCallback((connection: Connection) => {
@@ -1762,6 +1796,32 @@ const RelationGraphCanvasContent: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Tool Selector: Select / Pan */}
+            <div className="flex items-center bg-oros-900 border border-oros-750 rounded-[4px] p-0.5 shadow-sm">
+              <button
+                onClick={() => setActiveTool('select')}
+                className={`p-1.5 rounded-[3px] transition-colors ${
+                  activeTool === 'select'
+                    ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
+                    : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850 border border-transparent'
+                }`}
+                title="Select Tool (V) - Marquee selection & multi-move"
+              >
+                <MousePointer className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setActiveTool('pan')}
+                className={`p-1.5 rounded-[3px] transition-colors ${
+                  activeTool === 'pan'
+                    ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
+                    : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850 border border-transparent'
+                }`}
+                title="Pan Tool (H) - Drag canvas pane"
+              >
+                <Hand className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
             {/* Smart Snapping Toggle */}
             <button
               onClick={() => {
@@ -1837,6 +1897,11 @@ const RelationGraphCanvasContent: React.FC = () => {
               })
             }}
             deleteKeyCode={['Backspace', 'Delete', 'Del']}
+            panOnDrag={activeTool === 'pan' ? true : [1, 2]}
+            selectionOnDrag={activeTool === 'select'}
+            selectionMode={SelectionMode.Partial}
+            multiSelectionKeyCode={['Shift', 'Control', 'Meta']}
+            className={activeTool === 'pan' ? 'cursor-grab' : 'cursor-default'}
             onConnect={onConnect}
             onNodeDragStop={handleNodeDragStop}
             fitView

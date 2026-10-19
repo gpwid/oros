@@ -100,6 +100,8 @@ interface WorldState {
   createDirectoryItem: (name: string, type: DirectoryItemType, folderId?: string | null, targetId?: string) => DirectoryItem;
   deleteDirectoryItem: (itemId: string) => void;
   moveItemToFolder: (itemId: string, folderId: string | null) => void;
+  batchMoveItemsToFolder: (itemIds: string[], folderId: string | null) => void;
+  batchDeleteDirectoryItems: (itemIds: string[]) => void;
   syncVaultDirectory: (targetWorldId?: string) => void;
 
   // Canvas Actions
@@ -408,12 +410,34 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const maps = get().maps[id] || [];
     const chapters = get().manuscripts[id] || [];
     const canvases = get().canvases[id] || [];
+    const conlangs = get().conlangs[id] || [];
+
+    // Filter openTabs so tabs pointing to deleted or foreign world items are removed
+    const validTabs = get().openTabs.filter((tab) => {
+      if (!tab.targetId) return true;
+      if (tab.type === 'wiki' || tab.type === 'card') return entities.some((e) => e.id === tab.targetId);
+      if (tab.type === 'map') return maps.some((m) => m.id === tab.targetId);
+      if (tab.type === 'writer') return chapters.some((c) => c.id === tab.targetId);
+      if (tab.type === 'canvas') return canvases.some((c) => c.id === tab.targetId);
+      if (tab.type === 'dictionary') return conlangs.some((l) => l.id === tab.targetId);
+      return false;
+    });
+
+    const nextActiveTabId = validTabs.some((t) => t.id === get().activeTabId)
+      ? get().activeTabId
+      : (validTabs[0]?.id || '');
+    const nextActiveTab = validTabs.find((t) => t.id === nextActiveTabId)?.type as ActiveNavTab || 'wiki-network';
+
     set({ 
       activeWorldId: id,
+      openTabs: validTabs,
+      activeTabId: nextActiveTabId,
+      activeTab: nextActiveTab,
       selectedEntityId: entities[0]?.id || null,
       selectedMapId: maps[0]?.id || null,
       selectedChapterId: chapters[0]?.id || null,
-      selectedCanvasId: canvases[0]?.id || null
+      selectedCanvasId: canvases[0]?.id || null,
+      selectedLanguageId: conlangs[0]?.id || null
     });
     get().syncVaultDirectory(id);
     get().persistStore();
@@ -752,6 +776,53 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     get().persistStore();
   },
 
+  batchMoveItemsToFolder: (itemIds, folderId) => {
+    const worldId = get().activeWorldId;
+    if (!worldId || !itemIds || itemIds.length === 0) return;
+    const targetSet = new Set(itemIds);
+    set((state) => ({
+      directoryItems: {
+        ...state.directoryItems,
+        [worldId]: (state.directoryItems[worldId] || []).map((item) =>
+          targetSet.has(item.id) ? { ...item, folderId, updatedAt: new Date().toISOString() } : item
+        )
+      }
+    }));
+    get().persistStore();
+  },
+
+  batchDeleteDirectoryItems: (itemIds) => {
+    const worldId = get().activeWorldId;
+    if (!worldId || !itemIds || itemIds.length === 0) return;
+    const targetSet = new Set(itemIds);
+    const items = (get().directoryItems[worldId] || []).filter((i) => targetSet.has(i.id));
+
+    // Cascade delete target elements
+    for (const item of items) {
+      if (item.targetId) {
+        if (item.type === 'card' || item.type === 'wiki') {
+          get().deleteEntity(item.targetId);
+        } else if (item.type === 'canvas') {
+          get().deleteCanvas(item.targetId);
+        } else if (item.type === 'map') {
+          get().deleteMap(item.targetId);
+        } else if (item.type === 'writer') {
+          get().deleteChapter(item.targetId);
+        } else if (item.type === 'dictionary') {
+          get().deleteLanguage(item.targetId);
+        }
+      }
+    }
+
+    set((state) => ({
+      directoryItems: {
+        ...state.directoryItems,
+        [worldId]: (state.directoryItems[worldId] || []).filter((i) => !targetSet.has(i.id))
+      }
+    }));
+    get().persistStore();
+  },
+
   // Vault Auto-Detection & Reconciliation
   syncVaultDirectory: (targetWorldId) => {
     const worldId = targetWorldId || get().activeWorldId || sampleWorld.id;
@@ -1084,6 +1155,14 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       worlds: [...state.worlds, newWorld],
       activeWorldId: newWorld.id,
       appView: 'workspace',
+      openTabs: [],
+      activeTabId: '',
+      activeTab: 'wiki-network',
+      selectedEntityId: null,
+      selectedMapId: null,
+      selectedChapterId: null,
+      selectedCanvasId: null,
+      selectedLanguageId: null,
       entities: { ...state.entities, [newWorld.id]: [] },
       maps: { ...state.maps, [newWorld.id]: [] },
       relations: { ...state.relations, [newWorld.id]: [] },

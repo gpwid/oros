@@ -24,7 +24,8 @@ import {
   EdgeLabelRenderer,
   getBezierPath,
   getSmoothStepPath,
-  getStraightPath
+  getStraightPath,
+  SelectionMode
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useWorldStore } from '../../store/useWorldStore'
@@ -3262,14 +3263,15 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
   // Smart snapping node movement & saving with trailing debounce (Alt key bypasses)
   const handleNodesChangeWrapped = useCallback((changes: any) => {
     if (smartSnapEnabled && !isAltPressedRef.current) {
-      const posChange = changes.find((c: any) => c.type === 'position' && c.dragging && c.position)
-      if (posChange) {
+      const posChanges = changes.filter((c: any) => c.type === 'position' && c.dragging && c.position)
+      if (posChanges.length === 1) {
+        const posChange = posChanges[0]
         const dragged = nodes.find((n) => n.id === posChange.id)
         if (dragged) {
           const dW = Number(dragged.style?.width ?? dragged.data?.width ?? 180)
           const dH = Number(dragged.style?.height ?? dragged.data?.height ?? 250)
           const others = nodes
-            .filter((n) => n.id !== dragged.id)
+            .filter((n) => n.id !== dragged.id && !n.selected)
             .map((n) => ({
               id: n.id,
               x: n.position.x,
@@ -3285,6 +3287,9 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
           posChange.position.y = snappedY
           setSnapGuides(guides)
         }
+      } else if (posChanges.length > 1) {
+        // Multi-select dragging: preserve relative offsets cleanly
+        if (snapGuides.length > 0) setSnapGuides([])
       } else if (snapGuides.length > 0) {
         setSnapGuides([])
       }
@@ -3813,8 +3818,10 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
           defaultEdgeOptions={{ type: 'whiteboardEdge' }}
           fitView
           deleteKeyCode={['Backspace', 'Delete', 'Del']}
-          panOnDrag={activeTool === 'pan' || activeTool === 'select'}
+          panOnDrag={activeTool === 'pan' ? true : [1, 2]}
           selectionOnDrag={activeTool === 'select'}
+          selectionMode={SelectionMode.Partial}
+          multiSelectionKeyCode={['Shift', 'Control', 'Meta']}
           zoomOnScroll={true}
           minZoom={0.2}
           maxZoom={2.5}

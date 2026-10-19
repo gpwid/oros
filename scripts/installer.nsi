@@ -15,16 +15,16 @@ Unicode True
 
 ; Installer configuration
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "..\release\Oros-Setup-${PRODUCT_VERSION}.exe"
+OutFile "..\release\Oros-Setup-${PRODUCT_VERSION}.exe.tmp"
 InstallDir "$LOCALAPPDATA\Programs\Oros"
 InstallDirRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
 ShowUnInstDetails show
 RequestExecutionLevel user
 
-; Compressor configuration
-SetCompressor /SOLID lzma
-SetCompressorDictSize 32
+; Fast robust solid compression
+SetCompressor /SOLID zlib
+
 
 ; Icons and Artwork
 !define MUI_ICON "..\public\icon.ico"

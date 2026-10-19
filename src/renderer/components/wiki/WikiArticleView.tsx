@@ -8,9 +8,10 @@ import { NewEntityModal } from '../common/NewEntityModal'
 import { QuickPeekCard } from '../common/QuickPeekCard'
 import { 
   Plus, Edit, Eye, Trash2, Tag, BookOpen, Link2, List, Filter, ChevronDown, SlidersHorizontal,
-  ChevronsLeft, ChevronsRight, EyeOff, Feather, MapPin, Calendar, GitFork, FileText, ExternalLink
+  ChevronsLeft, ChevronsRight, EyeOff, Feather, MapPin, Calendar, GitFork, FileText, ExternalLink,
+  BookOpenCheck, Languages
 } from 'lucide-react'
-import { EntityType, LoreEntity } from '@shared/types'
+import { EntityType, LoreEntity, ConlangWord } from '@shared/types'
 import { 
   DEFAULT_PRESET_CATEGORIES, 
   getCategoryIconComponent, 
@@ -18,6 +19,7 @@ import {
 } from '../../utils/categoryIcons'
 import { CategoryManagerModal } from '../common/CategoryManagerModal'
 import { findBacklinksForEntity } from '../../utils/backlinksEngine'
+import { useSettingsStore } from '../../store/useSettingsStore'
 
 interface WikiArticleViewProps {
   entityId?: string
@@ -27,10 +29,21 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
   const { 
     entities, categories, activeWorldId, selectedEntityId, setSelectedEntityId, openTab,
     updateEntity, createEntity, deleteEntity, searchQuery, gmMode,
-    manuscripts, maps, timelines, relations, setSelectedChapterId, setSelectedMapId
+    manuscripts, maps, timelines, relations, conlangs, setSelectedChapterId, setSelectedMapId,
+    openReaderMode
   } = useWorldStore()
 
   const { addToast } = useToastStore()
+  const { settings } = useSettingsStore()
+
+  const typographyStyle: React.CSSProperties = useMemo(() => {
+    const fontSize = settings?.editor?.fontSize || 15
+    const lineHeight = settings?.editor?.lineHeight || 1.65
+    return {
+      fontSize: `${fontSize}px`,
+      lineHeight: lineHeight
+    }
+  }, [settings?.editor?.fontSize, settings?.editor?.lineHeight])
 
   const [isEditing, setIsEditing] = useState(false)
   const [filterType, setFilterType] = useState<string | 'all'>('all')
@@ -70,6 +83,9 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
   const currentEntity = worldEntities.find((e) => e.id === effectiveId) || worldEntities.find((e) => e.id === selectedEntityId) || filteredEntities[0]
 
   // Dynamically extract real headings from article HTML and inject unique IDs
+  const worldConlangs = useMemo(() => activeWorldId ? conlangs[activeWorldId] || [] : [], [activeWorldId, conlangs])
+
+  // Dynamically extract real headings from article HTML and inject unique IDs & auto-gloss conlang terms
   const { processedHtml, tocItems } = useMemo(() => {
     if (!currentEntity?.content) return { processedHtml: '', tocItems: [] }
 
@@ -91,11 +107,66 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
       })
     })
 
+    // Auto-gloss registered conlang terms in prose
+    if (worldConlangs.length > 0) {
+      const conlangTerms: { term: string; meaning: string; ipa?: string; lang: string }[] = []
+      worldConlangs.forEach((lang) => {
+        lang.words.forEach((w) => {
+          if (w.term && w.term.trim().length >= 3) {
+            conlangTerms.push({ term: w.term.trim(), meaning: w.definition, ipa: w.phonetic, lang: lang.name })
+          }
+        })
+      })
+
+      if (conlangTerms.length > 0) {
+        const paragraphs = doc.querySelectorAll('p, li, td')
+        paragraphs.forEach((p) => {
+          let html = p.innerHTML
+          conlangTerms.forEach(({ term, meaning, ipa, lang }) => {
+            const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            const regex = new RegExp(`\\b(${escaped})\\b(?![^<]*>|[^<>]*<\\/)`, 'gi')
+            if (regex.test(html)) {
+              html = html.replace(
+                regex, 
+                `<span class="oros-conlang-term border-b border-dotted border-accent text-accent cursor-help font-medium" title="${term} (${lang}): &quot;${meaning}&quot;${ipa ? ` [/${ipa}/]` : ''}">$1</span>`
+              )
+            }
+          })
+          p.innerHTML = html
+        })
+      }
+    }
+
     return {
       processedHtml: doc.body.innerHTML,
       tocItems: items
     }
-  }, [currentEntity?.content])
+  }, [currentEntity?.content, worldConlangs])
+
+  // Associated Conlang Vocabulary for this entity
+  const associatedWords = useMemo(() => {
+    if (!currentEntity) return []
+    const results: { word: ConlangWord; langName: string }[] = []
+    const titleLower = currentEntity.title.toLowerCase()
+
+    worldConlangs.forEach((lang) => {
+      lang.words.forEach((w) => {
+        const termLower = w.term.toLowerCase()
+        const defLower = (w.definition || '').toLowerCase()
+
+        if (
+          w.relatedEntityId === currentEntity.id ||
+          titleLower.includes(termLower) ||
+          termLower.includes(titleLower) ||
+          (currentEntity.tags || []).some((t) => t.toLowerCase() === termLower || t.toLowerCase() === defLower)
+        ) {
+          results.push({ word: w, langName: lang.name })
+        }
+      })
+    })
+
+    return results
+  }, [currentEntity, worldConlangs])
 
   // Compute hierarchical numbers (1, 2, 2.1, 2.2, 3...)
   const numberedTocItems = useMemo(() => {
@@ -144,8 +215,20 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
     )
   }, [currentEntity, worldEntities, worldChapters, worldMaps, worldTimelines, worldRelations])
 
-  const handleCreateSubmit = (title: string, templateId: string, folderId?: string | null) => {
-    const newEnt = createEntity(filterType === 'all' ? 'character' : filterType, title, folderId, templateId)
+  const handleCreateSubmit = (
+    title: string, 
+    templateId: string, 
+    folderId?: string | null, 
+    categoryId?: string | null, 
+    tags?: string[]
+  ) => {
+    const finalType = (categoryId && categoryId !== 'all')
+      ? categoryId
+      : (filterType === 'all' ? 'character' : filterType)
+    const newEnt = createEntity(finalType, title, folderId, templateId)
+    if (tags && tags.length > 0) {
+      updateEntity(newEnt.id, { tags })
+    }
     setSelectedEntityId(newEnt.id)
     setIsEditing(true)
     setShowCreateModal(false)
@@ -413,10 +496,25 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                     </span>
                   )}
                 </div>
-                <h1 className="font-serif text-2xl font-bold text-oros-100 tracking-tight">
-                  {currentEntity.title}
-                </h1>
-                {currentEntity.summary && (
+                {isEditing ? (
+                  <div className="mt-1 mb-2">
+                    <label className="block text-[10px] font-mono uppercase tracking-wider text-oros-400 mb-1">
+                      Main Title
+                    </label>
+                    <input
+                      type="text"
+                      value={currentEntity.title}
+                      onChange={(e) => updateEntity(currentEntity.id, { title: e.target.value })}
+                      placeholder="Card Title..."
+                      className="font-serif text-2xl font-bold text-oros-100 tracking-tight bg-oros-900 border border-oros-750 focus:border-accent rounded-[3px] px-2.5 py-1 w-full max-w-xl focus:outline-none shadow-sm"
+                    />
+                  </div>
+                ) : (
+                  <h1 className="font-serif text-2xl font-bold text-oros-100 tracking-tight">
+                    {currentEntity.title}
+                  </h1>
+                )}
+                {!isEditing && currentEntity.summary && (
                   <p className="text-xs text-oros-300 mt-1 font-sans leading-relaxed">
                     {currentEntity.summary}
                   </p>
@@ -437,7 +535,22 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                   <span>{isEditing ? 'View Article' : 'Edit Article'}</span>
                 </button>
                 <button
-                  onClick={() => setShowDeleteModal(true)}
+                  onClick={() => openReaderMode({ type: 'card', id: currentEntity.id })}
+                  className="px-2.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-accent border border-oros-750 transition-colors flex items-center gap-1.5"
+                  title="Read in Distraction-Free Codex Reader"
+                >
+                  <BookOpenCheck className="w-3.5 h-3.5 text-accent" />
+                  <span className="hidden sm:inline">Codex Reader</span>
+                </button>
+                <button
+                  onClick={() => {
+                    const { settings } = useSettingsStore.getState()
+                    if (settings.general.confirmEntityDeletion) {
+                      setShowDeleteModal(true)
+                    } else {
+                      handleDeleteConfirm()
+                    }
+                  }}
                   className="p-1.5 rounded-[3px] bg-oros-900 hover:bg-rose-950/60 text-oros-400 hover:text-rose-400 border border-oros-750 transition-colors"
                   title="Delete article"
                 >
@@ -531,6 +644,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                     <WikiEditor
                       content={currentEntity.content}
                       onChange={(newHtml) => updateEntity(currentEntity.id, { content: newHtml })}
+                      typographyStyle={typographyStyle}
                     />
                   </div>
                 ) : (
@@ -584,6 +698,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                     {/* Formatted HTML Wiki Article with Injected Anchor IDs & Interactive Discord-style Spoilers */}
                     <div 
                       className={`oros-wiki-prose ${gmMode ? 'oros-gm-revealed' : ''}`}
+                      style={typographyStyle}
                       onClick={(e) => {
                         const target = (e.target as HTMLElement).closest('.oros-spoiler')
                         if (target) {
@@ -592,6 +707,62 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                       }}
                       dangerouslySetInnerHTML={{ __html: processedHtml }}
                     />
+                  </div>
+                )}
+
+                {/* Associated Conlang Vocabulary */}
+                {associatedWords.length > 0 && (
+                  <div className="mt-10 pt-6 border-t border-oros-800">
+                    <div className="flex items-center justify-between mb-3.5">
+                      <div className="flex items-center gap-2">
+                        <Languages className="w-4 h-4 text-accent" />
+                        <h3 className="font-sans text-xs font-semibold text-oros-200 uppercase tracking-wider">
+                          Associated Conlang Vocabulary
+                        </h3>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-[2px] bg-oros-900 border border-oros-750 text-accent">
+                          {associatedWords.length} {associatedWords.length === 1 ? 'term' : 'terms'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => openTab({ title: 'Conlang Lexicon', type: 'dictionary' })}
+                        className="text-[11px] font-mono text-accent hover:text-accent-hover hover:underline flex items-center gap-1 transition-colors"
+                      >
+                        Open Lexicon <ExternalLink className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                      {associatedWords.map(({ word, langName }) => (
+                        <div
+                          key={word.id}
+                          className="p-3 rounded-[3px] bg-oros-900/90 border border-oros-800 hover:border-accent/40 hover:bg-oros-850/80 transition-all flex flex-col justify-between group shadow-sm"
+                        >
+                          <div>
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span className="font-serif font-bold text-sm text-oros-100 group-hover:text-accent transition-colors">
+                                {word.term}
+                              </span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-[2px] bg-oros-950 border border-oros-800 text-oros-400">
+                                {langName}
+                              </span>
+                            </div>
+                            <p className="text-xs text-oros-300 font-sans">
+                              "{word.definition}"
+                            </p>
+                            {word.phonetic && (
+                              <p className="text-[11px] font-mono text-oros-500 mt-1">
+                                {word.phonetic} {word.partOfSpeech ? `• ${word.partOfSpeech}` : ''}
+                              </p>
+                            )}
+                          </div>
+                          {word.etymology && (
+                            <div className="mt-2.5 pt-1.5 border-t border-oros-850 text-[10px] text-oros-500 font-sans">
+                              <span className="text-oros-400 font-mono">Root:</span> {word.etymology}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -883,6 +1054,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
               {/* Floated MediaWiki Infobox */}
               <WikiInfobox
                 entity={currentEntity}
+                isEditing={isEditing}
                 onUpdate={(updates) => updateEntity(currentEntity.id, updates)}
               />
             </div>

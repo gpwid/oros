@@ -7,6 +7,8 @@ import { CommandPalette } from './components/common/CommandPalette'
 import { ToastContainer } from './components/common/ToastContainer'
 import { ConfirmModal } from './components/common/ConfirmModal'
 import { CustomTooltipProvider } from './components/common/CustomTooltipProvider'
+import { SettingsModal } from './components/settings/SettingsModal'
+import { useSettingsStore } from './store/useSettingsStore'
 import { applyTheme } from './utils/themeEngine'
 
 // Code-split heavy views to accelerate launch time and memory footprint
@@ -18,6 +20,8 @@ const RelationGraphCanvas = lazy(() => import('./components/graph/RelationGraphC
 const WikiNetworkGraph = lazy(() => import('./components/graph/WikiNetworkGraph').then(m => ({ default: m.WikiNetworkGraph })))
 const TimelineView = lazy(() => import('./components/timeline/TimelineView').then(m => ({ default: m.TimelineView })))
 const StudioWriter = lazy(() => import('./components/writer/StudioWriter').then(m => ({ default: m.StudioWriter })))
+const ConlangDictionaryView = lazy(() => import('./components/conlang/ConlangDictionaryView').then(m => ({ default: m.ConlangDictionaryView })))
+const CodexReaderView = lazy(() => import('./components/reader/CodexReaderView').then(m => ({ default: m.CodexReaderView })))
 
 const ViewFallback = () => (
   <div className="flex-1 h-full w-full flex flex-col items-center justify-center bg-oros-950 text-oros-400">
@@ -29,26 +33,82 @@ const ViewFallback = () => (
 )
 
 export const App: React.FC = () => {
-  const { activeTab, openTabs, activeTabId, initStore, worlds, activeWorldId, appView } = useWorldStore()
+  const { activeTab, openTabs, activeTabId, initStore, worlds, activeWorldId, appView, setAppView, isReaderMode } = useWorldStore()
+  const { isSettingsOpen, openSettings, closeSettings, settings } = useSettingsStore()
 
   useEffect(() => {
-    initStore()
+    initStore().then(() => {
+      if (settings.general.startupView === 'last-workspace') {
+        try {
+          const savedView = localStorage.getItem('oros_app_view')
+          if (savedView === 'workspace') {
+            setAppView('workspace')
+          }
+        } catch (e) {}
+      }
+    })
+  }, [initStore, settings.general.startupView, setAppView])
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        localStorage.removeItem('oros_app_view')
+        localStorage.setItem('oros_app_view', appView)
       } catch (e) {}
     }
-  }, [initStore])
+  }, [appView])
+
+  // Global hotkeys (e.g. Ctrl+, for Settings)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+        e.preventDefault()
+        if (isSettingsOpen) {
+          closeSettings()
+        } else {
+          openSettings()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [isSettingsOpen, openSettings, closeSettings])
 
   const activeWorld = worlds.find((w) => w.id === activeWorldId) || worlds[0]
 
   useEffect(() => {
-    if (appView === 'home') {
-      applyTheme('sovereign')
+    // Determine active snippets (workspace-specific or global)
+    const activeSnippets = (!settings.interface.forceGlobalTheme && activeWorld?.snippets && activeWorld.snippets.length > 0)
+      ? activeWorld.snippets
+      : (settings.interface.snippets || [])
+
+    if (settings.interface.forceGlobalTheme) {
+      const customConfig = settings.interface.customThemes?.find((t) => t.id === settings.interface.themePreset)
+      applyTheme(
+        settings.interface.themePreset,
+        settings.interface.themePreset === 'custom' ? settings.interface.customAccentColor : undefined,
+        customConfig,
+        activeSnippets
+      )
+    } else if (appView === 'home') {
+      applyTheme('sovereign', undefined, undefined, activeSnippets)
+    } else if (activeWorld?.themeConfig) {
+      applyTheme(undefined, undefined, activeWorld.themeConfig, activeSnippets)
     } else {
-      applyTheme(activeWorld?.theme, activeWorld?.customAccentColor)
+      applyTheme(activeWorld?.theme, activeWorld?.customAccentColor, undefined, activeSnippets)
     }
-  }, [appView, activeWorld?.theme, activeWorld?.customAccentColor])
+  }, [
+    appView, 
+    activeWorld?.theme, 
+    activeWorld?.customAccentColor, 
+    activeWorld?.themeConfig,
+    activeWorld?.snippets,
+    settings.interface.forceGlobalTheme, 
+    settings.interface.themePreset, 
+    settings.interface.customAccentColor, 
+    settings.interface.customThemes,
+    settings.interface.snippets,
+    settings.interface.colorMode
+  ])
 
   const activeTabObj = openTabs.find((t) => t.id === activeTabId)
   const currentTabType = activeTabObj?.type || activeTab
@@ -83,13 +143,17 @@ export const App: React.FC = () => {
         return <TimelineView />
       case 'writer':
         return <StudioWriter />
+      case 'dictionary':
+        return <ConlangDictionaryView />
+      case 'reader':
+        return <CodexReaderView />
       default:
         return <WikiNetworkGraph />
     }
   }
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-oros-950 text-slate-100 overflow-hidden font-sans">
+    <div className="h-screen w-screen flex flex-col bg-oros-950 text-oros-100 overflow-hidden font-sans">
       {appView === 'home' ? (
         <HomePage />
       ) : (
@@ -114,10 +178,18 @@ export const App: React.FC = () => {
         </>
       )}
 
+      {/* Distraction-Free Codex Reader Compendium Overlay */}
+      {isReaderMode && (
+        <Suspense fallback={<ViewFallback />}>
+          <CodexReaderView />
+        </Suspense>
+      )}
+
       <CommandPalette />
       <ToastContainer />
       <ConfirmModal />
       <CustomTooltipProvider />
+      <SettingsModal />
     </div>
   )
 }

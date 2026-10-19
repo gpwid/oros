@@ -9,18 +9,19 @@ export default {
     extend: {
       colors: {
         oros: {
-          50: '#f8f9fa',
-          100: '#edf0f4',
-          200: '#d7dce4',
-          300: '#b4bdcd',
-          400: '#8793a7',
-          500: '#606b81',
-          600: '#434c5e',
-          700: '#2c3340',
-          800: '#1b1f28',
-          850: '#14171f',
-          900: '#0f1116',
-          950: '#090a0d',
+          50: 'rgb(var(--oros-50-rgb) / <alpha-value>)',
+          100: 'rgb(var(--oros-100-rgb) / <alpha-value>)',
+          200: 'rgb(var(--oros-200-rgb) / <alpha-value>)',
+          300: 'rgb(var(--oros-300-rgb) / <alpha-value>)',
+          400: 'rgb(var(--oros-400-rgb) / <alpha-value>)',
+          500: 'rgb(var(--oros-500-rgb) / <alpha-value>)',
+          600: 'rgb(var(--oros-600-rgb) / <alpha-value>)',
+          700: 'rgb(var(--oros-700-rgb) / <alpha-value>)',
+          750: 'rgb(var(--oros-750-rgb) / <alpha-value>)',
+          800: 'rgb(var(--oros-800-rgb) / <alpha-value>)',
+          850: 'rgb(var(--oros-850-rgb) / <alpha-value>)',
+          900: 'rgb(var(--oros-900-rgb) / <alpha-value>)',
+          950: 'rgb(var(--oros-950-rgb) / <alpha-value>)',
         },
         accent: {
           DEFAULT: 'var(--oros-accent, #e2e8f0)',
@@ -39,10 +40,10 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        serif: ['Cormorant Garamond', 'Georgia', 'serif'],
-        prose: ['Literata', 'Merriweather', 'Georgia', 'serif'],
-        mono: ['IBM Plex Mono', 'monospace']
+        sans: ['var(--font-sans)', 'Plus Jakarta Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        serif: ['var(--font-serif)', 'Playfair Display', 'Cormorant Garamond', 'Georgia', 'serif'],
+        prose: ['var(--font-prose, "Literata")', 'Merriweather', 'Georgia', 'serif'],
+        mono: ['var(--font-mono)', 'JetBrains Mono', 'IBM Plex Mono', 'monospace']
       },
       transitionTimingFunction: {
         'snappy': 'cubic-bezier(0.16, 1, 0.3, 1)',

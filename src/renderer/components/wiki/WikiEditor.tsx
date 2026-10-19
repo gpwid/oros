@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 import { Spoiler } from './spoilerExtension'
 
+import { useSettingsStore } from '../../store/useSettingsStore'
+
 interface WikiEditorProps {
   content: string;
   onChange: (newContent: string) => void;
@@ -28,6 +30,7 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
   contentClassName
 }) => {
   const { addToast } = useToastStore()
+  const { settings } = useSettingsStore()
 
   const editor = useEditor({
     extensions: [
@@ -46,11 +49,41 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
     content,
     editorProps: {
       attributes: {
-        class: 'oros-wiki-prose focus:outline-none min-h-[380px] p-5 text-slate-200 select-text leading-relaxed'
+        class: `oros-wiki-prose focus:outline-none min-h-[380px] p-5 select-text leading-relaxed text-oros-200 ${contentClassName || ''}`,
+        spellcheck: settings.editor.spellcheck ? 'true' : 'false',
+        style: typographyStyle ? Object.entries(typographyStyle).map(([k, v]) => `${k.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)}: ${v}`).join('; ') : ''
+      },
+      handleKeyDown: (view, event) => {
+        if (!settings.editor.autoPairBrackets) return false
+        const pairs: Record<string, string> = {
+          '[': ']',
+          '(': ')',
+          '{': '}',
+          '"': '"',
+          "'": "'",
+          '`': '`'
+        }
+        if (pairs[event.key]) {
+          const { state, dispatch } = view
+          const { selection } = state
+          if (!selection.empty) {
+            const text = state.doc.textBetween(selection.from, selection.to)
+            dispatch(state.tr.insertText(`${event.key}${text}${pairs[event.key]}`, selection.from, selection.to))
+            return true
+          }
+        }
+        return false
       }
     },
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
+      if (settings.editor.typewriterMode) {
+        // Typewriter scrolling: center cursor line vertically in viewport
+        const sel = window.getSelection()
+        if (sel && sel.anchorNode && sel.anchorNode.parentElement) {
+          sel.anchorNode.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }
     }
   })
 
@@ -60,6 +93,13 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
       editor.commands.setContent(content)
     }
   }, [content, editor])
+
+  // Synchronize dynamic typography style reactively to ProseMirror DOM
+  useEffect(() => {
+    if (editor && editor.view && editor.view.dom && typographyStyle) {
+      Object.assign(editor.view.dom.style, typographyStyle)
+    }
+  }, [editor, typographyStyle])
 
   const handleInsertAsset = async () => {
     if (window.oros) {

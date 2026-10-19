@@ -279,7 +279,7 @@ export const TimelineCalendarView: React.FC<TimelineCalendarViewProps> = ({
                         e.stopPropagation()
                         onAddAtDate(activeYear, activeMonthIndex, dayNum)
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded bg-oros-800 hover:bg-accent hover:text-oros-950 text-oros-300 transition-all shadow"
+                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded bg-oros-800 hover:bg-accent hover:text-accent-contrast text-oros-300 transition-all shadow"
                       title={`Add Event on Day ${dayNum}`}
                     >
                       <Plus className="w-3 h-3" />

@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, protocol, net, nativeImage } from 'electron'
 import { join, dirname, extname, basename } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, statSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -39,20 +39,47 @@ if (!gotTheLock) {
 }
 
 const userDataPath = app.getPath('userData')
-const vaultPath = join(userDataPath, 'vault')
-const assetsPath = join(vaultPath, 'assets')
-const dataFilePath = join(vaultPath, 'oros_vault.json')
-const backupFilePath = join(vaultPath, 'oros_vault.json.bak')
+const configFilePath = join(userDataPath, 'vault_config.json')
+
+function getInitialVaultPath(): string {
+  try {
+    if (existsSync(configFilePath)) {
+      const parsed = JSON.parse(readFileSync(configFilePath, 'utf-8'))
+      if (parsed.vaultPath && typeof parsed.vaultPath === 'string' && existsSync(parsed.vaultPath)) {
+        return parsed.vaultPath
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to read vault_config.json:', err)
+  }
+  return join(userDataPath, 'vault')
+}
+
+let activeVaultPath = getInitialVaultPath()
+
+function getAssetsPath(): string {
+  return join(activeVaultPath, 'assets')
+}
+
+function getDataFilePath(): string {
+  return join(activeVaultPath, 'oros_vault.json')
+}
+
+function getBackupsPath(): string {
+  return join(activeVaultPath, 'backups')
+}
 
 // Ensure directory tree exists
 function ensureDirectories() {
-  if (!existsSync(vaultPath)) mkdirSync(vaultPath, { recursive: true })
-  if (!existsSync(assetsPath)) mkdirSync(assetsPath, { recursive: true })
+  if (!existsSync(activeVaultPath)) mkdirSync(activeVaultPath, { recursive: true })
+  if (!existsSync(getAssetsPath())) mkdirSync(getAssetsPath(), { recursive: true })
+  if (!existsSync(getBackupsPath())) mkdirSync(getBackupsPath(), { recursive: true })
 }
 
 function loadVaultData(): string | null {
   try {
     ensureDirectories()
+    const dataFilePath = getDataFilePath()
     if (existsSync(dataFilePath)) {
       return readFileSync(dataFilePath, 'utf-8')
     }
@@ -65,9 +92,11 @@ function loadVaultData(): string | null {
 function saveVaultData(jsonContent: string): boolean {
   try {
     ensureDirectories()
+    const dataFilePath = getDataFilePath()
     // Create backup before writing
     if (existsSync(dataFilePath)) {
       try {
+        const backupFilePath = join(getBackupsPath(), `oros_vault_${new Date().toISOString().slice(0, 10)}.json.bak`)
         copyFileSync(dataFilePath, backupFilePath)
       } catch (backupErr) {
         console.warn('Could not write backup file:', backupErr)
@@ -138,8 +167,23 @@ function createWindow(): void {
       preload: preloadPath,
       sandbox: false,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      webSecurity: false
     }
+  })
+
+  // Support native browser downloads for data/blob URLs
+  mainWindow.webContents.session.on('will-download', (_event, item) => {
+    item.on('updated', (_event, state) => {
+      if (state === 'interrupted') {
+        console.warn('Download interrupted')
+      }
+    })
+    item.once('done', (_event, state) => {
+      if (state === 'completed') {
+        console.log('Download completed:', item.getSavePath())
+      }
+    })
   })
 
   mainWindow.on('ready-to-show', () => {
@@ -166,13 +210,21 @@ app.whenReady().then(() => {
 
   // Protocol handler for oros-asset://<assetFilename>
   protocol.handle('oros-asset', (request) => {
-    const url = new URL(request.url)
-    // Handle oros-asset://filename.png or oros-asset:///filename.png
-    const filename = url.hostname ? `${url.hostname}${url.pathname}` : url.pathname.replace(/^\/+/, '')
-    const targetFile = join(assetsPath, decodeURIComponent(filename))
+    try {
+      const url = new URL(request.url)
+      const filename = url.hostname ? `${url.hostname}${url.pathname}` : url.pathname.replace(/^\/+/, '')
+      const targetFile = join(getAssetsPath(), decodeURIComponent(filename))
 
-    if (existsSync(targetFile)) {
-      return net.fetch(pathToFileURL(targetFile).toString())
+      if (existsSync(targetFile)) {
+        const ext = extname(targetFile).toLowerCase()
+        const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : ext === '.svg' ? 'image/svg+xml' : ext === '.gif' ? 'image/gif' : 'image/jpeg'
+        const data = readFileSync(targetFile)
+        return new Response(data, {
+          headers: { 'Content-Type': mime }
+        })
+      }
+    } catch (e) {
+      console.warn('oros-asset protocol handler failed:', e)
     }
     return new Response('Asset not found', { status: 404 })
   })
@@ -186,7 +238,7 @@ app.whenReady().then(() => {
     return saveVaultData(content)
   })
 
-  // Native Image Importer: Copies file into local vault and returns oros-asset:// URL
+  // Native Image Importer: Copies file into local vault and returns instant base64 Data URL
   ipcMain.handle('oros:import-asset', async () => {
     if (!mainWindow) return null
     const result = await dialog.showOpenDialog(mainWindow, {
@@ -201,20 +253,27 @@ app.whenReady().then(() => {
     const ext = extname(sourcePath).toLowerCase()
     const id = randomUUID()
     const targetFilename = `${id}${ext}`
-    const destinationPath = join(assetsPath, targetFilename)
+    const destinationPath = join(getAssetsPath(), targetFilename)
 
     copyFileSync(sourcePath, destinationPath)
-    return `oros-asset://${targetFilename}`
+    const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : ext === '.svg' ? 'image/svg+xml' : ext === '.gif' ? 'image/gif' : 'image/jpeg'
+    const buf = readFileSync(destinationPath)
+    return `data:${mime};base64,${buf.toString('base64')}`
   })
 
   ipcMain.handle('oros:select-image', async () => {
     if (!mainWindow) return null
     const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select Image',
       properties: ['openFile'],
       filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'svg', 'gif'] }]
     })
     if (result.canceled || result.filePaths.length === 0) return null
-    return result.filePaths[0]
+    const filePath = result.filePaths[0]
+    const ext = extname(filePath).toLowerCase()
+    const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : ext === '.svg' ? 'image/svg+xml' : ext === '.gif' ? 'image/gif' : 'image/jpeg'
+    const buf = readFileSync(filePath)
+    return `data:${mime};base64,${buf.toString('base64')}`
   })
 
   ipcMain.handle('oros:export-world', async (_event, fileName: string, content: string) => {
@@ -246,26 +305,156 @@ app.whenReady().then(() => {
     }
   })
 
-  ipcMain.handle('oros:export-file', async (_event, defaultFileName: string, content: string, extension: string = 'md', filterName: string = 'Markdown Document') => {
+  ipcMain.handle('oros:export-file', async (_event, defaultFileName: string, content: string, extension?: string, filterName?: string) => {
     if (!mainWindow) return false
+    const ext = extension || (defaultFileName.includes('.') ? defaultFileName.split('.').pop()! : 'txt')
+    const filter = filterName || `${ext.toUpperCase()} File`
+    const defaultName = defaultFileName.endsWith(`.${ext}`) ? defaultFileName : `${defaultFileName}.${ext}`
+
     const result = await dialog.showSaveDialog(mainWindow, {
-      title: 'Export Document',
-      defaultPath: `${defaultFileName}.${extension}`,
-      filters: [{ name: filterName, extensions: [extension] }]
+      title: `Export ${filter}`,
+      defaultPath: defaultName,
+      filters: [{ name: filter, extensions: [ext] }]
     })
     if (result.canceled || !result.filePath) return false
-    writeFileSync(result.filePath, content, 'utf-8')
+
+    if (typeof content === 'string' && content.startsWith('data:')) {
+      const match = content.match(/^data:([^;]+);base64,(.+)$/)
+      if (match) {
+        writeFileSync(result.filePath, Buffer.from(match[2], 'base64'))
+      } else {
+        const commaIdx = content.indexOf(',')
+        const raw = commaIdx !== -1 ? decodeURIComponent(content.slice(commaIdx + 1)) : content
+        writeFileSync(result.filePath, raw, 'utf-8')
+      }
+    } else {
+      writeFileSync(result.filePath, content, 'utf-8')
+    }
     return true
+  })
+
+  ipcMain.handle('oros:fetch-image-data-url', async (_event, url: string) => {
+    try {
+      const res = await net.fetch(url)
+      if (!res.ok) return null
+      const arrayBuffer = await res.arrayBuffer()
+      const contentType = res.headers.get('content-type') || 'image/png'
+      const b64 = Buffer.from(arrayBuffer).toString('base64')
+      return `data:${contentType};base64,${b64}`
+    } catch (err) {
+      console.warn('Failed to fetch image via main process:', url, err)
+      return null
+    }
   })
 
   ipcMain.handle('oros:open-vault-folder', async () => {
     ensureDirectories()
-    const err = await shell.openPath(vaultPath)
+    const err = await shell.openPath(activeVaultPath)
     if (err) {
       console.error('Failed to open vault path:', err)
       return false
     }
     return true
+  })
+
+  ipcMain.handle('oros:get-vault-path', async () => {
+    return activeVaultPath
+  })
+
+  ipcMain.handle('oros:choose-vault-folder', async () => {
+    if (!mainWindow) return { success: false, cancelled: true }
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Choose Oros Vault Storage Folder',
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, cancelled: true }
+    }
+
+    const newPath = result.filePaths[0]
+    const oldDataFile = getDataFilePath()
+
+    activeVaultPath = newPath
+    ensureDirectories()
+
+    // If new vault has no data file yet, migrate current one over
+    const newDataFile = getDataFilePath()
+    if (existsSync(oldDataFile) && !existsSync(newDataFile)) {
+      try {
+        copyFileSync(oldDataFile, newDataFile)
+      } catch (err) {
+        console.warn('Could not copy vault to new location:', err)
+      }
+    }
+
+    // Persist custom vault path in config
+    try {
+      writeFileSync(configFilePath, JSON.stringify({ vaultPath: activeVaultPath }, null, 2), 'utf-8')
+    } catch (err) {
+      console.warn('Could not save vault_config.json:', err)
+    }
+
+    return { success: true, newPath: activeVaultPath }
+  })
+
+  ipcMain.handle('oros:open-assets-folder', async () => {
+    ensureDirectories()
+    const err = await shell.openPath(getAssetsPath())
+    return !err
+  })
+
+  ipcMain.handle('oros:get-storage-stats', async () => {
+    ensureDirectories()
+    const assetsDir = getAssetsPath()
+    let assetsCount = 0
+    let assetsSizeMb = 0
+    try {
+      const files = readdirSync(assetsDir)
+      assetsCount = files.length
+      for (const f of files) {
+        const st = statSync(join(assetsDir, f))
+        assetsSizeMb += st.size / (1024 * 1024)
+      }
+    } catch (e) {}
+
+    let backupsCount = 0
+    try {
+      const bFiles = readdirSync(getBackupsPath())
+      backupsCount = bFiles.length
+    } catch (e) {}
+
+    return {
+      vaultPath: activeVaultPath,
+      assetsCount,
+      assetsSizeMb: Number(assetsSizeMb.toFixed(2)),
+      backupsCount
+    }
+  })
+
+  ipcMain.handle('oros:create-manual-backup', async () => {
+    try {
+      ensureDirectories()
+      const src = getDataFilePath()
+      if (!existsSync(src)) return { success: false }
+      const timeStr = new Date().toISOString().replace(/[:.]/g, '-')
+      const fname = `oros_snapshot_${timeStr}.json.bak`
+      const dest = join(getBackupsPath(), fname)
+      copyFileSync(src, dest)
+      return { success: true, filename: fname }
+    } catch (e) {
+      return { success: false }
+    }
+  })
+
+  ipcMain.handle('oros:get-system-info', async () => {
+    return {
+      version: app.getVersion() || '0.1.0',
+      electron: process.versions.electron,
+      chrome: process.versions.chrome,
+      node: process.versions.node,
+      platform: process.platform,
+      arch: process.arch
+    }
   })
 
   createWindow()

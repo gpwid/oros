@@ -2,21 +2,80 @@ import React, { useState } from 'react'
 import { LoreEntity, InfoboxField } from '@shared/types'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
-import { Plus, Edit3, Check, Trash2, ExternalLink, Camera, Image as ImageIcon } from 'lucide-react'
+import { Plus, Trash2, ExternalLink, Camera, Image as ImageIcon } from 'lucide-react'
 
 interface WikiInfoboxProps {
   entity: LoreEntity;
+  isEditing?: boolean;
   onUpdate: (updates: Partial<LoreEntity>) => void;
 }
 
-export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, onUpdate }) => {
+export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, isEditing = false, onUpdate }) => {
   const { entities, activeWorldId, setSelectedEntityId, openTab } = useWorldStore()
   const { addToast } = useToastStore()
-  const [isEditing, setIsEditing] = useState(false)
   const [newFieldLabel, setNewFieldLabel] = useState('')
   const [newFieldValue, setNewFieldValue] = useState('')
 
   const allEntities = activeWorldId ? entities[activeWorldId] || [] : []
+
+  const handleUpdateSectionTitle = (sectionIdx: number, newTitle: string) => {
+    const updatedSections = [...entity.infobox.sections]
+    updatedSections[sectionIdx] = {
+      ...updatedSections[sectionIdx],
+      title: newTitle
+    }
+    onUpdate({
+      infobox: {
+        ...entity.infobox,
+        sections: updatedSections
+      }
+    })
+  }
+
+  const handleAddSection = () => {
+    const newSection = {
+      title: 'Attributes',
+      fields: []
+    }
+    onUpdate({
+      infobox: {
+        ...entity.infobox,
+        sections: [...entity.infobox.sections, newSection]
+      }
+    })
+    addToast('Added new infobox section', 'success')
+  }
+
+  const handleDeleteSection = (sectionIdx: number) => {
+    if (entity.infobox.sections.length <= 1) {
+      addToast('Infobox must have at least one section', 'warning')
+      return
+    }
+    const updatedSections = entity.infobox.sections.filter((_, idx) => idx !== sectionIdx)
+    onUpdate({
+      infobox: {
+        ...entity.infobox,
+        sections: updatedSections
+      }
+    })
+    addToast('Section removed', 'info')
+  }
+
+  const handleUpdateField = (sectionIdx: number, fieldId: string, updates: Partial<InfoboxField>) => {
+    const updatedSections = [...entity.infobox.sections]
+    updatedSections[sectionIdx] = {
+      ...updatedSections[sectionIdx],
+      fields: updatedSections[sectionIdx].fields.map((f) => 
+        f.id === fieldId ? { ...f, ...updates } : f
+      )
+    }
+    onUpdate({
+      infobox: {
+        ...entity.infobox,
+        sections: updatedSections
+      }
+    })
+  }
 
   const handleAddField = (sectionIdx: number) => {
     if (!newFieldLabel.trim() || !newFieldValue.trim()) return
@@ -75,15 +134,33 @@ export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, onUpdate }) =>
   return (
     <aside className="w-full xl:w-80 max-w-sm xl:max-w-none shrink-0 bg-oros-900 border border-oros-750 rounded-[4px] overflow-hidden shadow-xl text-xs select-text my-2 mx-auto xl:mx-0">
       {/* Top Banner / Header */}
-      <div className="bg-oros-950 border-b border-oros-800 p-3 text-center">
-        <h3 className="font-sans font-semibold text-sm tracking-tight text-oros-100">
-          {entity.title}
-        </h3>
-        {entity.infobox.subtitle && (
+      <div className="bg-oros-950 border-b border-oros-800 p-3 relative flex flex-col items-center">
+        {isEditing ? (
+          <input
+            type="text"
+            value={entity.title}
+            onChange={(e) => onUpdate({ title: e.target.value })}
+            placeholder="Card Title..."
+            className="font-sans font-semibold text-sm tracking-tight text-oros-100 text-center bg-oros-900 border border-oros-750 focus:border-accent rounded px-2 py-0.5 w-full max-w-[240px] focus:outline-none shadow-sm"
+          />
+        ) : (
+          <h3 className="font-sans font-semibold text-sm tracking-tight text-oros-100 text-center">
+            {entity.title}
+          </h3>
+        )}
+        {isEditing ? (
+          <input
+            type="text"
+            value={entity.infobox.subtitle || ''}
+            placeholder="Subtitle / Epithet..."
+            onChange={(e) => onUpdate({ infobox: { ...entity.infobox, subtitle: e.target.value } })}
+            className="text-[11px] text-center text-oros-200 bg-oros-900/90 border border-oros-750 rounded px-2 py-0.5 font-mono mt-1.5 w-full max-w-[220px] focus:outline-none focus:border-accent"
+          />
+        ) : entity.infobox.subtitle ? (
           <p className="text-[11px] text-oros-400 font-mono mt-0.5">
             {entity.infobox.subtitle}
           </p>
-        )}
+        ) : null}
       </div>
 
       {/* Main Portrait / Image */}
@@ -102,13 +179,15 @@ export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, onUpdate }) =>
         )}
 
         {/* Change portrait overlay button */}
-        <button
-          onClick={handleImportAvatar}
-          className="absolute inset-x-6 bottom-6 py-1.5 rounded-[3px] bg-oros-950/95 hover:bg-black text-oros-200 font-medium text-[11px] backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 shadow-lg border border-oros-750"
-        >
-          <Camera className="w-3.5 h-3.5 text-oros-400" />
-          <span>Import Local Portrait</span>
-        </button>
+        {isEditing && (
+          <button
+            onClick={handleImportAvatar}
+            className="absolute inset-x-6 bottom-6 py-1.5 rounded-[3px] bg-oros-950/95 hover:bg-black text-oros-200 font-medium text-[11px] backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 shadow-lg border border-oros-750"
+          >
+            <Camera className="w-3.5 h-3.5 text-oros-400" />
+            <span>Import Local Portrait</span>
+          </button>
+        )}
 
         <span className="block text-[10px] text-oros-500 font-mono mt-1.5">
           Archival visual record: {entity.title}
@@ -119,14 +198,29 @@ export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, onUpdate }) =>
       <div className="divide-y divide-oros-800">
         {entity.infobox.sections.map((section, sIdx) => (
           <div key={sIdx} className="p-3">
-            <div className="text-[10px] font-mono font-medium tracking-wider uppercase text-oros-400 mb-2 border-b border-oros-800 pb-1 flex items-center justify-between">
-              <span>{section.title}</span>
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="text-oros-400 hover:text-oros-200 p-0.5 rounded-[2px]"
-              >
-                {isEditing ? <Check className="w-3 h-3 text-emerald-400" /> : <Edit3 className="w-3 h-3" />}
-              </button>
+            <div className="text-[10px] font-mono font-medium tracking-wider uppercase text-oros-400 mb-2 border-b border-oros-800 pb-1 flex items-center justify-between gap-2">
+              {isEditing ? (
+                <div className="flex-1 flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={section.title}
+                    onChange={(e) => handleUpdateSectionTitle(sIdx, e.target.value)}
+                    placeholder="Section Name"
+                    className="flex-1 bg-oros-950 border border-oros-750 focus:border-accent rounded px-1.5 py-0.5 text-[10px] font-mono font-semibold tracking-wider text-oros-100 uppercase focus:outline-none"
+                  />
+                  {entity.infobox.sections.length > 1 && (
+                    <button
+                      onClick={() => handleDeleteSection(sIdx)}
+                      className="p-1 text-oros-500 hover:text-rose-400 rounded transition-colors"
+                      title="Delete this section"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <span>{section.title}</span>
+              )}
             </div>
 
             <table className="w-full border-collapse">
@@ -135,6 +229,40 @@ export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, onUpdate }) =>
                   const targetEntity = field.targetEntityId 
                     ? allEntities.find((e) => e.id === field.targetEntityId) 
                     : null
+
+                  if (isEditing) {
+                    return (
+                      <tr key={field.id} className="border-b border-oros-800/40 last:border-none">
+                        <td className="py-1.5 pr-1 w-2/5 align-top">
+                          <input
+                            type="text"
+                            value={field.label}
+                            onChange={(e) => handleUpdateField(sIdx, field.id, { label: e.target.value })}
+                            placeholder="Label"
+                            className="w-full bg-oros-950 border border-oros-750 focus:border-accent rounded px-1.5 py-0.5 font-mono text-[11px] text-oros-300 focus:outline-none"
+                          />
+                        </td>
+                        <td className="py-1.5 pl-1 align-top">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={field.value}
+                              onChange={(e) => handleUpdateField(sIdx, field.id, { value: e.target.value })}
+                              placeholder="Value"
+                              className="flex-1 bg-oros-950 border border-oros-750 focus:border-accent rounded px-1.5 py-0.5 text-xs text-oros-100 focus:outline-none"
+                            />
+                            <button
+                              onClick={() => handleDeleteField(sIdx, field.id)}
+                              className="p-1 text-oros-500 hover:text-rose-400 rounded transition-colors shrink-0"
+                              title="Delete attribute"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  }
 
                   return (
                     <tr key={field.id} className="border-b border-oros-800/40 last:border-none">
@@ -160,14 +288,6 @@ export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, onUpdate }) =>
                         ) : (
                           <span>{field.value}</span>
                         )}
-                        {isEditing && (
-                          <button
-                            onClick={() => handleDeleteField(sIdx, field.id)}
-                            className="ml-2 text-rose-400 hover:text-rose-300"
-                          >
-                            <Trash2 className="w-2.5 h-2.5 inline" />
-                          </button>
-                        )}
                       </td>
                     </tr>
                   )
@@ -180,28 +300,43 @@ export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, onUpdate }) =>
               <div className="mt-2.5 pt-2 border-t border-dashed border-oros-800 flex gap-1">
                 <input
                   type="text"
-                  placeholder="Field label"
+                  placeholder="New label"
                   value={newFieldLabel}
                   onChange={(e) => setNewFieldLabel(e.target.value)}
-                  className="w-1/2 bg-oros-950 border border-oros-750 rounded-[3px] px-2 py-1 text-[11px] text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                  className="w-1/2 bg-oros-950 border border-oros-750 rounded-[3px] px-2 py-1 text-[11px] text-oros-100 focus:outline-none focus:border-accent font-sans"
                 />
                 <input
                   type="text"
-                  placeholder="Value"
+                  placeholder="New value"
                   value={newFieldValue}
                   onChange={(e) => setNewFieldValue(e.target.value)}
-                  className="w-1/2 bg-oros-950 border border-oros-750 rounded-[3px] px-2 py-1 text-[11px] text-oros-100 focus:outline-none focus:border-oros-500 font-sans"
+                  className="w-1/2 bg-oros-950 border border-oros-750 rounded-[3px] px-2 py-1 text-[11px] text-oros-100 focus:outline-none focus:border-accent font-sans"
                 />
                 <button
                   onClick={() => handleAddField(sIdx)}
-                  className="btn-accent p-1 rounded-[3px] font-semibold shadow-sm transition-colors"
+                  className="btn-accent px-2 py-1 rounded-[3px] font-semibold shadow-sm transition-colors flex items-center gap-1 shrink-0"
+                  title="Add Attribute"
                 >
                   <Plus className="w-3.5 h-3.5" />
+                  <span className="text-[10px]">Add</span>
                 </button>
               </div>
             )}
           </div>
         ))}
+
+        {/* Edit Mode Bottom Actions */}
+        {isEditing && (
+          <div className="p-3 bg-oros-950/60 border-t border-oros-800 flex items-center justify-start">
+            <button
+              onClick={handleAddSection}
+              className="text-xs font-medium text-oros-300 hover:text-accent flex items-center gap-1.5 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5 text-accent" />
+              <span>Add New Section</span>
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   )

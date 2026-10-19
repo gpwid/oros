@@ -4,8 +4,9 @@ import { useToastStore } from '../../store/useToastStore'
 import { 
   Search, BookOpen, Map, Feather, Shield, Plus, FolderOpen, 
   Download, ArrowRight, Calendar, FileText, Sparkles, X,
-  Layers, Users, Network
+  Layers, Users, Network, Languages, Settings
 } from 'lucide-react'
+import { useSettingsStore } from '../../store/useSettingsStore'
 import { searchDeepVault, SearchDomain, DeepSearchResult } from '../../utils/deepSearchEngine'
 
 interface PaletteActionItem {
@@ -25,17 +26,19 @@ export const CommandPalette: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const { 
-    entities, maps, manuscripts, timelines, activeWorldId, 
+    entities, maps, manuscripts, timelines, conlangs, activeWorldId, 
     setActiveTab, setSelectedEntityId, setSelectedMapId, setSelectedChapterId,
     toggleGmMode, gmMode, exportWorld, createEntity, openTab 
   } = useWorldStore()
 
   const { addToast } = useToastStore()
+  const { openSettings } = useSettingsStore()
 
   const worldEntities = useMemo(() => activeWorldId ? entities[activeWorldId] || [] : [], [activeWorldId, entities])
   const worldMaps = useMemo(() => activeWorldId ? maps[activeWorldId] || [] : [], [activeWorldId, maps])
   const worldChapters = useMemo(() => activeWorldId ? manuscripts[activeWorldId] || [] : [], [activeWorldId, manuscripts])
   const worldTimelines = useMemo(() => activeWorldId ? timelines[activeWorldId] || [] : [], [activeWorldId, timelines])
+  const worldConlangs = useMemo(() => activeWorldId ? conlangs[activeWorldId] || [] : [], [activeWorldId, conlangs])
 
   // Global keydown shortcut listener (Ctrl+K or Cmd+K)
   useEffect(() => {
@@ -88,6 +91,17 @@ export const CommandPalette: React.FC = () => {
           setSelectedEntityId(ent.id)
           openTab({ title: ent.title, type: 'wiki', targetId: ent.id })
           addToast('Created new location article', 'success')
+        }
+      },
+      {
+        id: 'act-new-conlang',
+        category: 'Actions',
+        title: 'New Conlang / Constructed Language',
+        subtitle: 'Create a constructed fantasy tongue, dialect, or dictionary',
+        icon: Languages,
+        onSelect: () => {
+          openTab({ title: 'Conlang Lexicon', type: 'dictionary' })
+          addToast('Opened Conlang Lexicon — add words or configure languages', 'info')
         }
       },
       {
@@ -156,10 +170,21 @@ export const CommandPalette: React.FC = () => {
           await exportWorld()
           addToast('World exported successfully', 'success')
         }
+      },
+      {
+        id: 'act-open-settings',
+        category: 'Actions',
+        title: 'Open App Settings',
+        subtitle: 'Configure general, interface, editor, files & vault, and hotkeys (Ctrl+,)',
+        icon: Settings,
+        onSelect: () => {
+          setIsOpen(false)
+          openSettings()
+        }
       }
     ]
     return acts
-  }, [createEntity, exportWorld, gmMode, openTab, setSelectedEntityId, toggleGmMode, addToast])
+  }, [createEntity, exportWorld, gmMode, openTab, setSelectedEntityId, toggleGmMode, addToast, openSettings])
 
   // Deep Vault Search Results
   const deepResults = useMemo(() => {
@@ -170,9 +195,10 @@ export const CommandPalette: React.FC = () => {
       worldEntities,
       worldChapters,
       worldTimelines,
-      worldMaps
+      worldMaps,
+      worldConlangs
     )
-  }, [search, selectedDomain, worldEntities, worldChapters, worldTimelines, worldMaps])
+  }, [search, selectedDomain, worldEntities, worldChapters, worldTimelines, worldMaps, worldConlangs])
 
   // Filter actions if searching
   const matchingActions = useMemo(() => {
@@ -219,6 +245,9 @@ export const CommandPalette: React.FC = () => {
         case 'map':
           setSelectedMapId(res.targetId)
           openTab({ title: res.title, type: 'map', targetId: res.targetId })
+          break
+        case 'conlang':
+          openTab({ title: 'Conlang Lexicon', type: 'dictionary' })
           break
       }
     }
@@ -286,7 +315,7 @@ export const CommandPalette: React.FC = () => {
         {search.trim() && (
           <div className="px-3 py-1.5 border-b border-oros-850 bg-oros-950/60 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider">
             <span className="text-oros-500 mr-1">Filter:</span>
-            {(['all', 'lore', 'manuscript', 'timeline', 'map'] as SearchDomain[]).map((dom) => (
+            {(['all', 'lore', 'manuscript', 'timeline', 'map', 'conlang'] as SearchDomain[]).map((dom) => (
               <button
                 key={dom}
                 onClick={() => {
@@ -299,7 +328,7 @@ export const CommandPalette: React.FC = () => {
                     : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
                 }`}
               >
-                {dom === 'all' ? 'All Domains' : dom === 'lore' ? 'Cards' : dom === 'manuscript' ? 'Prose' : dom === 'timeline' ? 'Timeline' : 'Maps'}
+                {dom === 'all' ? 'All Domains' : dom === 'lore' ? 'Cards' : dom === 'manuscript' ? 'Prose' : dom === 'timeline' ? 'Timeline' : dom === 'map' ? 'Maps' : 'Conlang'}
               </button>
             ))}
             <span className="ml-auto text-oros-500 font-mono">
@@ -365,6 +394,9 @@ export const CommandPalette: React.FC = () => {
               } else if (res.domain === 'map') {
                 Icon = Map
                 iconColor = 'text-emerald-400'
+              } else if (res.domain === 'conlang') {
+                Icon = Languages
+                iconColor = 'text-cyan-400'
               }
 
               return (

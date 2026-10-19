@@ -1,11 +1,11 @@
-import { LoreEntity, ManuscriptChapter, WorldMap, TimelineEvent } from '@shared/types'
+import { LoreEntity, ManuscriptChapter, WorldMap, TimelineEvent, ConlangLanguage, ConlangWord } from '@shared/types'
 
-export type SearchDomain = 'all' | 'lore' | 'manuscript' | 'timeline' | 'map'
+export type SearchDomain = 'all' | 'lore' | 'manuscript' | 'timeline' | 'map' | 'conlang'
 
 export interface DeepSearchResult {
   id: string;
   targetId: string;
-  domain: 'lore' | 'manuscript' | 'timeline' | 'map';
+  domain: 'lore' | 'manuscript' | 'timeline' | 'map' | 'conlang';
   title: string;
   badge: string;
   matchField: 'title' | 'content' | 'infobox' | 'tags' | 'aliases' | 'description';
@@ -51,7 +51,8 @@ export function searchDeepVault(
   entities: LoreEntity[] = [],
   chapters: ManuscriptChapter[] = [],
   timelines: TimelineEvent[] = [],
-  maps: WorldMap[] = []
+  maps: WorldMap[] = [],
+  conlangs: ConlangLanguage[] = []
 ): DeepSearchResult[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
@@ -265,6 +266,74 @@ export function searchDeepVault(
           score: 50
         });
       }
+    });
+  }
+
+  // 5. Search Conlang Lexicons & Words
+  if (domain === 'all' || domain === 'conlang') {
+    conlangs.forEach((lang) => {
+      // Language name or description match
+      if (lang.name.toLowerCase().includes(q)) {
+        results.push({
+          id: `conlang-${lang.id}-name`,
+          targetId: lang.id,
+          domain: 'conlang',
+          title: lang.name,
+          badge: `Conlang · ${lang.family || 'Tongue'}`,
+          matchField: 'title',
+          snippet: lang.description || `${lang.words.length} vocabulary terms registered`,
+          score: 85
+        });
+      }
+
+      // Individual words match
+      (lang.words || []).forEach((w: ConlangWord) => {
+        const termLower = w.term.toLowerCase();
+        const defLower = (w.definition || '').toLowerCase();
+        const phoneticLower = (w.phonetic || '').toLowerCase();
+        const etymLower = (w.etymology || '').toLowerCase();
+
+        if (termLower === q) {
+          results.push({
+            id: `conlang-word-${w.id}-exact`,
+            targetId: lang.id,
+            domain: 'conlang',
+            title: `${w.term} — "${w.definition}"`,
+            badge: `${lang.name.toUpperCase()} · [${w.partOfSpeech || 'term'}]`,
+            matchField: 'title',
+            snippet: `${w.phonetic ? `${w.phonetic} ` : ''}${w.etymology ? `• Root: ${w.etymology}` : ''}`,
+            score: 95
+          });
+          return;
+        }
+
+        if (termLower.includes(q)) {
+          results.push({
+            id: `conlang-word-${w.id}-term`,
+            targetId: lang.id,
+            domain: 'conlang',
+            title: `${w.term} — "${w.definition}"`,
+            badge: `${lang.name} · ${w.partOfSpeech || 'term'}`,
+            matchField: 'title',
+            snippet: `${w.phonetic ? `${w.phonetic} ` : ''}${w.etymology ? `Etymology: ${w.etymology}` : ''}`,
+            score: 75
+          });
+          return;
+        }
+
+        if (defLower.includes(q) || etymLower.includes(q) || phoneticLower.includes(q)) {
+          results.push({
+            id: `conlang-word-${w.id}-meaning`,
+            targetId: lang.id,
+            domain: 'conlang',
+            title: `${w.term} — "${w.definition}"`,
+            badge: `${lang.name} · [${w.partOfSpeech || 'term'}]`,
+            matchField: 'content',
+            snippet: `${w.phonetic ? `${w.phonetic} • ` : ''}${w.definition}${w.etymology ? ` • Root: ${w.etymology}` : ''}`,
+            score: 65
+          });
+        }
+      });
     });
   }
 

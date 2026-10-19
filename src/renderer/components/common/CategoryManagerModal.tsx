@@ -52,7 +52,7 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
   // Form state
   const [formName, setFormName] = useState('')
   const [formIcon, setFormIcon] = useState('Layers')
-  const [formColor, setFormColor] = useState('#eab308')
+  const [formColor, setFormColor] = useState('#f5c542')
   const [formDesc, setFormDesc] = useState('')
   const [iconSearch, setIconSearch] = useState('')
 
@@ -61,7 +61,7 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
   const handleStartCreate = () => {
     setFormName('')
     setFormIcon('Layers')
-    setFormColor('#eab308')
+    setFormColor('#f5c542')
     setFormDesc('')
     setIconSearch('')
     setEditingCategory(null)
@@ -72,7 +72,7 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
     setEditingCategory(cat)
     setFormName(cat.name)
     setFormIcon(cat.icon || 'Layers')
-    setFormColor(cat.color || '#eab308')
+    setFormColor(cat.color || '#f5c542')
     setFormDesc(cat.description || '')
     setIconSearch('')
     setMode('edit')
@@ -89,8 +89,10 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
     e.preventDefault()
     if (!formName.trim()) return
 
+    const sanitizedColor = formColor.trim().startsWith('#') ? formColor.trim() : `#${formColor.trim()}`
+
     if (mode === 'create') {
-      const created = createCategory(formName.trim(), formIcon, formColor, formDesc.trim())
+      const created = createCategory(formName.trim(), formIcon, sanitizedColor, formDesc.trim())
       if (onSelectCategory) {
         onSelectCategory(created.id)
       }
@@ -99,7 +101,7 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
       updateCategory(editingCategory.id, {
         name: formName.trim(),
         icon: formIcon,
-        color: formColor,
+        color: sanitizedColor,
         description: formDesc.trim()
       })
       setMode('list')
@@ -130,7 +132,7 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-oros-950/80 backdrop-blur-sm animate-fade-in">
       <div 
-        className="w-full max-w-md bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl overflow-hidden flex flex-col max-h-[460px] select-text text-oros-100 animate-modal-in"
+        className="w-full max-w-lg bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] select-text text-oros-100 animate-modal-in"
         role="dialog"
         aria-modal="true"
       >
@@ -277,12 +279,18 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
                 </div>
               </div>
 
-              {/* Color Swatches */}
+              {/* Revamped Atmospheric Accent / Color Selection (matching our Vault UI) */}
               <div>
-                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">
-                  Accent Tone
-                </label>
-                <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400">
+                    Atmospheric Accent
+                  </label>
+                  <span className="text-[9px] font-mono text-oros-400 uppercase tracking-wider">
+                    {CATEGORY_COLOR_PALETTES.find(c => c.hex.toLowerCase() === formColor.toLowerCase())?.name || 'Custom'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
                   {CATEGORY_COLOR_PALETTES.map((color) => {
                     const isSelected = formColor.toLowerCase() === color.hex.toLowerCase()
                     return (
@@ -290,42 +298,68 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
                         key={color.hex}
                         type="button"
                         onClick={() => setFormColor(color.hex)}
-                        title={color.name}
-                        className={`w-5 h-5 rounded-[2px] flex items-center justify-center transition-all ${
-                          isSelected ? 'ring-2 ring-oros-100' : 'opacity-80 hover:opacity-100'
+                        className={`px-2 py-1.5 rounded-[3px] text-[10px] font-mono flex items-center gap-1.5 border transition-all text-left ${
+                          isSelected
+                            ? 'bg-accent-muted border-accent/60 text-accent font-medium shadow-sm ring-1 ring-accent/30'
+                            : 'bg-oros-950/80 border-oros-800 text-oros-400 hover:text-oros-200 hover:bg-oros-850'
                         }`}
-                        style={{ backgroundColor: color.hex }}
                       >
-                        {isSelected && <Check className="w-2.5 h-2.5 text-black stroke-[3]" />}
+                        <span className="w-2 h-2 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: color.hex }} />
+                        <span className="truncate">{color.name.split(' ')[0]}</span>
                       </button>
                     )
                   })}
-                  <input
-                    type="color"
-                    value={formColor}
-                    onChange={(e) => setFormColor(e.target.value)}
-                    className="w-5 h-5 rounded cursor-pointer bg-transparent border-0 p-0 ml-1"
-                    title="Custom Color"
-                  />
+                </div>
+
+                {/* Custom Hex Row (Identical to our Vault menu) */}
+                <div className="mt-2 pt-1.5 border-t border-oros-800/60 flex items-center gap-2">
+                  <span className="text-[10px] font-mono text-oros-400 shrink-0">Custom Hex:</span>
+                  <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                    <label 
+                      className="w-5 h-5 rounded-[3px] border border-oros-700 cursor-pointer overflow-hidden flex items-center justify-center shrink-0 shadow-sm transition-all hover:border-oros-500"
+                      style={{ backgroundColor: formColor }}
+                      title="Click to pick custom color"
+                    >
+                      <input
+                        type="color"
+                        value={formColor.startsWith('#') && formColor.length === 7 ? formColor : '#f5c542'}
+                        onChange={(e) => setFormColor(e.target.value)}
+                        className="opacity-0 w-0 h-0 cursor-pointer"
+                      />
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="#f5c542"
+                      maxLength={7}
+                      value={formColor}
+                      onChange={(e) => setFormColor(e.target.value)}
+                      className="w-full min-w-0 bg-oros-950 border border-oros-800 rounded-[3px] px-2 py-0.5 text-[10px] font-mono text-oros-200 placeholder-oros-600 focus:outline-none focus:border-accent"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Icon Picker (Compact) */}
+              {/* Revamped Icon Picker (Expanded library, icon-only grid without labels) */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-[10px] font-mono uppercase font-semibold text-oros-400">
-                    Icon
-                  </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-[10px] font-mono uppercase font-semibold text-oros-400">
+                      Icon
+                    </label>
+                    <span className="text-[9px] font-mono text-oros-500">
+                      ({filteredIcons.length})
+                    </span>
+                  </div>
                   <input
                     type="text"
                     value={iconSearch}
                     onChange={(e) => setIconSearch(e.target.value)}
-                    placeholder="Filter icon..."
-                    className="w-28 bg-oros-850 border border-oros-750 rounded-[2px] px-1.5 py-0.5 text-[10px] text-oros-200 focus:outline-none"
+                    placeholder="Search icons..."
+                    className="w-32 bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-0.5 text-[10px] text-oros-200 placeholder-oros-500 focus:outline-none focus:border-accent"
                   />
                 </div>
 
-                <div className="grid grid-cols-7 gap-1 p-1.5 bg-oros-850 border border-oros-750 rounded-[3px] max-h-24 overflow-y-auto">
+                <div className="grid grid-cols-8 sm:grid-cols-10 gap-1 p-2 bg-oros-950/80 border border-oros-750 rounded-[3px] max-h-40 overflow-y-auto">
                   {filteredIcons.map((item) => {
                     const Icon = item.icon
                     const isSelected = formIcon === item.id
@@ -334,16 +368,22 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
                         key={item.id}
                         type="button"
                         onClick={() => setFormIcon(item.id)}
-                        title={item.label}
-                        className={`p-1 rounded-[2px] flex flex-col items-center justify-center transition-colors ${
-                          isSelected ? 'bg-oros-750 text-oros-50 border border-oros-600' : 'text-oros-400 hover:text-oros-200'
+                        title={`${item.label} (${item.id})`}
+                        className={`h-8 rounded-[3px] flex items-center justify-center transition-all ${
+                          isSelected
+                            ? 'bg-accent-muted border border-accent text-accent shadow-sm ring-1 ring-accent/40'
+                            : 'text-oros-400 hover:text-oros-100 hover:bg-oros-850 border border-transparent'
                         }`}
                       >
-                        <Icon className="w-3.5 h-3.5" />
-                        <span className="text-[8px] truncate font-mono mt-0.5">{item.id}</span>
+                        <Icon className="w-4 h-4" />
                       </button>
                     )
                   })}
+                  {filteredIcons.length === 0 && (
+                    <div className="col-span-full py-4 text-center text-[11px] text-oros-500 font-mono">
+                      No icons match "{iconSearch}"
+                    </div>
+                  )}
                 </div>
               </div>
             </form>

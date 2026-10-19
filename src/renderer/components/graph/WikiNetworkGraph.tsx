@@ -3,11 +3,14 @@ import {
   ReactFlow, Background, BackgroundVariant, Node, Edge, 
   MarkerType, Handle, Position, useNodesState, useEdgesState,
   useReactFlow, ReactFlowProvider, BaseEdge, EdgeProps, getStraightPath,
-  useViewport
+  useViewport, useNodesInitialized
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useWorldStore } from '../../store/useWorldStore'
+import { useSettingsStore, getEffectiveColorMode } from '../../store/useSettingsStore'
 import { useToastStore } from '../../store/useToastStore'
+import { useActiveThemeTokens } from '../../utils/useActiveThemeTokens'
+import { confirmDialog } from '../../store/useConfirmStore'
 import { 
   Network, Search, Filter, BookOpen, ExternalLink, ArrowRight, 
   Sparkles, Link2, User, MapPin, Shield, Gem, Scroll, 
@@ -19,6 +22,8 @@ import {
   getCategoryIconComponent, 
   getCategoryMeta 
 } from '../../utils/categoryIcons'
+import { ExportDropdown, ExportOption } from '../common/ExportDropdown'
+import { exportReactFlowToImage, exportConnectionsToJson, exportConnectionsToCsv } from '../../utils/exportUtils'
 
 // Optimal cardinal handle picker based on relative center positions
 function getOptimalHandles(
@@ -68,17 +73,35 @@ const WikiArticleNode = ({ data }: { data: {
   outDegree: number;
   isHub: boolean;
   isSelected: boolean;
+  hoverMotion?: boolean;
   onSelect: (id: string) => void;
 } }) => {
-  const { entity, degree, inDegree, outDegree, isHub, isSelected } = data
+  const { entity, degree, inDegree, outDegree, isHub, isSelected, hoverMotion = true } = data
   const catMeta = getCategoryMeta(entity.type)
   const Icon = getCategoryIconComponent(catMeta.icon)
   const [imgError, setImgError] = useState(false)
 
+  // Deterministic staggered timing for each card
+  const animStyle = useMemo(() => {
+    if (!hoverMotion) return undefined
+    let h = 0
+    for (let i = 0; i < entity.id.length; i++) {
+      h = (h * 31 + entity.id.charCodeAt(i)) & 0xffffffff
+    }
+    const hash = Math.abs(h)
+    return {
+      animationDuration: `${3.8 + (hash % 20) * 0.12}s`,
+      animationDelay: `${(hash % 25) * 0.12}s`
+    }
+  }, [hoverMotion, entity.id])
+
   return (
     <div 
       onClick={() => data.onSelect(entity.id)}
-      className={`w-52 rounded-[3px] bg-oros-900 border shadow-md transition-all duration-150 cursor-pointer select-none text-left relative ${
+      style={animStyle}
+      className={`w-52 rounded-[3px] bg-oros-900 border shadow-md cursor-pointer select-none text-left relative ${
+        hoverMotion ? 'oros-hover-card' : ''
+      } ${
         isSelected 
           ? 'border-accent ring-1 ring-accent/40 z-30' 
           : isHub
@@ -171,6 +194,9 @@ const GraphMiniMap: React.FC<GraphMiniMapProps> = React.memo(({
 }) => {
   const { x, y, zoom } = useViewport()
   const { setCenter } = useReactFlow()
+  const { settings } = useSettingsStore()
+  const isLight = getEffectiveColorMode(settings.interface.colorMode) === 'light'
+  const themeTokens = useActiveThemeTokens()
   const svgRef = useRef<SVGSVGElement>(null)
   const isDraggingRef = useRef(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -192,10 +218,9 @@ const GraphMiniMap: React.FC<GraphMiniMapProps> = React.memo(({
   }, [containerRef])
 
   // Stable world bounds computed strictly from persistent master base coordinates
-  // Completely immune to 30 FPS hover oscillation!
   const bounds = useMemo(() => {
     if (nodes.length === 0) {
-      return { minX: -600, minY: -400, width: 1200, height: 800 }
+      return { minX: 0, minY: 0, width: 1400, height: 900 }
     }
     let minX = Infinity
     let maxX = -Infinity
@@ -204,10 +229,16 @@ const GraphMiniMap: React.FC<GraphMiniMapProps> = React.memo(({
 
     for (const n of nodes) {
       const pos = worldPositionsRef.current.get(n.id) || n.position
-      if (pos.x < minX) minX = pos.x
-      if (pos.x + 224 > maxX) maxX = pos.x + 224
-      if (pos.y < minY) minY = pos.y
-      if (pos.y + 68 > maxY) maxY = pos.y + 68
+      if (pos && isFinite(pos.x) && isFinite(pos.y)) {
+        if (pos.x < minX) minX = pos.x
+        if (pos.x + 224 > maxX) maxX = pos.x + 224
+        if (pos.y < minY) minY = pos.y
+        if (pos.y + 68 > maxY) maxY = pos.y + 68
+      }
+    }
+
+    if (!isFinite(minX) || !isFinite(maxX) || !isFinite(minY) || !isFinite(maxY)) {
+      return { minX: 0, minY: 0, width: 1400, height: 900 }
     }
 
     const padX = Math.max(300, (maxX - minX) * 0.18)
@@ -224,11 +255,11 @@ const GraphMiniMap: React.FC<GraphMiniMapProps> = React.memo(({
   }, [nodes, worldPositionsRef])
 
   // Camera viewport in world coordinates
-  const safeZoom = Math.max(0.01, zoom)
-  const camX = -x / safeZoom
-  const camY = -y / safeZoom
-  const camWidth = containerSize.width / safeZoom
-  const camHeight = containerSize.height / safeZoom
+  const safeZoom = Math.max(0.05, isFinite(zoom) && zoom > 0 ? zoom : 1)
+  const camX = isFinite(x) ? -x / safeZoom : 0
+  const camY = isFinite(y) ? -y / safeZoom : 0
+  const camWidth = containerSize.width > 0 ? containerSize.width / safeZoom : 1200
+  const camHeight = containerSize.height > 0 ? containerSize.height / safeZoom : 800
 
   // World coordinates translation on click/drag
   const panToSvgPoint = (clientX: number, clientY: number, smooth = false) => {
@@ -239,8 +270,15 @@ const GraphMiniMap: React.FC<GraphMiniMapProps> = React.memo(({
     pt.y = clientY
     const ctm = svg.getScreenCTM()
     if (ctm) {
-      const worldPoint = pt.matrixTransform(ctm.inverse())
-      setCenter(worldPoint.x, worldPoint.y, { duration: smooth ? 250 : 0 })
+      try {
+        const inv = ctm.inverse()
+        if (inv) {
+          const worldPoint = pt.matrixTransform(inv)
+          if (isFinite(worldPoint.x) && isFinite(worldPoint.y)) {
+            setCenter(worldPoint.x, worldPoint.y, { duration: smooth ? 250 : 0 })
+          }
+        }
+      } catch {}
     }
   }
 
@@ -334,8 +372,8 @@ const GraphMiniMap: React.FC<GraphMiniMapProps> = React.memo(({
                 width={224}
                 height={68}
                 rx={14}
-                fill={isSelected ? '#f59e0b' : '#1e293b'}
-                stroke={isSelected ? '#fbbf24' : '#334155'}
+                fill={isSelected ? themeTokens.accent : (isLight ? '#e2e8f0' : '#1e293b')}
+                stroke={isSelected ? themeTokens.accent : (isLight ? '#cbd5e1' : '#334155')}
                 strokeWidth={isSelected ? 8 : 3}
                 opacity={isSelected ? 1 : 0.85}
               />
@@ -349,8 +387,8 @@ const GraphMiniMap: React.FC<GraphMiniMapProps> = React.memo(({
             width={camWidth}
             height={camHeight}
             rx={16}
-            fill="rgba(245, 197, 66, 0.08)"
-            stroke="#f59e0b"
+            fill={themeTokens.muted}
+            stroke={themeTokens.accent}
             strokeWidth={Math.max(6, bounds.width / 130)}
             pointerEvents="none"
           />
@@ -369,7 +407,7 @@ const GraphMiniMap: React.FC<GraphMiniMapProps> = React.memo(({
               h ${-camWidth}
               z
             `}
-            fill="rgba(11, 17, 24, 0.65)"
+            fill={isLight ? 'rgba(15, 23, 42, 0.18)' : 'rgba(11, 17, 24, 0.65)'}
             fillRule="evenodd"
             pointerEvents="none"
           />
@@ -381,8 +419,12 @@ const GraphMiniMap: React.FC<GraphMiniMapProps> = React.memo(({
 
 const WikiNetworkGraphInner: React.FC = () => {
   const { 
-    entities, relations, categories, activeWorldId, setSelectedEntityId, setActiveTab, openTab 
+    worlds, entities, relations, categories, activeWorldId, setSelectedEntityId, setActiveTab, openTab, deleteEntity 
   } = useWorldStore()
+  const activeWorld = (worlds || []).find((w) => w.id === activeWorldId)
+  const { settings } = useSettingsStore()
+  const isLight = getEffectiveColorMode(settings.interface.colorMode) === 'light'
+  const themeTokens = useActiveThemeTokens()
   const { addToast } = useToastStore()
   const { fitView } = useReactFlow()
 
@@ -410,6 +452,43 @@ const WikiNetworkGraphInner: React.FC = () => {
   const worldEntities = useMemo(() => {
     return activeWorldId ? entities[activeWorldId] || [] : []
   }, [activeWorldId, entities])
+
+  // Del key shortcut handler for selected node
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (e.key !== 'Delete' && e.key !== 'Del' && e.key !== 'Backspace') return
+      const activeEl = document.activeElement as HTMLElement | null
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+         activeEl.tagName === 'TEXTAREA' ||
+         activeEl.isContentEditable ||
+         activeEl.closest('[contenteditable="true"]') ||
+         activeEl.closest('.tiptap'))
+      ) {
+        return
+      }
+
+      if (selectedWikiId) {
+        const ent = worldEntities.find((item) => item.id === selectedWikiId)
+        const title = ent ? ent.title : 'this entry'
+        e.preventDefault()
+        const ok = await confirmDialog({
+          title: 'Delete Entry',
+          message: `Are you sure you want to permanently delete "${title}" and all its relational connections?`,
+          confirmText: 'Delete Entry',
+          variant: 'danger'
+        })
+        if (!ok) return
+        deleteEntity(selectedWikiId)
+        setSelectedWikiId(null)
+        addToast(`Deleted entry "${title}" from world`, 'info')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedWikiId, worldEntities, deleteEntity, addToast])
 
   const worldRelations = useMemo(() => {
     return activeWorldId ? relations[activeWorldId] || [] : []
@@ -484,7 +563,7 @@ const WikiNetworkGraphInner: React.FC = () => {
   const worldPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
   const [layoutVersion, setLayoutVersion] = useState(0)
 
-  // Layout calculation for ALL world entities (Only runs on world mount or explicit re-settle)
+  // Layout calculation for ALL world entities
   const calculateMasterLayout = (forceRefresh = false) => {
     const existingMap = worldPositionsRef.current
     const allHavePos = worldEntities.length > 0 && worldEntities.every(e => existingMap.has(e.id))
@@ -494,9 +573,9 @@ const WikiNetworkGraphInner: React.FC = () => {
     }
 
     const count = Math.max(worldEntities.length, 1)
-    const centerX = 500
-    const centerY = 320
-    const baseRadius = Math.min(380, Math.max(240, count * 36))
+    const centerX = 650
+    const centerY = 450
+    const baseRadius = Math.min(340, Math.max(180, count * 24))
 
     interface SimItem {
       id: string
@@ -505,27 +584,35 @@ const WikiNetworkGraphInner: React.FC = () => {
       vx: number
       vy: number
       isHub: boolean
+      isDisconnected: boolean
     }
 
     const simNodes: SimItem[] = worldEntities.map((ent, idx) => {
       const inDeg = inDegreeMap[ent.id] || 0
       const outDeg = outDegreeMap[ent.id] || 0
-      const isHub = (inDeg + outDeg) >= 2
+      const totalDeg = inDeg + outDeg
+      const isHub = totalDeg >= 2
+      const isDisconnected = totalDeg === 0
 
       if (!forceRefresh && existingMap.has(ent.id)) {
         const cur = existingMap.get(ent.id)!
-        return { id: ent.id, x: cur.x, y: cur.y, vx: 0, vy: 0, isHub }
+        return { id: ent.id, x: cur.x, y: cur.y, vx: 0, vy: 0, isHub, isDisconnected }
       }
 
+      // Initial placement: hubs in inner core, connected in middle circle, disconnected in outer orbit
       const angle = (idx / count) * 2 * Math.PI - Math.PI / 2
-      const r = isHub ? baseRadius * 0.65 : baseRadius
+      let r = baseRadius
+      if (isHub) r = baseRadius * 0.65
+      else if (isDisconnected) r = baseRadius * 1.15
+
       return {
         id: ent.id,
-        x: centerX + r * Math.cos(angle) + (Math.random() - 0.5) * 30,
-        y: centerY + r * Math.sin(angle) + (Math.random() - 0.5) * 30,
+        x: centerX + r * Math.cos(angle) + (Math.random() - 0.5) * 20,
+        y: centerY + r * Math.sin(angle) + (Math.random() - 0.5) * 20,
         vx: 0,
         vy: 0,
-        isHub
+        isHub,
+        isDisconnected
       }
     })
 
@@ -534,13 +621,14 @@ const WikiNetworkGraphInner: React.FC = () => {
 
     // 60-iteration physics relaxation for master organic layout
     for (let step = 0; step < 60; step++) {
-      // 1. Center gravity (slight pull toward center so network stays cohesive)
+      // 1. Center gravity (keeps network cohesive; stronger for disconnected nodes so they don't wander off)
       simNodes.forEach(node => {
-        node.vx += (centerX - node.x) * (node.isHub ? 0.005 : 0.003)
-        node.vy += (centerY - node.y) * (node.isHub ? 0.005 : 0.003)
+        const gravity = node.isDisconnected ? 0.018 : (node.isHub ? 0.006 : 0.0035)
+        node.vx += (centerX - node.x) * gravity
+        node.vy += (centerY - node.y) * gravity
       })
 
-      // 2. Coulomb pairwise repulsion & card bounding box collision avoidance
+      // 2. Pairwise repulsion & card bounding box collision avoidance (cards are 224w x 68h)
       for (let i = 0; i < simNodes.length; i++) {
         for (let j = i + 1; j < simNodes.length; j++) {
           const n1 = simNodes[i]
@@ -549,7 +637,10 @@ const WikiNetworkGraphInner: React.FC = () => {
           const dy = n2.y - n1.y
           const distSq = dx * dx + dy * dy
           const dist = Math.sqrt(distSq) || 1
-          const force = 48000 / Math.max(distSq, 1800)
+
+          // Gentle repulsion when one or both are disconnected to prevent shooting them to infinity
+          const baseForce = (n1.isDisconnected || n2.isDisconnected) ? 14000 : 38000
+          const force = Math.min(baseForce / Math.max(distSq, 1600), 18)
 
           const fx = (dx / dist) * force
           const fy = (dy / dist) * force
@@ -560,8 +651,8 @@ const WikiNetworkGraphInner: React.FC = () => {
           n2.vy += fy
 
           // Card boundary anti-overlap push (224px width, 68px height)
-          const overlapX = 234 - Math.abs(dx)
-          const overlapY = 78 - Math.abs(dy)
+          const overlapX = 236 - Math.abs(dx)
+          const overlapY = 80 - Math.abs(dy)
           if (overlapX > 0 && overlapY > 0) {
             const push = Math.min(overlapX, overlapY) * 0.15
             n1.vx -= Math.sign(dx || 1) * push
@@ -580,7 +671,7 @@ const WikiNetworkGraphInner: React.FC = () => {
           const dx = n2.x - n1.x
           const dy = n2.y - n1.y
           const dist = Math.sqrt(dx * dx + dy * dy) || 1
-          const delta = dist - 250
+          const delta = dist - 240
           const force = delta * 0.018
           const fx = (dx / dist) * force
           const fy = (dy / dist) * force
@@ -594,23 +685,91 @@ const WikiNetworkGraphInner: React.FC = () => {
 
       // 4. Damping & velocity integration
       simNodes.forEach(node => {
-        node.vx *= 0.80
-        node.vy *= 0.80
+        const maxV = node.isDisconnected ? 12 : 22
+        node.vx = Math.max(-maxV, Math.min(maxV, node.vx)) * 0.78
+        node.vy = Math.max(-maxV, Math.min(maxV, node.vy)) * 0.78
         node.x += node.vx
         node.y += node.vy
       })
     }
 
-    // Persist finalized coordinates
-    simNodes.forEach(node => {
-      existingMap.set(node.id, { x: Math.round(node.x), y: Math.round(node.y) })
-    })
+    // 5. Bounding box normalization: ensure ALL nodes have at least 140px clearance from top & left
+    // This prevents ANY card from hiding under the top toolbar (top: 14px, height ~36px) or having negative coordinates!
+    if (simNodes.length > 0) {
+      let minX = Infinity
+      let minY = Infinity
+      simNodes.forEach(node => {
+        if (node.x < minX) minX = node.x
+        if (node.y < minY) minY = node.y
+      })
 
-    setLayoutVersion(v => v + 1)
+      const padLeft = 140
+      const padTop = 150
+      const shiftX = minX < padLeft ? padLeft - minX : 0
+      const shiftY = minY < padTop ? padTop - minY : 0
+
+      simNodes.forEach(node => {
+        const finalX = Math.round(node.x + shiftX)
+        const finalY = Math.round(node.y + shiftY)
+        existingMap.set(node.id, { x: finalX, y: finalY })
+      })
+    }
+
+    if (forceRefresh) {
+      setLayoutVersion(v => v + 1)
+    }
   }
 
-  // Calculate master layout on world change
+  const nodesInitialized = useNodesInitialized()
+  const hasAutoFittedRef = useRef(false)
+
+  // Auto-fit camera once nodes are initialized and container has valid dimensions
   useEffect(() => {
+    if (!nodesInitialized || worldEntities.length === 0) return
+    if (hasAutoFittedRef.current) return
+
+    const checkAndFit = () => {
+      const container = containerRef.current
+      if (container && container.clientWidth > 100 && container.clientHeight > 100) {
+        hasAutoFittedRef.current = true
+        fitView({ padding: 0.28, duration: 300, minZoom: 0.35, maxZoom: 1.5 })
+      }
+    }
+
+    checkAndFit()
+    const timer = setTimeout(checkAndFit, 150)
+    return () => clearTimeout(timer)
+  }, [nodesInitialized, worldEntities.length, fitView])
+
+  // ResizeObserver: auto-fit if container becomes visible / changes size from 0
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    let roTimer: NodeJS.Timeout
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth > 100 && el.clientHeight > 100) {
+        if (!hasAutoFittedRef.current && nodesInitialized) {
+          clearTimeout(roTimer)
+          roTimer = setTimeout(() => {
+            if (!hasAutoFittedRef.current && nodesInitialized) {
+              hasAutoFittedRef.current = true
+              fitView({ padding: 0.28, duration: 250, minZoom: 0.35, maxZoom: 1.5 })
+            }
+          }, 100)
+        }
+      }
+    })
+    ro.observe(el)
+    return () => {
+      ro.disconnect()
+      clearTimeout(roTimer)
+    }
+  }, [nodesInitialized, fitView])
+
+  // Calculate master layout on world change and reset auto-fit flag
+  useEffect(() => {
+    hasAutoFittedRef.current = false
     calculateMasterLayout()
   }, [activeWorldId, worldEntities.length])
 
@@ -618,11 +777,16 @@ const WikiNetworkGraphInner: React.FC = () => {
   const handleSettleLayout = () => {
     calculateMasterLayout(true)
     addToast('Organized card relations layout', 'info')
-    setTimeout(() => fitView({ padding: 0.2, duration: 600 }), 50)
+    setTimeout(() => fitView({ padding: 0.28, duration: 400, minZoom: 0.35, maxZoom: 1.5 }), 60)
   }
 
   // Build Filtered Nodes with 100% Stable Cached Coordinates
   const displayedNodes: Node[] = useMemo(() => {
+    // If any entity doesn't have a position yet, compute immediately so first render is valid
+    if (worldEntities.length > 0 && worldEntities.some(e => !worldPositionsRef.current.has(e.id))) {
+      calculateMasterLayout(false)
+    }
+
     const q = searchQuery.toLowerCase().trim()
 
     return worldEntities
@@ -638,7 +802,7 @@ const WikiNetworkGraphInner: React.FC = () => {
         return true
       })
       .map(ent => {
-        const pos = worldPositionsRef.current.get(ent.id) || { x: 500, y: 320 }
+        const pos = worldPositionsRef.current.get(ent.id) || { x: 650, y: 450 }
         const inDeg = inDegreeMap[ent.id] || 0
         const outDeg = outDegreeMap[ent.id] || 0
         const totalDeg = inDeg + outDeg
@@ -656,11 +820,12 @@ const WikiNetworkGraphInner: React.FC = () => {
             outDegree: outDeg,
             isHub,
             isSelected: selectedWikiId === ent.id,
+            hoverMotion,
             onSelect: (id: string) => setSelectedWikiId(id)
           }
         }
       })
-  }, [worldEntities, selectedType, showOnlyHubs, searchQuery, inDegreeMap, outDegreeMap, selectedWikiId, layoutVersion])
+  }, [worldEntities, selectedType, showOnlyHubs, searchQuery, inDegreeMap, outDegreeMap, selectedWikiId, hoverMotion, layoutVersion])
 
   // Build Filtered Edges between currently visible nodes
   const displayedEdges: Edge[] = useMemo(() => {
@@ -673,7 +838,13 @@ const WikiNetworkGraphInner: React.FC = () => {
           ? link.source === selectedWikiId || link.target === selectedWikiId
           : false
 
-        const strokeColor = isHighlighted ? '#f5c542' : '#475569'
+        // Connection arrows strictly follow active project's accent
+        const strokeColor = isHighlighted
+          ? themeTokens.accent
+          : selectedWikiId
+            ? (isLight ? '#cbd5e1' : '#334155')
+            : (isLight ? `${themeTokens.accent}80` : `${themeTokens.accent}65`)
+
         const strokeWidth = isHighlighted ? 2.5 : 1.5
 
         const srcPos = worldPositionsRef.current.get(link.source) || { x: 0, y: 0 }
@@ -691,90 +862,92 @@ const WikiNetworkGraphInner: React.FC = () => {
           style: { 
             stroke: strokeColor, 
             strokeWidth,
-            opacity: selectedWikiId ? (isHighlighted ? 1 : 0.2) : 0.75
+            opacity: selectedWikiId ? (isHighlighted ? 1 : 0.15) : 0.75
           },
           markerEnd: {
             type: MarkerType.ArrowClosed,
             color: strokeColor,
-            width: 10,
-            height: 10
+            width: isHighlighted ? 12 : 9,
+            height: isHighlighted ? 12 : 9
           }
         }
       })
-  }, [allLinks, displayedNodes, selectedWikiId])
+  }, [allLinks, displayedNodes, selectedWikiId, themeTokens.accent, isLight])
 
   const [nodes, setNodes, onNodesChange] = useNodesState(displayedNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(displayedEdges)
 
   useEffect(() => {
+    setNodes(displayedNodes)
+  }, [displayedNodes, setNodes])
+
+  useEffect(() => {
     setEdges(displayedEdges)
   }, [displayedEdges, setEdges])
 
-  const displayedNodesRef = useRef(displayedNodes)
-  useEffect(() => {
-    displayedNodesRef.current = displayedNodes
-  }, [displayedNodes])
-
-  // Harmonic closed hovering motion around persistent base coordinates
-  // Subtle, calm zero-gravity drift (~4-5px amplitude) that keeps cardinal edge handles aligned
-  useEffect(() => {
-    if (!hoverMotion) {
-      setNodes(displayedNodes)
-      return
-    }
-
-    let rafId: number
-    let lastTime = 0
-    const frameInterval = 1000 / 30 // 30 FPS for silky-smooth motion and light CPU footprint
-
-    // Deterministic string hash
-    const strHash = (str: string) => {
-      let h = 0
-      for (let i = 0; i < str.length; i++) {
-        h = (h * 31 + str.charCodeAt(i)) & 0xffffffff
-      }
-      return Math.abs(h)
-    }
-
-    const animate = (timestamp: number) => {
-      rafId = requestAnimationFrame(animate)
-
-      if (timestamp - lastTime < frameInterval) {
-        return
-      }
-      lastTime = timestamp
-
-      const t = timestamp * 0.001
-      const currentList = displayedNodesRef.current
-
-      setNodes(() => {
-        return currentList.map((baseNode, idx) => {
-          const basePos = worldPositionsRef.current.get(baseNode.id) || baseNode.position
-          const h = strHash(baseNode.id) + idx * 43
-          const phaseX = (h % 100) * 0.06283
-          const phaseY = ((h >> 4) % 100) * 0.06283
-          const freqFactor = 0.85 + (h % 30) * 0.01
-
-          // Gentle Lissajous oscillation: ~4.5px amplitude, ~5s period
-          const hoverX = Math.sin(t * 0.65 * freqFactor + phaseX) * 4.0 
-                       + Math.cos(t * 0.28 * freqFactor + phaseX * 1.5) * 1.5
-          const hoverY = Math.cos(t * 0.55 * freqFactor + phaseY) * 5.0 
-                       + Math.sin(t * 0.22 * freqFactor + phaseY * 1.5) * 1.8
-
-          return {
-            ...baseNode,
-            position: {
-              x: Math.round((basePos.x + hoverX) * 10) / 10,
-              y: Math.round((basePos.y + hoverY) * 10) / 10
-            }
-          }
-        })
+  const handleExportNetworkImage = async (format: 'png' | 'svg') => {
+    if (!containerRef.current) return
+    const safeName = (activeWorld?.name || 'knowledge_network').toLowerCase().replace(/[^a-z0-9_-]/g, '_')
+    try {
+      await exportReactFlowToImage(containerRef.current, nodes, format, {
+        filename: `${safeName}_network.${format}`,
+        pixelRatio: 2,
+        backgroundColor: '#090a0d',
+        padding: 64
       })
+      addToast(`Network exported as ${format.toUpperCase()}`, 'success')
+    } catch (err) {
+      console.error('Failed to export network graph:', err)
+      addToast('Failed to export network graph', 'error')
     }
+  }
 
-    rafId = requestAnimationFrame(animate)
-    return () => cancelAnimationFrame(rafId)
-  }, [hoverMotion, displayedNodes, setNodes])
+  const handleExportNetworkJson = async () => {
+    try {
+      const ok = await exportConnectionsToJson(worldEntities, allLinks, activeWorld?.name)
+      if (ok) addToast('Network topology exported as JSON', 'success')
+    } catch (err) {
+      console.error('Failed to export network topology:', err)
+      addToast('Failed to export topology JSON', 'error')
+    }
+  }
+
+  const handleExportNetworkCsv = async () => {
+    try {
+      const ok = await exportConnectionsToCsv(worldEntities, allLinks, activeWorld?.name)
+      if (ok) addToast('Edge list exported as CSV', 'success')
+    } catch (err) {
+      console.error('Failed to export connections CSV:', err)
+      addToast('Failed to export connections CSV', 'error')
+    }
+  }
+
+  const networkExportOptions: ExportOption[] = [
+    {
+      id: 'export-png',
+      label: 'Export Graph (2x PNG)',
+      badge: 'PNG',
+      onClick: () => handleExportNetworkImage('png')
+    },
+    {
+      id: 'export-svg',
+      label: 'Export Graph (Vector SVG)',
+      badge: 'SVG',
+      onClick: () => handleExportNetworkImage('svg')
+    },
+    {
+      id: 'export-json',
+      label: 'Export Topology (JSON)',
+      badge: 'JSON',
+      onClick: handleExportNetworkJson
+    },
+    {
+      id: 'export-csv',
+      label: 'Export Edge List (CSV)',
+      badge: 'CSV',
+      onClick: handleExportNetworkCsv
+    }
+  ]
 
   const onNodeClick = (_: React.MouseEvent, node: Node) => {
     setSelectedWikiId(node.id)
@@ -840,6 +1013,7 @@ const WikiNetworkGraphInner: React.FC = () => {
           edges={edges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
+          colorMode={isLight ? 'light' : 'dark'}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeClick={onNodeClick}
@@ -848,12 +1022,13 @@ const WikiNetworkGraphInner: React.FC = () => {
           elementsSelectable={true}
           panOnDrag={true}
           zoomOnScroll={true}
-          fitView
+          minZoom={0.25}
+          maxZoom={2.0}
           proOptions={{ hideAttribution: true }}
         >
           <Background 
             variant={BackgroundVariant.Dots}
-            color="var(--oros-accent-border, rgba(226, 232, 240, 0.22))" 
+            color={themeTokens.dots} 
             gap={24} 
             size={1.4} 
           />
@@ -971,12 +1146,15 @@ const WikiNetworkGraphInner: React.FC = () => {
 
           {/* Recenter & Fit Camera */}
           <button
-            onClick={() => fitView({ padding: 0.2, duration: 600 })}
+            onClick={() => fitView({ padding: 0.28, duration: 400, minZoom: 0.35, maxZoom: 1.5 })}
             className="p-1 rounded-[3px] bg-oros-900 border border-oros-750 hover:border-oros-600 hover:text-white text-oros-400 shadow-md transition-all"
             title="Fit view / center graph"
           >
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
+
+          {/* Export Graph Dropdown */}
+          <ExportDropdown options={networkExportOptions} align="left" />
         </div>
 
         {/* Bottom Helper Bar */}

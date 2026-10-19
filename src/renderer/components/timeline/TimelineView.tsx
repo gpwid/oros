@@ -1,10 +1,13 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
+import { useToastStore } from '../../store/useToastStore'
 import { TimelineEvent } from '@shared/types'
 import { 
   Clock, Plus, Calendar, Settings, List, Activity, 
   Search, Filter, ChevronDown, Sparkles 
 } from 'lucide-react'
+import { ExportDropdown, ExportOption } from '../common/ExportDropdown'
+import { exportDomToImage, exportTimelineToJson, exportTimelineToCsv } from '../../utils/exportUtils'
 import { TimelineLineView } from './TimelineLineView'
 import { TimelineCalendarView } from './TimelineCalendarView'
 import { TimelineChronicleView } from './TimelineChronicleView'
@@ -15,9 +18,13 @@ export type TimelineViewMode = 'line' | 'calendar' | 'chronicle'
 
 export const TimelineView: React.FC = () => {
   const { 
-    timelines, activeWorldId, getCalendarConfig,
+    worlds, timelines, activeWorldId, getCalendarConfig,
     deleteTimelineEvent 
   } = useWorldStore()
+
+  const { addToast } = useToastStore()
+  const timelineViewportRef = useRef<HTMLDivElement>(null)
+  const activeWorld = (worlds || []).find((w) => w.id === activeWorldId)
 
   const calendarConfig = useMemo(() => {
     return getCalendarConfig(activeWorldId || undefined)
@@ -107,6 +114,69 @@ export const TimelineView: React.FC = () => {
     setShowEventModal(true)
   }
 
+  const handleExportTimelineImage = async (format: 'png' | 'svg') => {
+    if (!timelineViewportRef.current) return
+    const safeName = (activeWorld?.name || 'chronology').toLowerCase().replace(/[^a-z0-9_-]/g, '_')
+    try {
+      await exportDomToImage(timelineViewportRef.current, format, {
+        filename: `${safeName}_timeline_${viewMode}.${format}`,
+        pixelRatio: 2,
+        backgroundColor: '#090a0d'
+      })
+      addToast(`Timeline view exported as ${format.toUpperCase()}`, 'success')
+    } catch (err) {
+      console.error('Failed to export timeline image:', err)
+      addToast('Failed to export timeline image', 'error')
+    }
+  }
+
+  const handleExportTimelineJson = async () => {
+    try {
+      const ok = await exportTimelineToJson(worldEvents, calendarConfig, activeWorld?.name)
+      if (ok) addToast('Timeline exported as JSON', 'success')
+    } catch (err) {
+      console.error('Failed to export timeline json:', err)
+      addToast('Failed to export chronology JSON', 'error')
+    }
+  }
+
+  const handleExportTimelineCsv = async () => {
+    try {
+      const ok = await exportTimelineToCsv(worldEvents, activeWorld?.name)
+      if (ok) addToast('Chronology records exported as CSV', 'success')
+    } catch (err) {
+      console.error('Failed to export timeline csv:', err)
+      addToast('Failed to export records CSV', 'error')
+    }
+  }
+
+  const timelineExportOptions: ExportOption[] = [
+    {
+      id: 'export-png',
+      label: 'Export View (2x PNG)',
+      badge: 'PNG',
+      onClick: () => handleExportTimelineImage('png')
+    },
+    {
+      id: 'export-svg',
+      label: 'Export View (Vector SVG)',
+      badge: 'SVG',
+      onClick: () => handleExportTimelineImage('svg')
+    },
+    {
+      id: 'export-json',
+      label: 'Export Chronology (JSON)',
+      badge: 'JSON',
+      onClick: handleExportTimelineJson
+    },
+    {
+      id: 'export-csv',
+      label: 'Export Records (CSV)',
+      badge: 'CSV',
+      onClick: handleExportTimelineCsv
+    }
+  ]
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-oros-950 relative select-text">
       {/* Top Filter & Query Header */}
@@ -125,7 +195,7 @@ export const TimelineView: React.FC = () => {
           </span>
         </div>
 
-        {/* Filter Controls */}
+        {/* Filter Controls & Export */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Search Input */}
           <div className="relative">
@@ -198,11 +268,14 @@ export const TimelineView: React.FC = () => {
             <option value="major">Major</option>
             <option value="minor">Minor</option>
           </select>
+
+          {/* Export Dropdown */}
+          <ExportDropdown options={timelineExportOptions} align="right" />
         </div>
       </div>
 
       {/* Main View Area */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div ref={timelineViewportRef} className="flex-1 flex overflow-hidden relative">
         {viewMode === 'line' && (
           <TimelineLineView
             events={filteredEvents}

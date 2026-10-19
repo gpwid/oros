@@ -8,8 +8,10 @@ import {
   Layers, Upload, ChevronRight, CornerDownRight, Hand,
   Hexagon, Magnet, Crown, Building2, Landmark,
   Sword, Tent, Anchor, Flame, Gem, Key, X, Check, Edit3,
-  MapPin as PinIcon, Sparkles, Ruler
+  MapPin as PinIcon, Sparkles, Ruler, Grid as GridIcon, Hash, Sliders, LayoutGrid
 } from 'lucide-react'
+import { ExportDropdown, ExportOption } from '../common/ExportDropdown'
+import { exportDomToImage, exportMapToJson } from '../../utils/exportUtils'
 
 // Fantasy Map Pin Icons
 const PIN_ICONS = [
@@ -49,7 +51,7 @@ type ActiveTool = 'pan' | 'territory' | 'pin' | 'ruler'
 
 export const InteractiveMapViewer: React.FC = () => {
   const { 
-    maps, entities, activeWorldId, selectedMapId, setSelectedMapId, 
+    worlds, maps, entities, activeWorldId, selectedMapId, setSelectedMapId, 
     addPinToMap, updatePinOnMap, removePinFromMap,
     addRegionToMap, updateRegionOnMap, removeRegionFromMap,
     createEntity, setSelectedEntityId, setActiveTab, openTab,
@@ -61,8 +63,21 @@ export const InteractiveMapViewer: React.FC = () => {
   // Tool state
   const [activeTool, setActiveTool] = useState<ActiveTool>('pan')
   const [snappingEnabled, setSnappingEnabled] = useState(true)
+  const isAltPressedRef = useRef(false)
+  const [isAltPressed, setIsAltPressed] = useState(false)
   const [showTerritories, setShowTerritories] = useState(true)
   const [showPins, setShowPins] = useState(true)
+
+  // Tactical Cartographic Grid state
+  const [showGrid, setShowGrid] = useState(false)
+  const [gridType, setGridType] = useState<'square' | 'hex'>('square')
+  const [gridSize, setGridSize] = useState(64)
+  const [gridOpacity, setGridOpacity] = useState(0.35)
+  const [showGridCoordinates, setShowGridCoordinates] = useState(false)
+  const [showGridMenu, setShowGridMenu] = useState(false)
+
+  // Project Maps Gallery Modal state
+  const [showMapGalleryModal, setShowMapGalleryModal] = useState(false)
 
   // Distance ruler state
   const [rulerPoints, setRulerPoints] = useState<[number, number][]>([])
@@ -133,8 +148,65 @@ export const InteractiveMapViewer: React.FC = () => {
   const worldMaps = activeWorldId ? maps[activeWorldId] || [] : []
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
   const currentMap = worldMaps.find((m) => m.id === selectedMapId) || worldMaps[0]
+  const activeWorld = (worlds || []).find((w) => w.id === activeWorldId)
 
-  // Sync scaleForm when active map changes
+  const handleExportMapImage = async (format: 'png' | 'svg') => {
+    if (!mapElementRef.current || !currentMap) return
+    const safeName = (currentMap.name || 'map').toLowerCase().replace(/[^a-z0-9_-]/g, '_')
+    try {
+      await exportDomToImage(mapElementRef.current, format, {
+        filename: `${safeName}.${format}`,
+        pixelRatio: 2,
+        width: 1280,
+        height: 800,
+        style: {
+          transform: 'none',
+          left: '0',
+          top: '0',
+          margin: '0',
+          position: 'relative'
+        }
+      })
+      addToast(`Map exported as ${format.toUpperCase()}`, 'success')
+    } catch (err) {
+      console.error('Failed to export map:', err)
+      addToast('Failed to export map image', 'error')
+    }
+  }
+
+  const handleExportMapJson = async () => {
+    if (!currentMap) return
+    try {
+      const ok = await exportMapToJson(currentMap, activeWorld?.name)
+      if (ok) addToast('Map data exported as JSON', 'success')
+    } catch (err) {
+      console.error('Failed to export map data:', err)
+      addToast('Failed to export map JSON', 'error')
+    }
+  }
+
+  const mapExportOptions: ExportOption[] = [
+    {
+      id: 'export-png',
+      label: 'Export Map (2x PNG)',
+      badge: 'PNG',
+      onClick: () => handleExportMapImage('png')
+    },
+    {
+      id: 'export-svg',
+      label: 'Export Map (Vector SVG)',
+      badge: 'SVG',
+      onClick: () => handleExportMapImage('svg')
+    },
+    {
+      id: 'export-json',
+      label: 'Export Map Data (JSON)',
+      badge: 'JSON',
+      onClick: handleExportMapJson
+    }
+  ]
+
+  // Sync scaleForm and gridConfig when active map changes
   useEffect(() => {
     if (currentMap) {
       setScaleForm({
@@ -142,8 +214,35 @@ export const InteractiveMapViewer: React.FC = () => {
         unit: currentMap.scaleUnit || 'Leagues',
         barPixels: currentMap.scaleBarPixels || 140
       })
+      if (currentMap.gridConfig) {
+        if (currentMap.gridConfig.enabled !== undefined) setShowGrid(currentMap.gridConfig.enabled)
+        if (currentMap.gridConfig.type) setGridType(currentMap.gridConfig.type)
+        if (currentMap.gridConfig.size) setGridSize(currentMap.gridConfig.size)
+        if (currentMap.gridConfig.opacity !== undefined) setGridOpacity(currentMap.gridConfig.opacity)
+        if (currentMap.gridConfig.showCoordinates !== undefined) setShowGridCoordinates(currentMap.gridConfig.showCoordinates)
+      }
     }
   }, [currentMap?.id, currentMap?.scaleDistance, currentMap?.scaleUnit, currentMap?.scaleBarPixels])
+
+  // Persist grid configuration updates to current map
+  const handleUpdateGrid = useCallback((updates: Partial<{ enabled: boolean; type: 'square' | 'hex'; size: number; opacity: number; showCoordinates: boolean }>) => {
+    if (updates.enabled !== undefined) setShowGrid(updates.enabled)
+    if (updates.type !== undefined) setGridType(updates.type)
+    if (updates.size !== undefined) setGridSize(updates.size)
+    if (updates.opacity !== undefined) setGridOpacity(updates.opacity)
+    if (updates.showCoordinates !== undefined) setShowGridCoordinates(updates.showCoordinates)
+
+    if (currentMap) {
+      const merged = {
+        enabled: updates.enabled !== undefined ? updates.enabled : showGrid,
+        type: updates.type !== undefined ? updates.type : gridType,
+        size: updates.size !== undefined ? updates.size : gridSize,
+        opacity: updates.opacity !== undefined ? updates.opacity : gridOpacity,
+        showCoordinates: updates.showCoordinates !== undefined ? updates.showCoordinates : showGridCoordinates
+      }
+      updateMap(currentMap.id, { gridConfig: merged })
+    }
+  }, [currentMap, showGrid, gridType, gridSize, gridOpacity, showGridCoordinates, updateMap])
 
   // Distance calculation helpers based on calibrated map scale
   const getDistanceBetweenPoints = useCallback((p1: [number, number], p2: [number, number]) => {
@@ -180,7 +279,10 @@ export const InteractiveMapViewer: React.FC = () => {
         return
       }
 
-      if (e.code === 'Space') {
+      if (e.key === 'Alt') {
+        isAltPressedRef.current = true
+        setIsAltPressed(true)
+      } else if (e.code === 'Space') {
         setIsSpacePressed(true)
       } else if (e.key === 'v' || e.key === 'V' || e.key === 'h' || e.key === 'H') {
         setActiveTool('pan')
@@ -213,12 +315,22 @@ export const InteractiveMapViewer: React.FC = () => {
           setSelectedPin(null)
           setSelectedRegion(null)
         }
-      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+      } else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Del') {
         if (activeTool === 'ruler' && rulerPoints.length > 0) {
           setRulerPoints((pts) => pts.slice(0, pts.length - 1))
           setIsRulerFinished(false)
         } else if (drawingPoints.length > 0) {
           setDrawingPoints((pts) => pts.slice(0, pts.length - 1))
+        } else if (selectedPin && currentMap) {
+          e.preventDefault()
+          removePinFromMap(currentMap.id, selectedPin.id)
+          setSelectedPin(null)
+          addToast('Map pin deleted', 'info')
+        } else if (selectedRegion && currentMap) {
+          e.preventDefault()
+          removeRegionFromMap(currentMap.id, selectedRegion.id)
+          setSelectedRegion(null)
+          addToast('Map region deleted', 'info')
         }
       } else if (e.key === 'Enter') {
         if (activeTool === 'ruler' && rulerPoints.length >= 2) {
@@ -231,18 +343,37 @@ export const InteractiveMapViewer: React.FC = () => {
     }
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
+      if (e.key === 'Alt') {
+        isAltPressedRef.current = false
+        setIsAltPressed(false)
+      } else if (e.code === 'Space') {
         setIsSpacePressed(false)
+      }
+    }
+
+    const handleBlur = () => {
+      isAltPressedRef.current = false
+      setIsAltPressed(false)
+    }
+
+    const handlePointerMove = (e: MouseEvent | PointerEvent) => {
+      if (e.altKey !== isAltPressedRef.current) {
+        isAltPressedRef.current = e.altKey
+        setIsAltPressed(e.altKey)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('blur', handleBlur)
+    window.addEventListener('pointermove', handlePointerMove)
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('blur', handleBlur)
+      window.removeEventListener('pointermove', handlePointerMove)
     }
-  }, [drawingPoints, rulerPoints, activeTool, isRulerFinished])
+  }, [drawingPoints, rulerPoints, activeTool, isRulerFinished, selectedPin, selectedRegion, currentMap, removePinFromMap, removeRegionFromMap, addToast])
 
   // Mouse wheel zoom
   const handleWheel = (e: React.WheelEvent) => {
@@ -254,8 +385,8 @@ export const InteractiveMapViewer: React.FC = () => {
     })
   }
 
-  // Convert client coordinates to map percentage [0-100]
-  const getMapCoordinates = useCallback((clientX: number, clientY: number): { x: number; y: number } | null => {
+  // Convert client coordinates to map percentage [0-100] (Alt key bypasses snapping)
+  const getMapCoordinates = useCallback((clientX: number, clientY: number, bypassSnap?: boolean): { x: number; y: number } | null => {
     if (!mapElementRef.current) return null
     const rect = mapElementRef.current.getBoundingClientRect()
     if (rect.width <= 0 || rect.height <= 0) return null
@@ -266,20 +397,29 @@ export const InteractiveMapViewer: React.FC = () => {
     rawX = Math.max(0, Math.min(100, rawX))
     rawY = Math.max(0, Math.min(100, rawY))
 
-    if (snappingEnabled) {
-      // Snap to nearest 0.5% grid
-      rawX = Math.round(rawX * 2) / 2
-      rawY = Math.round(rawY * 2) / 2
+    const shouldSnap = snappingEnabled && !isAltPressedRef.current && !bypassSnap
+
+    if (shouldSnap) {
+      if (showGrid) {
+        const [gx, gy] = snapCoordToGrid(rawX, rawY, gridSize, true)
+        rawX = gx
+        rawY = gy
+      } else {
+        // Snap to nearest 0.5% grid
+        rawX = Math.round(rawX * 2) / 2
+        rawY = Math.round(rawY * 2) / 2
+      }
     }
 
     return {
       x: Number(rawX.toFixed(2)),
       y: Number(rawY.toFixed(2))
     }
-  }, [snappingEnabled])
+  }, [snappingEnabled, showGrid, gridSize])
 
-  // Check if cursor is near the first vertex for closing snap
+  // Check if cursor is near the first vertex for closing snap (Alt key bypasses)
   const checkNearStart = (coords: { x: number; y: number }): boolean => {
+    if (isAltPressedRef.current) return false
     if (drawingPoints.length < 3 || !mapElementRef.current) return false
     const rect = mapElementRef.current.getBoundingClientRect()
     const startPt = drawingPoints[0]
@@ -309,10 +449,10 @@ export const InteractiveMapViewer: React.FC = () => {
       return
     }
 
-    // Handle pin dragging
+    // Handle pin dragging (Alt key bypasses snapping)
     if (draggingPinId && currentMap) {
       hasDraggedPin.current = true
-      const coords = getMapCoordinates(e.clientX, e.clientY)
+      const coords = getMapCoordinates(e.clientX, e.clientY, e.altKey)
       if (coords) {
         updatePinOnMap(currentMap.id, draggingPinId, { x: coords.x, y: coords.y })
       }
@@ -321,7 +461,7 @@ export const InteractiveMapViewer: React.FC = () => {
 
     // Handle ruler drawing hover
     if (activeTool === 'ruler') {
-      const coords = getMapCoordinates(e.clientX, e.clientY)
+      const coords = getMapCoordinates(e.clientX, e.clientY, e.altKey)
       if (coords && !isRulerFinished) {
         setRulerHoverPoint([coords.x, coords.y])
       }
@@ -329,7 +469,7 @@ export const InteractiveMapViewer: React.FC = () => {
 
     // Handle territory drawing hover
     if (activeTool === 'territory') {
-      const coords = getMapCoordinates(e.clientX, e.clientY)
+      const coords = getMapCoordinates(e.clientX, e.clientY, e.altKey)
       if (coords) {
         const near = checkNearStart(coords)
         setIsNearStartPoint(near)
@@ -360,7 +500,7 @@ export const InteractiveMapViewer: React.FC = () => {
 
     // Ruler tool click
     if (activeTool === 'ruler') {
-      const coords = getMapCoordinates(e.clientX, e.clientY)
+      const coords = getMapCoordinates(e.clientX, e.clientY, e.altKey)
       if (!coords) return
       if (isRulerFinished) {
         setRulerPoints([[coords.x, coords.y]])
@@ -373,7 +513,7 @@ export const InteractiveMapViewer: React.FC = () => {
 
     // Territory tool click
     if (activeTool === 'territory') {
-      const coords = getMapCoordinates(e.clientX, e.clientY)
+      const coords = getMapCoordinates(e.clientX, e.clientY, e.altKey)
       if (!coords) return
 
       // If clicking near start vertex and we have >= 3 points, close polygon!
@@ -388,7 +528,7 @@ export const InteractiveMapViewer: React.FC = () => {
 
     // Pin tool click
     if (activeTool === 'pin') {
-      const coords = getMapCoordinates(e.clientX, e.clientY)
+      const coords = getMapCoordinates(e.clientX, e.clientY, e.altKey)
       if (!coords || !currentMap) return
 
       // Open Pin Creation Modal
@@ -578,6 +718,64 @@ export const InteractiveMapViewer: React.FC = () => {
     }
   }
 
+  // Pointy-topped hex pattern SVG path generator
+  const getHexPatternPath = (size: number) => {
+    const r = size / 2
+    const w = Math.round(r * Math.sqrt(3))
+    return `M ${w / 2} 0 L ${w} ${r * 0.5} L ${w} ${r * 1.5} L ${w / 2} ${r * 2} L 0 ${r * 1.5} L 0 ${r * 0.5} Z M 0 ${r * 1.5} L 0 ${r * 2.5} L ${w / 2} ${r * 3} L ${w} ${r * 2.5} L ${w} ${r * 1.5} M ${w / 2} ${r * 2} L ${w / 2} ${r * 3}`
+  }
+
+  // Snap percentage coordinates [0-100] to current grid spacing
+  const snapCoordToGrid = (xPct: number, yPct: number, size: number, enabled: boolean): [number, number] => {
+    if (!enabled) return [xPct, yPct]
+    const pxX = (xPct / 100) * 1280
+    const pxY = (yPct / 100) * 800
+    const snappedX = Math.round(pxX / size) * size
+    const snappedY = Math.round(pxY / size) * size
+    return [
+      Math.max(0, Math.min(100, Number(((snappedX / 1280) * 100).toFixed(2)))),
+      Math.max(0, Math.min(100, Number(((snappedY / 800) * 100).toFixed(2))))
+    ]
+  }
+
+  // Alphanumeric coordinate markers for the grid overlay
+  const renderGridCoordinates = (size: number, width: number, height: number, type: 'square' | 'hex') => {
+    if (type !== 'square') return null
+    const cols = Math.floor(width / size)
+    const rows = Math.floor(height / size)
+    const labels = []
+
+    for (let c = 0; c < cols; c++) {
+      const colLabel = String.fromCharCode(65 + (c % 26)) + (c >= 26 ? Math.floor(c / 26) : '')
+      labels.push(
+        <text
+          key={`col-${c}`}
+          x={c * size + size / 2}
+          y={14}
+          textAnchor="middle"
+          className="fill-white/70 font-mono text-[9px] font-bold select-none drop-shadow"
+        >
+          {colLabel}
+        </text>
+      )
+    }
+
+    for (let r = 0; r < rows; r++) {
+      labels.push(
+        <text
+          key={`row-${r}`}
+          x={12}
+          y={r * size + size / 2 + 3}
+          textAnchor="middle"
+          className="fill-white/70 font-mono text-[9px] font-bold select-none drop-shadow"
+        >
+          {r + 1}
+        </text>
+      )
+    }
+    return labels
+  }
+
   // Render Pin Icon helper
   const renderPinIcon = (iconName?: string, className = 'w-4 h-4') => {
     const match = PIN_ICONS.find((i) => i.id === iconName)
@@ -656,6 +854,15 @@ export const InteractiveMapViewer: React.FC = () => {
             <span>New Map</span>
           </button>
 
+          <button
+            onClick={() => setShowMapGalleryModal(true)}
+            className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-oros-100 border border-oros-750 text-xs font-medium flex items-center gap-1.5 transition-colors"
+            title="Browse and manage all project maps in a grid view"
+          >
+            <LayoutGrid className="w-3 h-3 text-accent" />
+            <span>Project Maps</span>
+          </button>
+
           {currentMap && (
             <div className="text-[11px] text-oros-500 font-mono hidden sm:flex items-center gap-2 border-l border-oros-800 pl-2.5">
               <span>{currentMap.regions?.length || 0} Territories</span>
@@ -665,28 +872,34 @@ export const InteractiveMapViewer: React.FC = () => {
           )}
         </div>
 
-        {/* Map Scale Legend Indicator - Interactive button to edit scale distance and unit */}
-        <button
-          onClick={() => {
-            setScaleForm({
-              distance: currentMap?.scaleDistance ?? 50,
-              unit: currentMap?.scaleUnit || 'Leagues',
-              barPixels: currentMap?.scaleBarPixels || 140
-            })
-            setIsScaleModalOpen(true)
-          }}
-          className="flex items-center gap-2 text-xs font-mono text-oros-300 hover:text-oros-100 bg-oros-900 hover:bg-oros-850 border border-oros-800 hover:border-oros-700 px-2 py-0.5 rounded-[2px] transition-all group cursor-pointer shadow-sm"
-          title="Click to edit map scale distance and units"
-        >
-          <div 
-            className="h-1 bg-accent rounded-sm group-hover:bg-accent-bright transition-all"
-            style={{ width: `${Math.min(36, Math.max(14, ((currentMap?.scaleBarPixels || 140) / 1280) * 160))}px` }}
-          />
-          <span className="text-[11px] font-semibold">
-            {currentMap?.scaleDistance ?? 50} {currentMap?.scaleUnit || 'Leagues'}
-          </span>
-          <Edit3 className="w-2.5 h-2.5 text-oros-500 group-hover:text-oros-300" />
-        </button>
+        {/* Map Scale Legend Indicator & Export Actions */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setScaleForm({
+                distance: currentMap?.scaleDistance ?? 50,
+                unit: currentMap?.scaleUnit || 'Leagues',
+                barPixels: currentMap?.scaleBarPixels || 140
+              })
+              setIsScaleModalOpen(true)
+            }}
+            className="flex items-center gap-2 text-xs font-mono text-oros-300 hover:text-oros-100 bg-oros-900 hover:bg-oros-850 border border-oros-800 hover:border-oros-700 px-2 py-0.5 rounded-[2px] transition-all group cursor-pointer shadow-sm"
+            title="Click to edit map scale distance and units"
+          >
+            <div 
+              className="h-1 bg-accent rounded-sm group-hover:bg-accent-bright transition-all"
+              style={{ width: `${Math.min(36, Math.max(14, ((currentMap?.scaleBarPixels || 140) / 1280) * 160))}px` }}
+            />
+            <span className="text-[11px] font-semibold">
+              {currentMap?.scaleDistance ?? 50} {currentMap?.scaleUnit || 'Leagues'}
+            </span>
+            <Edit3 className="w-2.5 h-2.5 text-oros-500 group-hover:text-oros-300" />
+          </button>
+
+          {currentMap && (
+            <ExportDropdown options={mapExportOptions} align="right" />
+          )}
+        </div>
       </div>
 
       {/* INTERACTIVE MAP VIEWPORT */}
@@ -736,7 +949,34 @@ export const InteractiveMapViewer: React.FC = () => {
                   <feGaussianBlur stdDeviation="3" result="blur" />
                   <feComposite in="SourceGraphic" in2="blur" operator="over" />
                 </filter>
+                <pattern id="tactical-square-grid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
+                  <path d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`} fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" />
+                </pattern>
+                {(() => {
+                  const r = gridSize / 2
+                  const w = Math.round(r * Math.sqrt(3))
+                  const h = r * 3
+                  return (
+                    <pattern id="tactical-hex-grid" width={w} height={h} patternUnits="userSpaceOnUse">
+                      <path d={getHexPatternPath(gridSize)} fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" />
+                    </pattern>
+                  )
+                })()}
               </defs>
+
+              {/* Tactical Cartographic Grid Overlay */}
+              {showGrid && (
+                <g className="pointer-events-none">
+                  <rect
+                    width="1280"
+                    height="800"
+                    fill={`url(#${gridType === 'square' ? 'tactical-square-grid' : 'tactical-hex-grid'})`}
+                    className="text-white"
+                    style={{ opacity: gridOpacity }}
+                  />
+                  {showGridCoordinates && renderGridCoordinates(gridSize, 1280, 800, gridType)}
+                </g>
+              )}
 
               {/* Render Saved Territories */}
               {showTerritories && currentMap.regions?.map((reg) => {
@@ -1024,7 +1264,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 >
                   {/* Pin Badge */}
                   <div 
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-oros-950 font-bold shadow-2xl transition-all border-2 ${
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-slate-950 font-bold shadow-2xl transition-all border-2 ${
                       isSelected 
                         ? 'border-white ring-4 ring-accent/50 scale-125' 
                         : 'border-white/80 group-hover:border-white'
@@ -1036,7 +1276,7 @@ export const InteractiveMapViewer: React.FC = () => {
 
                   {/* Sub-map indicator badge */}
                   {pin.subMapId && (
-                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-teal-400 text-oros-950 text-[9px] flex items-center justify-center font-bold shadow">
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-teal-400 text-slate-950 text-[9px] flex items-center justify-center font-bold shadow">
                       ▼
                     </span>
                   )}
@@ -1257,7 +1497,7 @@ export const InteractiveMapViewer: React.FC = () => {
                 setSnappingEnabled(!snappingEnabled)
                 addToast(`Snapping ${!snappingEnabled ? 'Enabled' : 'Disabled'}`, 'info')
               }}
-              title={snappingEnabled ? 'Snapping is ON (Click to disable)' : 'Snapping is OFF (Click to enable)'}
+              title={snappingEnabled ? 'Snapping is ON (Hold Alt while dragging or placing to bypass)' : 'Snapping is OFF (Click to enable)'}
               className={`p-1.5 rounded-[3px] transition-colors ${
                 snappingEnabled
                   ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
@@ -1266,6 +1506,219 @@ export const InteractiveMapViewer: React.FC = () => {
             >
               <Magnet className="w-3.5 h-3.5" />
             </button>
+
+            {/* 6. Tactical Grid Overlay & Settings */}
+            <div className="relative flex items-center">
+              <button
+                onClick={() => {
+                  const next = !showGrid
+                  handleUpdateGrid({ enabled: next })
+                  addToast(`Tactical Grid ${next ? 'Enabled' : 'Disabled'}`, 'info')
+                }}
+                title={showGrid ? 'Hide Tactical Grid' : 'Show Tactical Grid (Square / Hex)'}
+                className={`p-1.5 rounded-[3px] transition-colors ${
+                  showGrid
+                    ? 'bg-accent-muted text-accent border border-accent/40 shadow-sm'
+                    : 'text-oros-500 hover:text-oros-300 hover:bg-oros-850'
+                }`}
+              >
+                <GridIcon className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Quick Grid Size Stepper on Dock when Grid is Active */}
+              {showGrid && (
+                <div className="ml-1 flex items-center gap-0.5 px-1 py-0.5 rounded-[3px] bg-oros-950/90 border border-oros-800 text-[10px] font-mono shadow-inner">
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateGrid({ size: Math.max(16, gridSize - 4) })}
+                    className="w-4 h-4 rounded-[2px] hover:bg-oros-850 hover:text-accent text-oros-400 flex items-center justify-center transition-colors font-bold"
+                    title="Decrease Grid Size (-4px)"
+                  >
+                    -
+                  </button>
+                  <span className="text-oros-200 font-semibold px-0.5 min-w-[26px] text-center">{gridSize}px</span>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateGrid({ size: Math.min(256, gridSize + 4) })}
+                    className="w-4 h-4 rounded-[2px] hover:bg-oros-850 hover:text-accent text-oros-400 flex items-center justify-center transition-colors font-bold"
+                    title="Increase Grid Size (+4px)"
+                  >
+                    +
+                  </button>
+                </div>
+              )}
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowGridMenu(!showGridMenu)
+                }}
+                className={`p-0.5 ml-0.5 rounded-[2px] border transition-colors ${
+                  showGridMenu 
+                    ? 'bg-accent text-accent-contrast border-accent' 
+                    : 'bg-oros-850 hover:bg-oros-800 text-oros-400 border-oros-700'
+                }`}
+                title="Tactical Grid Settings"
+              >
+                <Sliders className="w-2.5 h-2.5" />
+              </button>
+
+              {/* Grid Settings Popover */}
+              {showGridMenu && (
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute bottom-11 left-1/2 -translate-x-1/2 w-72 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-3.5 z-50 text-xs font-sans text-oros-200 animate-fade-in"
+                >
+                  <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-oros-800">
+                    <span className="font-semibold text-oros-100 flex items-center gap-1.5">
+                      <GridIcon className="w-3.5 h-3.5 text-accent" />
+                      Tactical Grid Settings
+                    </span>
+                    <button
+                      onClick={() => setShowGridMenu(false)}
+                      className="text-oros-400 hover:text-oros-200 p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Enable toggle */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-oros-300 font-medium">Grid Visibility</span>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateGrid({ enabled: !showGrid })}
+                        className={`px-2 py-0.5 rounded-[3px] text-[10px] font-mono uppercase font-bold border transition-colors ${
+                          showGrid
+                            ? 'bg-accent/20 border-accent/50 text-accent'
+                            : 'bg-oros-850 border-oros-750 text-oros-400'
+                        }`}
+                      >
+                        {showGrid ? 'Active' : 'Off'}
+                      </button>
+                    </div>
+
+                    {/* Grid Type: Square vs Hex */}
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase text-oros-400 mb-1">Grid Pattern</label>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateGrid({ type: 'square', enabled: true })}
+                          className={`py-1 px-2 rounded-[3px] text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors ${
+                            gridType === 'square'
+                              ? 'bg-accent/20 border-accent/50 text-accent'
+                              : 'bg-oros-850 border-oros-750 text-oros-300 hover:bg-oros-800'
+                          }`}
+                        >
+                          <Hash className="w-3 h-3" />
+                          <span>Square Grid</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateGrid({ type: 'hex', enabled: true })}
+                          className={`py-1 px-2 rounded-[3px] text-xs font-medium border flex items-center justify-center gap-1.5 transition-colors ${
+                            gridType === 'hex'
+                              ? 'bg-accent/20 border-accent/50 text-accent'
+                              : 'bg-oros-850 border-oros-750 text-oros-300 hover:bg-oros-800'
+                          }`}
+                        >
+                          <Hexagon className="w-3 h-3" />
+                          <span>Hex Grid</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Editable Cell Size: Number Input + Range Slider + Presets */}
+                    <div>
+                      <div className="flex items-center justify-between text-[10px] font-mono uppercase text-oros-400 mb-1.5">
+                        <span>Cell Size</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="16"
+                            max="256"
+                            value={gridSize}
+                            onChange={(e) => {
+                              const val = Math.max(16, Math.min(256, Number(e.target.value) || 16))
+                              handleUpdateGrid({ size: val })
+                            }}
+                            className="w-14 px-1.5 py-0.5 rounded-[2px] bg-oros-950 border border-oros-750 text-oros-100 font-mono text-xs text-right focus:outline-none focus:border-accent"
+                          />
+                          <span className="text-oros-500 font-mono text-[10px]">px</span>
+                        </div>
+                      </div>
+
+                      <input
+                        type="range"
+                        min="16"
+                        max="200"
+                        step="2"
+                        value={gridSize}
+                        onChange={(e) => handleUpdateGrid({ size: Number(e.target.value) })}
+                        className="w-full accent-accent bg-oros-800 rounded h-1 cursor-pointer"
+                      />
+
+                      {/* Quick Size Presets */}
+                      <div className="flex items-center justify-between gap-1 mt-1.5">
+                        {[32, 48, 64, 80, 96].map((sz) => (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => handleUpdateGrid({ size: sz })}
+                            className={`flex-1 py-0.5 rounded-[2px] text-[10px] font-mono border transition-colors text-center ${
+                              gridSize === sz
+                                ? 'bg-accent/25 border-accent text-accent font-bold'
+                                : 'bg-oros-850 border-oros-750 text-oros-400 hover:text-oros-200'
+                            }`}
+                          >
+                            {sz}px
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Calibrated Distance Translation */}
+                      {currentMap && (
+                        <p className="text-[10px] text-oros-400 font-sans italic mt-1.5">
+                          1 Cell ≈ {((gridSize / (currentMap.scaleBarPixels || 140)) * (currentMap.scaleDistance ?? 50)).toFixed(1)} {currentMap.scaleUnit || 'Leagues'}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Opacity Slider */}
+                    <div>
+                      <div className="flex items-center justify-between text-[10px] font-mono uppercase text-oros-400 mb-1">
+                        <span>Grid Opacity</span>
+                        <span className="text-oros-100 font-semibold">{Math.round(gridOpacity * 100)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.1"
+                        max="0.8"
+                        step="0.05"
+                        value={gridOpacity}
+                        onChange={(e) => handleUpdateGrid({ opacity: Number(e.target.value) })}
+                        className="w-full accent-accent bg-oros-800 rounded h-1 cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Coordinate Labels Toggle (square only) */}
+                    {gridType === 'square' && (
+                      <label className="flex items-center gap-2 text-xs text-oros-300 hover:text-oros-100 cursor-pointer pt-0.5">
+                        <input
+                          type="checkbox"
+                          checked={showGridCoordinates}
+                          onChange={(e) => handleUpdateGrid({ showCoordinates: e.target.checked })}
+                          className="rounded bg-oros-850 border-oros-750 text-accent focus:ring-0"
+                        />
+                        <span>Show A1 / B2 Coordinates</span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* 5. Territories Layer Toggle */}
             <button
@@ -1336,7 +1789,7 @@ export const InteractiveMapViewer: React.FC = () => {
           <div className="flex items-start justify-between mb-2.5">
             <div className="flex items-center gap-2">
               <div 
-                className="w-7 h-7 rounded-[2px] flex items-center justify-center text-oros-950 font-bold border border-white/60 shadow-sm"
+                className="w-7 h-7 rounded-[2px] flex items-center justify-center text-slate-950 font-bold border border-white/60 shadow-sm"
                 style={{ backgroundColor: selectedPin.color || '#94a3b8' }}
               >
                 {renderPinIcon(selectedPin.icon, 'w-3.5 h-3.5')}
@@ -1576,25 +2029,21 @@ export const InteractiveMapViewer: React.FC = () => {
       {/* REDESIGNED TERRITORY POLYGON CREATION / EDIT MODAL */}
       {isRegionModalOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-lg rounded-[6px] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden select-text text-oros-100 animate-modal-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-lg rounded-[4px] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden select-text text-oros-100 animate-modal-in">
             {/* Header */}
             <div className="px-4 py-3 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-[3px] bg-accent/15 border border-accent/30 flex items-center justify-center text-accent">
                   <Hexagon className="w-4 h-4" />
                 </div>
-                <div>
-                  <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100">
-                    {editingRegionId ? 'Edit Territory Properties' : 'New Territory Region'}
-                  </h3>
-                  <span className="text-[10px] text-oros-400 font-mono">
-                    {editingRegionId ? 'Update vector boundary & codex link' : `Save closed boundary (${drawingPoints.length} vertices)`} • {currentMap?.name}
-                  </span>
-                </div>
+                <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100">
+                  {editingRegionId ? 'Edit Territory Properties' : 'New Territory Region'}
+                </h3>
               </div>
               <button
                 onClick={() => setIsRegionModalOpen(false)}
                 className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
+                title="Close (Esc)"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -1604,7 +2053,7 @@ export const InteractiveMapViewer: React.FC = () => {
             <form id="region-form" onSubmit={handleSaveRegion} className="p-4 space-y-4 overflow-y-auto flex-1">
               {/* Live Preview Card */}
               <div 
-                className="p-3.5 rounded-[4px] border-2 border-dashed transition-all relative flex flex-col items-center justify-center min-h-[72px] overflow-hidden shadow-inner"
+                className="p-3.5 rounded-[3px] border border-dashed transition-all relative flex flex-col items-center justify-center min-h-[64px] overflow-hidden shadow-inner"
                 style={{ 
                   backgroundColor: regionForm.color,
                   borderColor: regionForm.color,
@@ -1618,12 +2067,9 @@ export const InteractiveMapViewer: React.FC = () => {
                 <span className="relative z-10 font-serif font-bold text-sm text-slate-100 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-wide">
                   {regionForm.name.trim() || 'Territory Title'}
                 </span>
-                <span className="relative z-10 text-[10px] font-mono text-slate-300 drop-shadow mt-0.5">
-                  {Math.round(regionForm.fillOpacity * 100)}% Fill Opacity • {regionForm.color}
-                </span>
               </div>
 
-              {/* Territory Name Input & Quick Suffix Chips */}
+              {/* Territory Name Input */}
               <div>
                 <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">
                   Territory Name *
@@ -1637,28 +2083,6 @@ export const InteractiveMapViewer: React.FC = () => {
                   placeholder="e.g. Duchy of Dun Carrow, The Bitter Coast..."
                   className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-3 py-1.5 text-xs text-oros-100 font-medium focus:outline-none focus:border-accent"
                 />
-
-                {/* Quick Archetype Suffix Buttons */}
-                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                  <span className="text-[10px] font-mono text-oros-500">Quick additions:</span>
-                  {['March', 'Duchy', 'Barony', 'Fens', 'Isles', 'Reaches', 'Haven', 'Wastes'].map((suffix) => (
-                    <button
-                      key={suffix}
-                      type="button"
-                      onClick={() => {
-                        const trimmed = regionForm.name.trim()
-                        if (!trimmed) {
-                          setRegionForm({ ...regionForm, name: suffix })
-                        } else if (!trimmed.toLowerCase().includes(suffix.toLowerCase())) {
-                          setRegionForm({ ...regionForm, name: `${trimmed} ${suffix}` })
-                        }
-                      }}
-                      className="px-1.5 py-0.5 rounded-[2px] bg-oros-850 hover:bg-oros-800 text-oros-400 hover:text-oros-200 border border-oros-750 text-[10px] font-sans transition-colors"
-                    >
-                      +{suffix}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {/* Color Palette & Custom Hex */}
@@ -1732,10 +2156,10 @@ export const InteractiveMapViewer: React.FC = () => {
                 {/* Opacity Quick Presets */}
                 <div className="flex items-center gap-1.5">
                   {[
-                    { label: '15% Subtle', val: 0.15 },
-                    { label: '25% Standard', val: 0.25 },
-                    { label: '45% Strong', val: 0.45 },
-                    { label: '70% Opaque', val: 0.70 }
+                    { label: '15%', val: 0.15 },
+                    { label: '25%', val: 0.25 },
+                    { label: '45%', val: 0.45 },
+                    { label: '70%', val: 0.70 }
                   ].map((preset) => (
                     <button
                       key={preset.label}
@@ -1780,9 +2204,6 @@ export const InteractiveMapViewer: React.FC = () => {
                     </option>
                   ))}
                 </select>
-                <p className="text-[10px] text-oros-500 font-sans mt-1">
-                  Linking a lore card enables one-click opening and previewing of articles directly from the map.
-                </p>
               </div>
             </form>
 
@@ -2225,6 +2646,136 @@ export const InteractiveMapViewer: React.FC = () => {
                 className="btn-accent px-3.5 py-1 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
               >
                 Create Map
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PROJECT MAPS GALLERY MODAL (Grid-like Map Explorer) */}
+      {showMapGalleryModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-4xl rounded-[4px] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden select-text text-oros-100 animate-modal-in">
+            {/* Header */}
+            <div className="px-5 py-3 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <LayoutGrid className="w-4 h-4 text-accent" />
+                <div>
+                  <h3 className="font-serif text-sm font-semibold tracking-wide text-oros-100">
+                    Project Cartography & Maps
+                  </h3>
+                  <p className="text-[11px] text-oros-400 font-sans">
+                    Browse, switch, and manage all regional, world, and tactical battle maps in this project
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setShowMapGalleryModal(false)
+                    setShowNewMapModal(true)
+                  }}
+                  className="btn-accent px-2.5 py-1 rounded-[3px] text-xs font-semibold flex items-center gap-1.5 shadow-sm"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>New Map</span>
+                </button>
+                <button
+                  onClick={() => setShowMapGalleryModal(false)}
+                  className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Grid of Maps */}
+            <div className="p-5 overflow-y-auto flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {worldMaps.map((mapItem) => {
+                const isActive = mapItem.id === currentMap?.id
+                return (
+                  <div
+                    key={mapItem.id}
+                    onClick={() => {
+                      setSelectedMapId(mapItem.id)
+                      setSelectedPin(null)
+                      setSelectedRegion(null)
+                      setDrawingPoints([])
+                      setShowMapGalleryModal(false)
+                      addToast(`Switched to map: ${mapItem.name}`, 'info')
+                    }}
+                    className={`group relative rounded-[4px] border overflow-hidden cursor-pointer transition-all flex flex-col bg-oros-950 ${
+                      isActive
+                        ? 'border-accent ring-2 ring-accent/30 shadow-lg'
+                        : 'border-oros-800 hover:border-oros-700 hover:shadow-md'
+                    }`}
+                  >
+                    {/* Thumbnail */}
+                    <div className="h-36 w-full relative overflow-hidden bg-oros-900">
+                      <img
+                        src={mapItem.imageUrl}
+                        alt={mapItem.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-oros-950 via-transparent to-transparent opacity-80" />
+                      {isActive && (
+                        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-[2px] bg-accent text-accent-contrast text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow">
+                          <Check className="w-2.5 h-2.5" />
+                          <span>Active Map</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="p-3 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h4 className="font-sans font-semibold text-sm text-oros-100 group-hover:text-accent transition-colors">
+                          {mapItem.name}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1.5 text-[11px] font-mono text-oros-400">
+                          <span>{mapItem.regions?.length || 0} Territories</span>
+                          <span>•</span>
+                          <span>{mapItem.pins?.length || 0} Landmarks</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 pt-2 border-t border-oros-850 flex items-center justify-between text-[11px] font-mono text-oros-500">
+                        <span>Scale: {mapItem.scaleDistance ?? 50} {mapItem.scaleUnit || 'Leagues'}</span>
+                        <span className="text-accent group-hover:translate-x-0.5 transition-transform font-sans font-medium text-xs">
+                          {isActive ? 'Current' : 'Select →'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+
+              {/* Add New Map Card in Grid */}
+              <button
+                onClick={() => {
+                  setShowMapGalleryModal(false)
+                  setShowNewMapModal(true)
+                }}
+                className="h-full min-h-[200px] rounded-[4px] border-2 border-dashed border-oros-800 hover:border-oros-700 bg-oros-950/40 hover:bg-oros-900/40 flex flex-col items-center justify-center gap-2 text-oros-400 hover:text-oros-200 transition-all p-4 group"
+              >
+                <div className="w-10 h-10 rounded-full bg-oros-900 border border-oros-750 flex items-center justify-center text-oros-400 group-hover:text-accent group-hover:border-accent transition-colors">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <span className="font-sans text-xs font-semibold">Import Another Map</span>
+                <span className="text-[10px] text-oros-500 font-mono text-center max-w-[160px]">
+                  Add regional, city, or tactical battle maps
+                </span>
+              </button>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-2.5 border-t border-oros-750 bg-oros-900 flex items-center justify-between text-xs text-oros-400">
+              <span className="font-mono">{worldMaps.length} map{worldMaps.length === 1 ? '' : 's'} registered in world</span>
+              <button
+                onClick={() => setShowMapGalleryModal(false)}
+                className="px-3 py-1 rounded-[3px] text-xs font-semibold text-oros-300 hover:text-oros-100 hover:bg-oros-850 transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>

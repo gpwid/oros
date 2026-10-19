@@ -1,6 +1,7 @@
 import { 
   World, LoreEntity, WorldMap, RelationEdge, TimelineEvent, ManuscriptChapter,
-  DirectoryFolder, DirectoryItem, WhiteboardCanvasData, WorkspaceTab, WorldCalendarConfig
+  DirectoryFolder, DirectoryItem, WhiteboardCanvasData, WorkspaceTab, WorldCalendarConfig,
+  ConlangLanguage
 } from '@shared/types'
 
 export const OSTERGARD_CALENDAR_CONFIG: WorldCalendarConfig = {
@@ -38,9 +39,10 @@ export const sampleWorld: World = {
   name: 'The Ashen Crown: Chronicles of Ostergard',
   tagline: 'A storm-scoured realm of basalt cliffs and salt marshes, bled dry by famine and a dying duke\'s secret.',
   description: 'For three centuries, House Ostergard held the Bitter Coast through iron discipline, herring fleets, and the ancient Salt Covenant. But the Winter of the Drowned Grain has turned the wheat black in the silos, the exiled fleet of Torvald Black-Thorn strikes at coastal supply lines, and with the sudden poisoning of the Old Duke, the basalt throne falls to Corvus the Iron Warden—a scarred frontier soldier surrounded by ambitious merchant oligarchs, fanatic inquisitors, and starving commoners.',
-  genre: 'Grounded Grimdark Fantasy',
+  genre: 'Grimdark',
   calendarConfig: OSTERGARD_CALENDAR_CONFIG,
-  bannerUrl: 'https://cdnb.artstation.com/p/assets/images/images/004/018/719/20161118215036/large/shahab-alizadeh-storm-coast.jpg',
+  bannerUrl: 'https://images.unsplash.com/photo-1533158307587-828f0a76ef46?q=80&w=1200&auto=format&fit=crop',
+  thumbnailUrl: 'https://images.unsplash.com/photo-1533158307587-828f0a76ef46?q=80&w=1200&auto=format&fit=crop',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString()
 }
@@ -976,6 +978,16 @@ export const sampleDirectoryItems: DirectoryItem[] = [
     folderId: 'folder-chronicles',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'item-dict-high-ostergardic',
+    worldId: 'world-ostergard',
+    name: 'Conlang: High Ostergardic',
+    type: 'dictionary',
+    targetId: 'lang-ostergardic',
+    folderId: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   }
 ]
 
@@ -1002,10 +1014,188 @@ export const sampleWorkspaceTabs: WorkspaceTab[] = [
     isClosable: true
   },
   {
-    id: 'tab-canvas',
-    title: 'Conspiracy Canvas',
-    type: 'canvas',
-    targetId: 'canvas-conspiracy',
+    id: 'tab-conlang',
+    title: 'High Ostergardic Lexicon',
+    type: 'dictionary',
+    targetId: 'lang-ostergardic',
     isClosable: true
   }
 ]
+
+export const sampleConlangs: ConlangLanguage[] = [
+  {
+    id: 'lang-ostergardic',
+    worldId: 'world-ostergard',
+    name: 'High Ostergardic',
+    family: 'Archaic Boreal Court Dialect',
+    description: 'The ancient, guttural court tongue of the salt-cliff nobility. Utilized during ducal councils, treaties, and sacred oaths of fealty over drawn cold steel.',
+    writingSystem: 'Angular Runic Script',
+    phonologyNotes: 'Glottal stops, heavy sibilants, rolled rhotic r-sounds, and clipped diphthongs.',
+    color: '#38bdf8',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    words: [
+      {
+        id: 'word-skjaldmaer',
+        languageId: 'lang-ostergardic',
+        term: 'Skjaldmær',
+        phonetic: '/ˈskjɑld.mæːr/',
+        partOfSpeech: 'noun',
+        definition: 'A sworn shield-bearer of the ducal vanguard pledged by blood to die before the ruling lord falls.',
+        etymology: 'Proto-Boreal skjald (shield) + mær (maiden/sworn warrior)',
+        aliases: ['skjaldmeyjar', 'skjaldmaer', 'skjald-bearer'],
+        examples: [
+          {
+            original: 'The duke rode with nine skjaldmær at his flanks through the mountain pass.',
+            translation: 'The lord traveled protected by his sworn vanguard.'
+          }
+        ],
+        relatedEntityId: 'char-corvus',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: 'word-khorash',
+        languageId: 'lang-ostergardic',
+        term: 'Khorash',
+        phonetic: '[kho-RASH]',
+        partOfSpeech: 'noun',
+        definition: 'The sacred irrevocable oath of salt and iron sworn over an unsheathed blade. Breach is punished by ceremonial drowning.',
+        etymology: 'Skaelish khor (unforgiving iron) + ash (breath/vow)',
+        aliases: ['khorashim', 'khor-vow'],
+        examples: [
+          {
+            original: 'He invoked the Khorash before the Basalt Council, silencing every guildmaster.',
+            translation: 'He bound them all to the iron oath.'
+          }
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: 'word-drang',
+        languageId: 'lang-ostergardic',
+        term: 'Drang',
+        phonetic: '[drahng]',
+        partOfSpeech: 'noun',
+        definition: 'A sheer, wave-carved basalt sea stack or razor reef corridor where ships break in storms.',
+        etymology: 'Norse/Boreal drangr (isolated sea pillar)',
+        aliases: ['drangar'],
+        examples: [
+          {
+            original: 'No war galley can navigate the inner drang in a northern squall.',
+            translation: 'The cliffs smash any warship attempting the narrow channel.'
+          }
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: 'word-valen-geld',
+        languageId: 'lang-ostergardic',
+        term: 'Valen-Geld',
+        phonetic: '[VAH-len geld]',
+        partOfSpeech: 'noun',
+        definition: 'A clandestine blood-tithe tribute paid by coastal town reeves to corsairs to preserve winter wheat stores.',
+        etymology: 'Valen (slain/spared) + Geld (coin tribute)',
+        aliases: ['valengeld', 'geld'],
+        examples: [
+          {
+            original: 'The port guild quietly levied a valen-geld to keep Torvald from burning the warehouses.',
+            translation: 'They paid the outlaw toll in gold.'
+          }
+        ],
+        relatedEntityId: 'char-torvald',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: 'word-salthird',
+        languageId: 'lang-ostergardic',
+        term: 'Salthird',
+        phonetic: '[SALT-heerd]',
+        partOfSpeech: 'noun',
+        definition: 'The elite standing ducal marine guard, trained for amphibious boarding actions and citadel gate defense.',
+        etymology: 'Salt (ocean brine) + Hird (sovereign armed retinue)',
+        aliases: ['salthirdmen', 'salt-hird'],
+        examples: [
+          {
+            original: 'At first horn, the Salthird locked shields across the watergate.',
+            translation: 'The marine guard sealed the harbor entrance.'
+          }
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: 'word-mork-tid',
+        languageId: 'lang-ostergardic',
+        term: 'Mørk-Tid',
+        phonetic: '[MORK-teed]',
+        partOfSpeech: 'noun',
+        definition: 'The sixty-day solar twilight of the deep bitter freeze when sea ice locks the fjords.',
+        etymology: 'Mørk (murk/darkness) + Tid (season/era)',
+        aliases: ['morktid', 'the dark tide'],
+        examples: [
+          {
+            original: 'During the Mørk-Tid, starving wolf-packs cross the frozen bay from the outer skerries.',
+            translation: 'In the deep winter gloom, beasts roam across the ocean ice.'
+          }
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ]
+  },
+  {
+    id: 'lang-skaelish',
+    worldId: 'world-ostergard',
+    name: 'Skaelish Runespeak',
+    family: 'Outer Isles Reaver Cant',
+    description: 'A clipped, sea-slurred dialect spoken by outlaws, galley oarsmen, and salt-smugglers of the Low Skerries.',
+    writingSystem: 'Notched Driftwood Carvings',
+    color: '#f43f5e',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    words: [
+      {
+        id: 'word-draugr-helm',
+        languageId: 'lang-skaelish',
+        term: 'Draugr-Helm',
+        phonetic: '[DRAW-ger helm]',
+        partOfSpeech: 'noun',
+        definition: 'An iron skull-cap visor blackened with cuttlefish ink, worn by exiled raiders condemned to drown if captured.',
+        etymology: 'Draugr (drowned dead) + Helm (casque)',
+        aliases: ['draugrhelm'],
+        examples: [
+          {
+            original: 'Torvald threw back his draugr-helm to taste the spray.',
+            translation: 'The outlaw captain unveiled his scarred face.'
+          }
+        ],
+        relatedEntityId: 'char-torvald',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: 'word-skiff-bait',
+        languageId: 'lang-skaelish',
+        term: 'Skiff-Bait',
+        phonetic: '[SKIFF bayt]',
+        partOfSpeech: 'idiom',
+        definition: 'A deliberate naval ruse: burning peat on a decoy barge to lure heavy garrison galleys onto shallow reefs.',
+        aliases: ['skiffbait'],
+        examples: [
+          {
+            original: 'They took the burning hull for a merchant prizes—foolish skiff-bait.',
+            translation: 'They fell straight into the corsair trap.'
+          }
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ]
+  }
+]
+
+

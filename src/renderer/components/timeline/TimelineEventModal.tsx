@@ -230,7 +230,7 @@ export const TimelineEventModal: React.FC<TimelineEventModalProps> = ({
             {isPeriod ? (
               <Clock className="w-3.5 h-3.5 text-accent" />
             ) : (
-              <Zap className="w-3.5 h-3.5 text-accent" />
+              <Bookmark className="w-3.5 h-3.5 text-accent" />
             )}
             <h3 className="font-sans font-semibold text-xs uppercase tracking-wider text-oros-100">
               {eventToEdit ? (isPeriod ? 'Edit Period Span' : 'Edit Timeline Event') : (isPeriod ? 'New Period Span' : 'New Milestone Event')}
@@ -283,7 +283,7 @@ export const TimelineEventModal: React.FC<TimelineEventModalProps> = ({
               autoFocus
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={isPeriod ? "e.g. The War of the Seven Crownlands" : "e.g. Coronation of Emperor Vael"}
+              placeholder={isPeriod ? "Period title..." : "Milestone title..."}
               className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:border-accent focus:outline-none"
             />
           </div>
@@ -484,9 +484,9 @@ export const TimelineEventModal: React.FC<TimelineEventModalProps> = ({
                 onChange={(e) => setImportance(e.target.value as TimelineEvent['importance'])}
                 className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-200 focus:border-accent focus:outline-none"
               >
-                <option value="major">Major (Standard Epoch)</option>
-                <option value="mythic">Mythic (World-Shaping)</option>
-                <option value="minor">Minor (Local Record)</option>
+                <option value="major">Major Event</option>
+                <option value="mythic">Mythic / World-Shaping</option>
+                <option value="minor">Minor / Local Record</option>
               </select>
             </div>
           </div>
@@ -542,7 +542,7 @@ export const TimelineEventModal: React.FC<TimelineEventModalProps> = ({
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Record the consequences, legendary figures, and lasting geopolitical outcomes..."
+              placeholder="Chronicle notes, historical consequences, or key figures..."
               className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:border-accent focus:outline-none resize-none"
             />
           </div>

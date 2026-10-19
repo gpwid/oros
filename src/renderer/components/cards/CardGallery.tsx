@@ -15,7 +15,7 @@ import { NewEntityModal } from '../common/NewEntityModal'
 export const CardGallery: React.FC = () => {
   const { 
     entities, categories, activeWorldId, setSelectedEntityId, openTab, 
-    createEntity, searchQuery, setSearchQuery 
+    createEntity, updateEntity, searchQuery, setSearchQuery 
   } = useWorldStore()
 
   const [activeCategory, setActiveCategory] = useState<string | 'all'>('all')
@@ -44,8 +44,20 @@ export const CardGallery: React.FC = () => {
     })
   }
 
-  const handleCreateConfirm = (title: string, templateId: string, folderId?: string | null) => {
-    const newEnt = createEntity(activeCategory === 'all' ? 'character' : activeCategory, title, folderId, templateId)
+  const handleCreateConfirm = (
+    title: string, 
+    templateId: string, 
+    folderId?: string | null, 
+    categoryId?: string | null, 
+    tags?: string[]
+  ) => {
+    const finalType = (categoryId && categoryId !== 'all')
+      ? categoryId
+      : (activeCategory === 'all' ? 'character' : activeCategory)
+    const newEnt = createEntity(finalType, title, folderId, templateId)
+    if (tags && tags.length > 0) {
+      updateEntity(newEnt.id, { tags })
+    }
     navigateToWiki(newEnt)
     setShowCreateModal(false)
   }

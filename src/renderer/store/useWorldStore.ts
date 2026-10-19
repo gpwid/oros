@@ -3,7 +3,8 @@ import {
   World, LoreEntity, WorldMap, RelationEdge, TimelineEvent, ManuscriptChapter, 
   StorageData, MapPin, MapRegion,
   DirectoryFolder, DirectoryItem, DirectoryItemType, WorkspaceTab, 
-  WhiteboardCanvasData, CanvasStroke, EntityCategory, WorldCalendarConfig, InfoboxSection
+  WhiteboardCanvasData, CanvasStroke, EntityCategory, WorldCalendarConfig, InfoboxSection,
+  ConlangLanguage, ConlangWord
 } from '@shared/types'
 import { DEFAULT_PRESET_CATEGORIES } from '../utils/categoryIcons'
 import { 
@@ -14,11 +15,12 @@ import {
 import { 
   sampleWorld, sampleEntities, sampleMap, sampleRelations, 
   sampleTimelines, sampleManuscript,
-  sampleFolders, sampleDirectoryItems, sampleCanvases, sampleWorkspaceTabs
+  sampleFolders, sampleDirectoryItems, sampleCanvases, sampleWorkspaceTabs,
+  sampleConlangs
 } from '../sample/sampleWorld'
 import { getTemplateById, getTemplateForType } from '../utils/entityTemplates'
 
-export type ActiveNavTab = 'wiki' | 'cards' | 'relations' | 'wiki-network' | 'maps' | 'timeline' | 'writer' | 'graph' | 'canvas';
+export type ActiveNavTab = 'wiki' | 'cards' | 'relations' | 'wiki-network' | 'maps' | 'timeline' | 'writer' | 'graph' | 'canvas' | 'dictionary';
 
 interface WorldState {
   // Navigation & UI state
@@ -30,11 +32,23 @@ interface WorldState {
   selectedMapId: string | null;
   selectedChapterId: string | null;
   selectedCanvasId: string | null;
+  selectedLanguageId: string | null;
   searchQuery: string;
   isSaving: boolean;
   gmMode: boolean; // Toggle GM / Private notes and hidden layers
   sidebarCollapsed: boolean;
   appView: 'home' | 'workspace';
+  
+  // Codex Reader Mode State
+  isReaderMode: boolean;
+  readerTarget: { type: 'card' | 'entity' | 'chapter'; id: string } | null;
+  openReaderMode: (target?: { type: 'card' | 'entity' | 'chapter'; id: string }) => void;
+  closeReaderMode: () => void;
+
+  // Polyhedral Dice Tray State
+  isDiceTrayOpen: boolean;
+  toggleDiceTray: () => void;
+  setDiceTrayOpen: (open: boolean) => void;
 
   // Data Store
   worlds: World[];
@@ -49,6 +63,7 @@ interface WorldState {
   categories: Record<string, EntityCategory[]>;
   calendars: Record<string, WorldCalendarConfig>;
   relationNodePositions: Record<string, Record<string, { x: number; y: number }>>;
+  conlangs: Record<string, ConlangLanguage[]>;
 
   // Actions
   initStore: () => Promise<void>;
@@ -96,7 +111,15 @@ interface WorldState {
   clearCanvasStrokes: (canvasId: string) => void;
 
   // World CRUD
-  createWorld: (name: string, tagline: string, genre: string, theme?: World['theme'], customAccentColor?: string) => void;
+  createWorld: (
+    name: string, 
+    tagline: string, 
+    genre: string, 
+    theme?: World['theme'], 
+    customAccentColor?: string,
+    thumbnailUrl?: string,
+    bannerUrl?: string
+  ) => void;
   updateWorld: (worldId: string, updates: Partial<World>) => void;
   deleteWorld: (worldId: string) => void;
   setWorldTheme: (worldId: string, theme: World['theme'], customAccentColor?: string) => void;
@@ -143,9 +166,32 @@ interface WorldState {
   moveChapter: (chapterId: string, direction: 'up' | 'down') => void;
   compileManuscript: () => Promise<boolean>;
 
+  // Conlang & Linguistics CRUD
+  createLanguage: (name: string, description?: string, family?: string, color?: string) => ConlangLanguage;
+  updateLanguage: (languageId: string, updates: Partial<ConlangLanguage>) => void;
+  deleteLanguage: (languageId: string) => void;
+  setSelectedLanguageId: (id: string | null) => void;
+  addWord: (languageId: string, word: Omit<ConlangWord, 'id' | 'languageId' | 'createdAt' | 'updatedAt'>) => ConlangWord;
+  updateWord: (languageId: string, wordId: string, updates: Partial<ConlangWord>) => void;
+  deleteWord: (languageId: string, wordId: string) => void;
+
   // Export & Import
   exportWorld: () => Promise<boolean>;
   importWorld: (rawJson?: string) => Promise<boolean>;
+}
+
+function getAutoSaveIntervalMs(): number {
+  if (typeof window === 'undefined') return 1000
+  try {
+    const raw = localStorage.getItem('oros_app_settings')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (typeof parsed?.general?.autoSaveIntervalMs === 'number') {
+        return parsed.general.autoSaveIntervalMs
+      }
+    }
+  } catch {}
+  return 1000
 }
 
 let persistDebounceTimer: any = null;
@@ -160,11 +206,31 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   selectedMapId: sampleMap.id,
   selectedChapterId: sampleManuscript[0].id,
   selectedCanvasId: sampleCanvases[0].id,
+  selectedLanguageId: sampleConlangs[0]?.id || null,
   searchQuery: '',
   isSaving: false,
   gmMode: false,
   sidebarCollapsed: typeof window !== 'undefined' ? localStorage.getItem('oros_sidebar_collapsed') === 'true' : false,
   appView: 'home',
+
+  // Codex Reader Mode
+  isReaderMode: false,
+  readerTarget: null,
+  openReaderMode: (target) => {
+    set({ isReaderMode: true, readerTarget: target || null });
+  },
+  closeReaderMode: () => {
+    set({ isReaderMode: false, readerTarget: null });
+  },
+
+  // Polyhedral Dice Tray HUD
+  isDiceTrayOpen: false,
+  toggleDiceTray: () => {
+    set((state) => ({ isDiceTrayOpen: !state.isDiceTrayOpen }));
+  },
+  setDiceTrayOpen: (open) => {
+    set({ isDiceTrayOpen: open });
+  },
 
   worlds: [sampleWorld],
   entities: { [sampleWorld.id]: sampleEntities },
@@ -178,6 +244,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   categories: { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES },
   calendars: { [sampleWorld.id]: sampleWorld.calendarConfig || DEFAULT_FANTASY_CALENDAR_CONFIG },
   relationNodePositions: {},
+  conlangs: { [sampleWorld.id]: sampleConlangs },
 
   initStore: async () => {
     try {
@@ -205,10 +272,23 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           parsed.canvases = { [sampleWorld.id]: sampleCanvases };
           parsed.categories = { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES };
           parsed.calendars = { [sampleWorld.id]: sampleWorld.calendarConfig || DEFAULT_FANTASY_CALENDAR_CONFIG };
+          parsed.conlangs = { [sampleWorld.id]: sampleConlangs };
         }
 
+        const healedWorlds = (parsed.worlds || [sampleWorld]).map((w: World) => {
+          let b = w.bannerUrl
+          let t = w.thumbnailUrl
+          if (b && b.includes('artstation.com')) {
+            b = sampleWorld.bannerUrl
+          }
+          if (t && t.includes('artstation.com')) {
+            t = sampleWorld.thumbnailUrl
+          }
+          return { ...w, bannerUrl: b, thumbnailUrl: t || b }
+        })
+
         set({
-          worlds: parsed.worlds || [sampleWorld],
+          worlds: healedWorlds,
           activeWorldId: parsed.activeWorldId || sampleWorld.id,
           entities: parsed.entities || { [sampleWorld.id]: sampleEntities },
           maps: parsed.maps || { [sampleWorld.id]: [sampleMap] },
@@ -220,7 +300,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           canvases: parsed.canvases || { [sampleWorld.id]: sampleCanvases },
           categories: parsed.categories || { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES },
           calendars: parsed.calendars || { [sampleWorld.id]: sampleWorld.calendarConfig || DEFAULT_FANTASY_CALENDAR_CONFIG },
-          relationNodePositions: parsed.relationNodePositions || {}
+          relationNodePositions: parsed.relationNodePositions || {},
+          conlangs: parsed.conlangs || { [sampleWorld.id]: sampleConlangs }
         });
         get().syncVaultDirectory();
         get().persistStore();
@@ -253,7 +334,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       canvases: s.canvases,
       categories: s.categories,
       calendars: s.calendars,
-      relationNodePositions: s.relationNodePositions
+      relationNodePositions: s.relationNodePositions,
+      conlangs: s.conlangs
     };
     try {
       const jsonStr = JSON.stringify(payload, null, 2);
@@ -272,6 +354,12 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   persistStore: async () => {
+    const interval = getAutoSaveIntervalMs();
+    if (interval === 0) {
+      // Manual Save Mode: skip automated background flush
+      return;
+    }
+
     if (persistDebounceTimer) {
       clearTimeout(persistDebounceTimer);
     }
@@ -285,7 +373,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       persistDebounceTimer = setTimeout(async () => {
         await get().flushSave();
         resolve();
-      }, 350);
+      }, Math.max(300, interval));
     });
   },
 
@@ -635,6 +723,10 @@ export const useWorldStore = create<WorldState>((set, get) => ({
         get().deleteChapter(item.targetId);
         return;
       }
+      if (item.type === 'dictionary') {
+        get().deleteLanguage(item.targetId);
+        return;
+      }
     }
 
     set((state) => ({
@@ -669,6 +761,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const mapsList = s.maps[worldId] || [];
     const canvasesList = s.canvases[worldId] || [];
     const chaptersList = s.manuscripts[worldId] || [];
+    const conlangsList = s.conlangs[worldId] || [];
 
     const updatedItems = [...existingItems];
     let changed = false;
@@ -757,7 +850,28 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       }
     }
 
-    // 5. Ensure core feature shortcuts exist if not present
+    // 5. Auto-detect all Conlang Dictionaries in project vault
+    for (const lang of conlangsList) {
+      const idx = updatedItems.findIndex((i) => i.targetId === lang.id && i.type === 'dictionary');
+      if (idx === -1) {
+        updatedItems.push({
+          id: `doc-dict-${lang.id}`,
+          worldId,
+          name: lang.name,
+          type: 'dictionary',
+          targetId: lang.id,
+          folderId: null,
+          createdAt: lang.createdAt || new Date().toISOString(),
+          updatedAt: lang.updatedAt || new Date().toISOString()
+        });
+        changed = true;
+      } else if (updatedItems[idx].name !== lang.name) {
+        updatedItems[idx] = { ...updatedItems[idx], name: lang.name, updatedAt: new Date().toISOString() };
+        changed = true;
+      }
+    }
+
+    // 6. Ensure core feature shortcuts exist if not present
     if (!updatedItems.some((i) => i.type === 'timeline')) {
       updatedItems.push({
         id: `doc-timeline-${worldId}`,
@@ -784,13 +898,15 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       changed = true;
     }
 
-    // 6. Clean up orphaned directory items whose targetId was removed from vault
+    // 8. Clean up orphaned directory items whose targetId was removed from vault
     const validItems = updatedItems.filter((i) => {
       if (i.targetId) {
         if (i.type === 'card' || i.type === 'wiki') return entitiesList.some((e) => e.id === i.targetId);
         if (i.type === 'canvas') return canvasesList.some((c) => c.id === i.targetId);
         if (i.type === 'map') return mapsList.some((m) => m.id === i.targetId);
         if (i.type === 'writer') return chaptersList.some((ch) => ch.id === i.targetId);
+        if (i.type === 'dictionary') return conlangsList.some((l) => l.id === i.targetId);
+        if ((i as any).type === 'table') return false;
       }
       return true;
     });
@@ -947,7 +1063,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     get().persistStore();
   },
 
-  createWorld: (name, tagline, genre, theme = 'sovereign', customAccentColor) => {
+  createWorld: (name, tagline, genre, theme = 'sovereign', customAccentColor, thumbnailUrl, bannerUrl) => {
     const newWorldId = `world-${Date.now()}`;
     const initialCalendar = { ...DEFAULT_FANTASY_CALENDAR_CONFIG, worldId: newWorldId };
     const newWorld: World = {
@@ -958,6 +1074,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       genre,
       theme,
       customAccentColor,
+      thumbnailUrl: thumbnailUrl || bannerUrl,
+      bannerUrl: bannerUrl || thumbnailUrl,
       calendarConfig: initialCalendar,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -1131,18 +1249,27 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           : ent
       );
       const dirList = (state.directoryItems[worldId] || []).map((item) =>
-        item.targetId === entityId && updates.title
+        (item.targetId === entityId || item.id === entityId) && updates.title !== undefined
           ? { ...item, name: updates.title, updatedAt: new Date().toISOString() }
           : item
       );
       const openTabs = state.openTabs.map((tab) =>
-        tab.targetId === entityId && updates.title
+        (tab.targetId === entityId || tab.id === entityId) && updates.title !== undefined
           ? { ...tab, title: updates.title }
           : tab
       );
+      const mapList = (state.maps[worldId] || []).map((map) => ({
+        ...map,
+        pins: map.pins.map((pin) =>
+          pin.entityId === entityId && updates.title !== undefined
+            ? { ...pin, title: updates.title }
+            : pin
+        )
+      }));
       return {
         entities: { ...state.entities, [worldId]: list },
         directoryItems: { ...state.directoryItems, [worldId]: dirList },
+        maps: { ...state.maps, [worldId]: mapList },
         openTabs
       };
     });
@@ -1160,9 +1287,17 @@ export const useWorldStore = create<WorldState>((set, get) => ({
         ? state.activeTabId
         : (openTabs[0]?.id || '');
 
+      const relList = (state.relations[worldId] || []).filter(
+        (r) => r.sourceEntityId !== entityId && r.targetEntityId !== entityId
+      );
+      const nextPositions = { ...(state.relationNodePositions[worldId] || {}) };
+      delete nextPositions[entityId];
+
       return {
         entities: { ...state.entities, [worldId]: list },
         directoryItems: { ...state.directoryItems, [worldId]: dirList },
+        relations: { ...state.relations, [worldId]: relList },
+        relationNodePositions: { ...state.relationNodePositions, [worldId]: nextPositions },
         openTabs,
         activeTabId: nextActiveTabId,
         selectedEntityId: state.selectedEntityId === entityId ? (list[0]?.id || null) : state.selectedEntityId
@@ -1842,6 +1977,10 @@ export const useWorldStore = create<WorldState>((set, get) => ({
             relationNodePositions: {
               ...state.relationNodePositions,
               [targetWorldId]: parsed.relationNodePositions || {}
+            },
+            conlangs: {
+              ...state.conlangs,
+              [targetWorldId]: parsed.conlangs || []
             }
           };
         });
@@ -1864,7 +2003,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           canvases: parsed.canvases || {},
           categories: parsed.categories || {},
           calendars: parsed.calendars || {},
-          relationNodePositions: parsed.relationNodePositions || {}
+          relationNodePositions: parsed.relationNodePositions || {},
+          conlangs: parsed.conlangs || {}
         });
 
         get().syncVaultDirectory();
@@ -1875,6 +2015,142 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       console.error('Failed to import world:', err);
       return false;
     }
+  },
+
+  // ==========================================
+  // CONLANG & LINGUISTICS CRUD
+  // ==========================================
+  setSelectedLanguageId: (id) => {
+    set({ selectedLanguageId: id });
+  },
+
+  createLanguage: (name, description = '', family = '', color = '#38bdf8') => {
+    const worldId = get().activeWorldId || sampleWorld.id;
+    const newLang: ConlangLanguage = {
+      id: `lang-${Date.now()}`,
+      worldId,
+      name,
+      description,
+      family,
+      color,
+      words: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    set((state) => ({
+      conlangs: {
+        ...state.conlangs,
+        [worldId]: [...(state.conlangs[worldId] || []), newLang]
+      },
+      selectedLanguageId: newLang.id
+    }));
+
+    get().createDirectoryItem(name, 'dictionary', null, newLang.id);
+    get().persistStore();
+    return newLang;
+  },
+
+  updateLanguage: (languageId, updates) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+
+    set((state) => ({
+      conlangs: {
+        ...state.conlangs,
+        [worldId]: (state.conlangs[worldId] || []).map((l) =>
+          l.id === languageId ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l
+        )
+      }
+    }));
+    get().persistStore();
+  },
+
+  deleteLanguage: (languageId) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+
+    set((state) => {
+      const remaining = (state.conlangs[worldId] || []).filter((l) => l.id !== languageId);
+      return {
+        conlangs: {
+          ...state.conlangs,
+          [worldId]: remaining
+        },
+        selectedLanguageId: state.selectedLanguageId === languageId ? remaining[0]?.id || null : state.selectedLanguageId,
+        directoryItems: {
+          ...state.directoryItems,
+          [worldId]: (state.directoryItems[worldId] || []).filter((i) => i.targetId !== languageId)
+        }
+      };
+    });
+    get().persistStore();
+  },
+
+  addWord: (languageId, wordData) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) throw new Error('No active world');
+
+    const newWord: ConlangWord = {
+      ...wordData,
+      id: `word-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      languageId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    set((state) => ({
+      conlangs: {
+        ...state.conlangs,
+        [worldId]: (state.conlangs[worldId] || []).map((l) =>
+          l.id === languageId ? { ...l, words: [...l.words, newWord], updatedAt: new Date().toISOString() } : l
+        )
+      }
+    }));
+    get().persistStore();
+    return newWord;
+  },
+
+  updateWord: (languageId, wordId, updates) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+
+    set((state) => ({
+      conlangs: {
+        ...state.conlangs,
+        [worldId]: (state.conlangs[worldId] || []).map((l) =>
+          l.id === languageId
+            ? {
+                ...l,
+                words: l.words.map((w) => (w.id === wordId ? { ...w, ...updates, updatedAt: new Date().toISOString() } : w)),
+                updatedAt: new Date().toISOString()
+              }
+            : l
+        )
+      }
+    }));
+    get().persistStore();
+  },
+
+  deleteWord: (languageId, wordId) => {
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+
+    set((state) => ({
+      conlangs: {
+        ...state.conlangs,
+        [worldId]: (state.conlangs[worldId] || []).map((l) =>
+          l.id === languageId
+            ? {
+                ...l,
+                words: l.words.filter((w) => w.id !== wordId),
+                updatedAt: new Date().toISOString()
+              }
+            : l
+        )
+      }
+    }));
+    get().persistStore();
   }
 }))
 

@@ -708,9 +708,6 @@ export const ManuscriptCompilerModal: React.FC<ManuscriptCompilerModalProps> = (
               <h2 id="compiler-modal-title" className="font-serif text-lg font-bold text-oros-100 leading-tight">
                 Manuscript Book Compiler
               </h2>
-              <p className="text-xs text-oros-400">
-                Assemble, style, and publish your chapters into formatted PDF, Markdown, or portable E-Readers.
-              </p>
             </div>
           </div>
 
@@ -983,7 +980,7 @@ export const ManuscriptCompilerModal: React.FC<ManuscriptCompilerModalProps> = (
                   className="px-3 py-1.5 rounded bg-oros-900 border border-oros-750 text-oros-200 hover:text-oros-100 hover:bg-oros-850 text-xs font-medium flex items-center gap-1.5 transition-colors"
                   title="Export offline interactive HTML e-reader"
                 >
-                  <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                  <Globe className="w-3.5 h-3.5 text-accent" />
                   <span>Export HTML</span>
                 </button>
 

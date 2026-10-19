@@ -6,10 +6,14 @@ import {
   Clock, Map as MapIcon, Feather, Compass, ChevronDown, 
   Check, FolderOpen, Shield, Download, Upload, Search, 
   Network, ArrowRight, CornerDownLeft, EyeOff, PlusCircle,
-  Palette, PanelLeft, Home
+  Palette, PanelLeft, Home, Languages,
+  BookOpenCheck, Dices, Settings
 } from 'lucide-react'
+import { useSettingsStore } from '../../store/useSettingsStore'
 import { DirectoryItemType, LoreEntity, World } from '@shared/types'
 import { OrosLogoMark } from '../common/OrosLogo'
+import { NewProjectModal } from '../home/NewProjectModal'
+import { getGenreMeta } from '../../utils/genrePresets'
 
 export const WorkspaceTabs: React.FC = () => {
   const { 
@@ -19,10 +23,12 @@ export const WorkspaceTabs: React.FC = () => {
     setWorldTheme, sidebarCollapsed, toggleSidebar, setAppView,
     isSaving, gmMode, toggleGmMode, createCanvas, createEntity,
     createMap, createTimelineEvent, createChapter,
-    entities, maps, manuscripts, canvases
+    entities, maps, manuscripts, canvases, conlangs,
+    openReaderMode
   } = useWorldStore()
 
   const { addToast } = useToastStore()
+  const { openSettings } = useSettingsStore()
 
   const [plusModalOpen, setPlusModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -42,8 +48,10 @@ export const WorkspaceTabs: React.FC = () => {
     y: number;
   } | null>(null)
 
+  const [vaultMenuOpen, setVaultMenuOpen] = useState(false)
   const contextMenuRef = useRef<HTMLDivElement>(null)
   const worldMenuRef = useRef<HTMLDivElement>(null)
+  const vaultMenuRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -65,12 +73,17 @@ export const WorkspaceTabs: React.FC = () => {
       if (worldMenuRef.current && !worldMenuRef.current.contains(e.target as Node)) {
         setWorldDropdownOpen(false)
       }
+      // Dismiss vault menu if click is outside it
+      if (vaultMenuRef.current && !vaultMenuRef.current.contains(e.target as Node)) {
+        setVaultMenuOpen(false)
+      }
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setPlusModalOpen(false)
         setWorldDropdownOpen(false)
+        setVaultMenuOpen(false)
         setContextMenu(null)
       } else if (e.key.toLowerCase() === 'b' && (e.ctrlKey || e.metaKey)) {
         // If focus is in ProseMirror or an input, don't hijack unless it's not text editing
@@ -121,6 +134,10 @@ export const WorkspaceTabs: React.FC = () => {
         return <MapIcon className={iconClass} />
       case 'writer':
         return <Feather className={iconClass} />
+      case 'dictionary':
+        return <Languages className={iconClass} />
+      case 'reader':
+        return <BookOpenCheck className={iconClass} />
       default:
         return <LayoutGrid className={iconClass} />
     }
@@ -149,7 +166,9 @@ export const WorkspaceTabs: React.FC = () => {
       { id: 'card', title: 'Cards', type: 'card' as DirectoryItemType, desc: 'Entity card gallery' },
       { id: 'timeline', title: 'Timeline', type: 'timeline' as DirectoryItemType, desc: 'Chronological events and eras' },
       { id: 'map', title: 'Map', type: 'map' as DirectoryItemType, desc: 'Interactive map with pins' },
-      { id: 'writer', title: 'Writer', type: 'writer' as DirectoryItemType, desc: 'Chapter editor and references' }
+      { id: 'writer', title: 'Writer', type: 'writer' as DirectoryItemType, desc: 'Chapter editor and references' },
+      { id: 'dictionary', title: 'Conlang Dictionary', type: 'dictionary' as DirectoryItemType, desc: 'Constructed languages and setting vocabulary' },
+      { id: 'reader', title: 'Codex Reader', type: 'reader' as DirectoryItemType, desc: 'Distraction-free compendium book reader' }
     ].filter(f => f.title.toLowerCase().includes(q) || f.desc.toLowerCase().includes(q))
 
     return {
@@ -179,7 +198,7 @@ export const WorkspaceTabs: React.FC = () => {
         break
       }
       case 'wiki-network': {
-        openTab({ title: 'Card Relations Network', type: 'wiki' as any, id: 'tab-wiki-network' })
+        openTab({ title: 'Card Relations Network', type: 'wiki-network' as any, id: 'tab-wiki-network' })
         useWorldStore.getState().setActiveTab('wiki-network')
         break
       }
@@ -207,6 +226,19 @@ export const WorkspaceTabs: React.FC = () => {
       }
       case 'writer': {
         openTab({ title: 'Studio Writer', type: 'writer' })
+        break
+      }
+      case 'dictionary': {
+        const lang = (conlangs[activeWorldId || ''] || [])[0]
+        if (lang) {
+          openTab({ title: lang.name, type: 'dictionary', targetId: lang.id })
+        } else {
+          openTab({ title: 'Conlang Lexicon', type: 'dictionary' })
+        }
+        break
+      }
+      case 'reader': {
+        openReaderMode()
         break
       }
     }
@@ -343,25 +375,32 @@ export const WorkspaceTabs: React.FC = () => {
                 <div className="px-3 py-1 text-[10px] font-mono font-bold text-oros-400 uppercase tracking-wider">
                   World Vaults
                 </div>
-                {worlds.map((w) => (
-                  <button
-                    key={w.id}
-                    onClick={() => {
-                      setActiveWorldId(w.id)
-                      setWorldDropdownOpen(false)
-                      addToast(`Switched to vault: ${w.name}`, 'info')
-                    }}
-                    className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-oros-800/60 transition-colors ${
-                      w.id === activeWorldId ? 'text-oros-100 font-medium bg-oros-850' : 'text-oros-300'
-                    }`}
-                  >
-                    <div className="truncate">
-                      <div>{w.name}</div>
-                      <div className="text-[10px] text-oros-400 font-mono capitalize">{w.genre || 'General'}</div>
-                    </div>
-                    {w.id === activeWorldId && <Check className="w-3.5 h-3.5 text-oros-200 shrink-0" />}
-                  </button>
-                ))}
+                {worlds.map((w) => {
+                  const genreMeta = getGenreMeta(w.genre)
+                  const GenreIcon = genreMeta.icon
+                  return (
+                    <button
+                      key={w.id}
+                      onClick={() => {
+                        setActiveWorldId(w.id)
+                        setWorldDropdownOpen(false)
+                        addToast(`Switched to vault: ${w.name}`, 'info')
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-oros-800/60 transition-colors ${
+                        w.id === activeWorldId ? 'text-oros-100 font-medium bg-oros-850' : 'text-oros-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate min-w-0">
+                        <GenreIcon className="w-3.5 h-3.5 text-accent shrink-0" />
+                        <div className="truncate">
+                          <div className="truncate">{w.name}</div>
+                          <div className="text-[10px] text-oros-400 font-mono capitalize">{genreMeta.name}</div>
+                        </div>
+                      </div>
+                      {w.id === activeWorldId && <Check className="w-3.5 h-3.5 text-oros-200 shrink-0" />}
+                    </button>
+                  )
+                })}
 
                 {/* Theme Selector for Active World */}
                 <div className="border-t border-oros-800/80 my-1 px-3 py-1.5">
@@ -541,72 +580,137 @@ export const WorkspaceTabs: React.FC = () => {
           {/* Quick Search Ctrl+K */}
           <button
             onClick={triggerCommandPalette}
-            className="px-2 py-0.5 rounded-[3px] bg-oros-900/80 hover:bg-oros-850 border border-oros-800/80 text-[11px] text-oros-400 hover:text-oros-200 flex items-center gap-1.5 transition-colors"
+            className="px-2.5 py-1 rounded-[3px] bg-oros-900/80 hover:bg-oros-850 border border-oros-800/80 text-[11px] text-oros-400 hover:text-oros-200 flex items-center gap-1.5 transition-colors"
             title="Global Quick Search (Ctrl+K)"
           >
-            <Search className="w-3 h-3 text-oros-400" />
-            <span className="hidden md:inline font-sans">Search</span>
+            <Search className="w-3.5 h-3.5 text-oros-400" />
+            <span className="hidden sm:inline font-sans">Search</span>
             <kbd className="text-[9px] font-mono px-1 py-0.2 rounded bg-oros-950 text-oros-400 border border-oros-800/80">
               Ctrl+K
             </kbd>
           </button>
 
-          {/* GM Mode Toggle */}
+          {/* Settings Button */}
           <button
-            onClick={toggleGmMode}
-            title={gmMode ? "Director / GM Secrets: VISIBLE" : "Director / GM Secrets: HIDDEN (Player Safe)"}
-            className={`px-2 py-0.5 rounded-[3px] text-xs flex items-center gap-1 border transition-all ${
-              gmMode 
-                ? 'bg-oros-800 text-oros-200 border-oros-700/80 shadow-sm' 
-                : 'bg-oros-900/60 text-oros-400 border-oros-800/70 hover:text-oros-200'
-            }`}
+            onClick={() => openSettings()}
+            className="p-1 px-2 rounded-[3px] bg-oros-900/80 hover:bg-oros-850 border border-oros-800/80 text-oros-400 hover:text-white text-xs font-sans flex items-center gap-1.5 transition-colors"
+            title="Settings & Preferences (Ctrl+,)"
           >
-            <Shield className="w-3 h-3" />
-            <span className="text-[10px] font-mono hidden sm:inline">{gmMode ? 'SECRETS ON' : 'SECRETS OFF'}</span>
+            <Settings className="w-3.5 h-3.5 text-oros-400" />
+            <span className="hidden xl:inline text-[11px]">Settings</span>
           </button>
 
-          {/* Sync Status Readout */}
-          <div 
-            className="flex items-center gap-1.5 text-[10px] text-oros-400 font-mono px-2 py-0.5 rounded-[3px] bg-oros-900/50 border border-oros-800/60"
-            title={isSaving ? "Saving changes locally..." : "Vault Synchronized — All chapters, lore cards, and maps are saved locally to disk"}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${isSaving ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400/90'}`} />
-            <span className="hidden sm:inline tracking-wider uppercase">
-              {isSaving ? 'SAVING...' : 'SAVED'}
-            </span>
+          {/* Consolidated Vault & Settings Menu */}
+          <div className="relative" ref={vaultMenuRef}>
+            <button
+              onClick={() => setVaultMenuOpen(!vaultMenuOpen)}
+              className={`px-2.5 py-1 rounded-[3px] text-xs font-sans flex items-center gap-2 border transition-all ${
+                vaultMenuOpen 
+                  ? 'bg-oros-850 text-oros-100 border-oros-700 shadow-sm' 
+                  : 'bg-oros-900/80 hover:bg-oros-850 text-oros-300 border-oros-800/80 hover:border-oros-700'
+              }`}
+              title="Vault synchronization, director secrets, and export settings"
+            >
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSaving ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
+              <span className="text-[11px] font-mono font-medium tracking-wide">
+                {isSaving ? 'SAVING...' : 'VAULT'}
+              </span>
+              <ChevronDown className={`w-3 h-3 text-oros-400 transition-transform ${vaultMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown Menu */}
+            {vaultMenuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-64 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl py-1.5 z-50 animate-dropdown-in text-xs font-sans">
+                {/* Vault Sync Status Header */}
+                <div className="px-3 py-2 border-b border-oros-800 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${isSaving ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
+                    <span className="font-semibold text-oros-150">
+                      {isSaving ? 'Synchronizing Vault...' : 'Vault Synchronized'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-oros-500 uppercase">Local File</span>
+                </div>
+
+                {/* Director Mode Toggle */}
+                <div className="p-1 border-b border-oros-800">
+                  <button
+                    onClick={() => {
+                      toggleGmMode()
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-[3px] hover:bg-oros-850 flex items-center justify-between transition-colors text-oros-200"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Shield className={`w-3.5 h-3.5 ${gmMode ? 'text-accent' : 'text-oros-500'}`} />
+                      <span>Director Secrets</span>
+                    </div>
+                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                      gmMode 
+                        ? 'bg-accent-muted text-accent border-accent/40 font-semibold' 
+                        : 'bg-oros-950 text-oros-400 border-oros-800'
+                    }`}>
+                      {gmMode ? 'VISIBLE' : 'HIDDEN'}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Vault Actions & Preferences */}
+                <div className="p-1 space-y-0.5">
+                  <button
+                    onClick={() => {
+                      setVaultMenuOpen(false)
+                      openSettings()
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-[3px] hover:bg-oros-850 flex items-center justify-between text-oros-200 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Settings className="w-3.5 h-3.5 text-oros-400" />
+                      <span>Preferences & Settings</span>
+                    </div>
+                    <kbd className="text-[9px] font-mono px-1 py-0.2 rounded bg-oros-950 text-oros-400 border border-oros-800">
+                      Ctrl+,
+                    </kbd>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setVaultMenuOpen(false)
+                      handleOpenFolder()
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-[3px] hover:bg-oros-850 flex items-center gap-2 text-oros-200 transition-colors"
+                  >
+                    <FolderOpen className="w-3.5 h-3.5 text-oros-400" />
+                    <span>Open Vault in Explorer</span>
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      setVaultMenuOpen(false)
+                      const success = await exportWorld()
+                      if (success) {
+                        addToast('World exported as standalone archive', 'success')
+                      }
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-[3px] hover:bg-oros-850 flex items-center gap-2 text-oros-200 transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5 text-oros-400" />
+                    <span>Export World Archive (.oros.json)</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setVaultMenuOpen(false)
+                      handleImportWorld()
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-[3px] hover:bg-oros-850 flex items-center gap-2 text-oros-200 transition-colors"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-oros-400" />
+                    <span>Import World Archive (.oros.json)</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-
-          {/* Vault Folder */}
-          <button
-            onClick={handleOpenFolder}
-            title="Open Vault in Explorer"
-            className="p-1 rounded-[3px] hover:bg-oros-850 text-oros-400 hover:text-oros-200 transition-colors"
-          >
-            <FolderOpen className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Export World */}
-          <button
-            onClick={async () => {
-              const success = await exportWorld()
-              if (success) {
-                addToast('World exported as standalone archive', 'success')
-              }
-            }}
-            title="Export World Archive (.oros.json)"
-            className="p-1 rounded-[3px] hover:bg-oros-850 text-oros-400 hover:text-oros-200 transition-colors"
-          >
-            <Download className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Import World */}
-          <button
-            onClick={handleImportWorld}
-            title="Import World Archive (.oros.json)"
-            className="p-1 rounded-[3px] hover:bg-oros-850 text-oros-400 hover:text-oros-200 transition-colors"
-          >
-            <Upload className="w-3.5 h-3.5" />
-          </button>
 
           {/* Hidden File Input Fallback */}
           <input
@@ -1017,144 +1121,11 @@ export const WorkspaceTabs: React.FC = () => {
         </div>
       )}
 
-      {/* New World Vault Modal */}
-      {showNewWorldModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-md shadow-2xl p-5 animate-modal-in">
-            <h3 className="font-sans text-sm font-semibold text-oros-100 mb-4 flex items-center gap-2">
-              <Compass className="w-4 h-4 text-oros-300" />
-              <span>New World</span>
-            </h3>
-            <form onSubmit={handleCreateWorldSubmit} className="space-y-3.5">
-              <div>
-                <label className="block text-[11px] font-mono font-medium text-oros-300 mb-1 uppercase tracking-wider">World Name</label>
-                <input
-                  type="text"
-                  required
-                  value={newWorldName}
-                  onChange={(e) => setNewWorldName(e.target.value)}
-                  placeholder="World name..."
-                  className="w-full bg-oros-950 border border-oros-800 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-mono font-medium text-oros-300 mb-1 uppercase tracking-wider">Genre & Setting</label>
-                <input
-                  type="text"
-                  value={newWorldGenre}
-                  onChange={(e) => setNewWorldGenre(e.target.value)}
-                  placeholder="Genre (optional)..."
-                  className="w-full bg-oros-950 border border-oros-800 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-500"
-                />
-              </div>
-
-              {/* Theme Preset Selection */}
-              <div>
-                <label className="block text-[11px] font-mono font-medium text-oros-300 mb-1.5 uppercase tracking-wider">Atmospheric Accent</label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {[
-                    { id: 'sovereign', name: 'Platinum', hex: '#e2e8f0', desc: 'Universal / Sci-Fi' },
-                    { id: 'mythic', name: 'Mythic Gold', hex: '#f5c542', desc: 'Fantasy / Ancient' },
-                    { id: 'cyber', name: 'Cyber Cyan', hex: '#06b6d4', desc: 'Futuristic / Tech' },
-                    { id: 'crimson', name: 'Crimson Ash', hex: '#f43f5e', desc: 'Dark / Horror' },
-                    { id: 'hazard', name: 'Hazard Ochre', hex: '#f97316', desc: 'Dystopian / Grit' },
-                    { id: 'emerald', name: 'Verdant', hex: '#10b981', desc: 'Solarpunk / Natural' }
-                  ].map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setNewWorldTheme(t.id as any)}
-                      className={`p-1.5 rounded-[3px] border text-left transition-colors flex flex-col ${
-                        newWorldTheme === t.id
-                          ? 'bg-accent-muted border-accent/40 text-accent font-medium shadow-sm'
-                          : 'bg-oros-950/70 border-oros-800 text-oros-400 hover:text-oros-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 text-[10px] font-mono font-medium">
-                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: t.hex }} />
-                        <span className="truncate">{t.name}</span>
-                      </div>
-                      <span className="text-[9px] text-oros-500 font-sans mt-0.5">{t.desc}</span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Custom Color Option in New World Modal */}
-                <div className="mt-2 pt-1.5 border-t border-oros-800/60 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setNewWorldTheme('custom')}
-                    className={`px-2 py-1 rounded-[3px] border text-[10px] font-mono flex items-center gap-1.5 transition-colors ${
-                      newWorldTheme === 'custom'
-                        ? 'bg-accent-muted border-accent/40 text-accent font-medium shadow-sm'
-                        : 'bg-oros-950/70 border-oros-800 text-oros-400 hover:text-oros-200'
-                    }`}
-                  >
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: newWorldCustomAccent }} />
-                    <span>Custom Color</span>
-                  </button>
-                  <label 
-                    className={`w-5 h-5 rounded-[3px] border cursor-pointer overflow-hidden flex items-center justify-center shrink-0 shadow-sm ${
-                      newWorldTheme === 'custom' ? 'border-accent ring-1 ring-accent/40' : 'border-oros-700'
-                    }`}
-                    style={{ backgroundColor: newWorldCustomAccent }}
-                    title="Pick custom accent color"
-                  >
-                    <input
-                      type="color"
-                      value={newWorldCustomAccent}
-                      onChange={(e) => {
-                        setNewWorldCustomAccent(e.target.value)
-                        setNewWorldTheme('custom')
-                      }}
-                      className="opacity-0 w-0 h-0 cursor-pointer"
-                    />
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={7}
-                    value={newWorldCustomAccent}
-                    onChange={(e) => {
-                      setNewWorldCustomAccent(e.target.value)
-                      setNewWorldTheme('custom')
-                    }}
-                    placeholder="#6366f1"
-                    className="w-20 bg-oros-950 border border-oros-800 rounded-[3px] px-1.5 py-0.5 text-[10px] font-mono text-oros-200 placeholder-oros-600 focus:outline-none focus:border-accent"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-mono font-medium text-oros-300 mb-1 uppercase tracking-wider">Description</label>
-                <textarea
-                  rows={2}
-                  value={newWorldTagline}
-                  onChange={(e) => setNewWorldTagline(e.target.value)}
-                  placeholder="Description (optional)..."
-                  className="w-full bg-oros-950 border border-oros-800 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-oros-500 resize-none font-sans"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-oros-800/60">
-                <button
-                  type="button"
-                  onClick={() => setShowNewWorldModal(false)}
-                  className="px-3 py-1.5 rounded-[3px] text-xs text-oros-400 hover:text-oros-200 hover:bg-oros-850"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-accent px-3.5 py-1.5 rounded-[3px] text-xs font-semibold transition-colors shadow-sm"
-                >
-                  Create World
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Unified New World Vault Modal */}
+      <NewProjectModal
+        isOpen={showNewWorldModal}
+        onClose={() => setShowNewWorldModal(false)}
+      />
     </>
   )
 }

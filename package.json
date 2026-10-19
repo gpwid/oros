@@ -9,7 +9,49 @@
     "dev": "vite",
     "electron:dev": "node scripts/electron-dev.mjs",
     "build": "tsc && vite build",
+    "dist": "pnpm run build && electron-builder --win",
+    "dist:dir": "pnpm run build && electron-builder --win --dir",
     "preview": "vite preview"
+  },
+  "build": {
+    "appId": "com.oros.studio",
+    "productName": "Oros",
+    "copyright": "Copyright © 2026 Oros",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Oros Studio"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
+    }
   },
   "dependencies": {
     "@tiptap/extension-character-count": "^2.11.5",
@@ -20,6 +62,7 @@
     "@tiptap/suggestion": "^2.11.5",
     "@xyflow/react": "^12.4.4",
     "clsx": "^2.1.1",
+    "html-to-image": "^1.11.13",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.475.0",
     "react": "^18.3.1",
@@ -36,7 +79,9 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "electron": "^34.2.0",
+    "electron-builder": "^26.15.3",
     "postcss": "^8.5.2",
+    "puppeteer-core": "^25.14.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3",
     "vite": "^6.1.1",

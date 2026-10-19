@@ -7,7 +7,8 @@ import {
   Search, LayoutGrid, BookOpen, Layers, Users, Clock, 
   Map as MapIcon, Feather, Trash2, Edit2, MoreVertical,
   FolderPlus, FilePlus, User, Compass, Shield, Gem,
-  Flame, Sparkles, Move, Check, X, FolderTree, PanelLeftClose
+  Flame, Sparkles, Move, Check, X, FolderTree, PanelLeftClose,
+  Languages, ChevronUp, BookOpenCheck, Dices
 } from 'lucide-react'
 import { DirectoryItem, DirectoryFolder, DirectoryItemType, LoreEntity } from '@shared/types'
 import { 
@@ -22,8 +23,9 @@ export const Sidebar: React.FC = () => {
     openTabs, activeTabId, sidebarCollapsed, toggleSidebar,
     createFolder, renameFolder, deleteFolder, toggleFolderOpen, moveFolderToFolder,
     createDirectoryItem, deleteDirectoryItem, moveItemToFolder,
-    createCanvas, createEntity, createMap, createChapter,
-    entities, maps, timelines, relations, manuscripts, categories
+    createCanvas, createEntity, createMap, createChapter, createLanguage,
+    entities, maps, timelines, relations, manuscripts, categories, conlangs,
+    openReaderMode, setAppView
   } = useWorldStore()
 
   const { addToast } = useToastStore()
@@ -56,6 +58,7 @@ export const Sidebar: React.FC = () => {
 
   // Item Context menu state
   const [activeItemMenuId, setActiveItemMenuId] = useState<string | null>(null)
+  const [showMoreFeaturesMenu, setShowMoreFeaturesMenu] = useState(false)
 
   const worldId = activeWorldId || 'world-aethelgard'
   const currentFolders = folders[worldId] || []
@@ -115,6 +118,8 @@ export const Sidebar: React.FC = () => {
         return <Clock className="w-3.5 h-3.5 text-oros-400 group-hover:text-oros-200 shrink-0 transition-colors" />
       case 'writer':
         return <Feather className="w-3.5 h-3.5 text-oros-400 group-hover:text-oros-200 shrink-0 transition-colors" />
+      case 'dictionary':
+        return <Languages className="w-3.5 h-3.5 text-oros-400 group-hover:text-oros-200 shrink-0 transition-colors" />
       default:
         return <Layers className="w-3.5 h-3.5 text-oros-400 group-hover:text-oros-200 shrink-0 transition-colors" />
     }
@@ -164,6 +169,32 @@ export const Sidebar: React.FC = () => {
     addToast('Folder renamed', 'info')
   }
 
+  const handleDeleteItem = async (item: DirectoryItem) => {
+    const confirmed = await confirmDialog({
+      title: 'Remove Item',
+      message: `Remove "${item.name}" from vault?`,
+      confirmText: 'Remove',
+      variant: 'danger'
+    })
+    if (confirmed) {
+      deleteDirectoryItem(item.id)
+      addToast(`Removed "${item.name}" from vault`, 'info')
+    }
+  }
+
+  const handleDeleteFolder = async (folder: DirectoryFolder) => {
+    const confirmed = await confirmDialog({
+      title: 'Delete Folder',
+      message: `Delete folder "${folder.name}"? Items inside will be moved to root.`,
+      confirmText: 'Delete Folder',
+      variant: 'danger'
+    })
+    if (confirmed) {
+      deleteFolder(folder.id)
+      addToast('Folder deleted', 'info')
+    }
+  }
+
   // Quick or Modal Element Creation
   const handleCreateElementSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -208,6 +239,12 @@ export const Sidebar: React.FC = () => {
         const ent = createEntity('document', name || 'New Encyclopedia Article', targetFolder)
         openTab({ title: ent.title, type: 'wiki', targetId: ent.id })
         addToast(`Created Wiki Entry: ${ent.title}`, 'success')
+        break
+      }
+      case 'dictionary': {
+        const lang = createLanguage(name || 'New Conlang Lexicon')
+        openTab({ title: lang.name, type: 'dictionary', targetId: lang.id })
+        addToast(`Created Language: ${lang.name}`, 'success')
         break
       }
     }
@@ -292,7 +329,14 @@ export const Sidebar: React.FC = () => {
             setDraggedFolderId(folder.id)
           }}
           onDragEnd={() => setDraggedFolderId(null)}
-          className="group flex items-center justify-between px-2 py-1 rounded-[3px] hover:bg-oros-900 text-oros-300 hover:text-oros-100 transition-colors cursor-pointer"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Delete' || e.key === 'Del') {
+              e.stopPropagation()
+              handleDeleteFolder(folder)
+            }
+          }}
+          className="group flex items-center justify-between px-2 py-1 rounded-[3px] hover:bg-oros-900 text-oros-300 hover:text-oros-100 transition-colors cursor-pointer outline-none focus:ring-1 focus:ring-accent/40"
           style={{ paddingLeft: `${Math.max(8, depth * 14 + 8)}px` }}
           onClick={() => toggleFolderOpen(folder.id)}
         >
@@ -362,18 +406,7 @@ export const Sidebar: React.FC = () => {
             </button>
             {/* Delete */}
             <button
-              onClick={async () => {
-                const confirmed = await confirmDialog({
-                  title: 'Delete Folder',
-                  message: `Delete folder "${folder.name}"? Items inside will be moved to root.`,
-                  confirmText: 'Delete Folder',
-                  variant: 'danger'
-                })
-                if (confirmed) {
-                  deleteFolder(folder.id)
-                  addToast('Folder deleted', 'info')
-                }
-              }}
+              onClick={() => handleDeleteFolder(folder)}
               className="p-1 rounded hover:bg-rose-950/80 text-oros-400 hover:text-rose-400"
               title="Delete folder"
             >
@@ -402,7 +435,14 @@ export const Sidebar: React.FC = () => {
                   onDragEnd={() => setDraggedItemId(null)}
                   onClick={() => handleItemClick(item)}
                   style={{ paddingLeft: `${Math.max(16, (depth + 1) * 14 + 10)}px` }}
-                  className={`group flex items-center justify-between py-1 pr-2 rounded-[3px] transition-colors cursor-pointer text-xs ${
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Delete' || e.key === 'Del') {
+                      e.stopPropagation()
+                      handleDeleteItem(item)
+                    }
+                  }}
+                  className={`group flex items-center justify-between py-1 pr-2 rounded-[3px] transition-colors cursor-pointer text-xs outline-none focus:ring-1 focus:ring-accent/40 ${
                     draggedItemId === item.id ? 'opacity-40' : ''
                   } ${
                     active
@@ -433,18 +473,7 @@ export const Sidebar: React.FC = () => {
 
                   {/* Delete from vault */}
                   <button
-                    onClick={async () => {
-                      const confirmed = await confirmDialog({
-                        title: 'Remove Item',
-                        message: `Remove "${item.name}" from vault?`,
-                        confirmText: 'Remove',
-                        variant: 'danger'
-                      })
-                      if (confirmed) {
-                        deleteDirectoryItem(item.id)
-                        addToast(`Removed "${item.name}" from vault`, 'info')
-                      }
-                    }}
+                    onClick={() => handleDeleteItem(item)}
                     className="p-1 rounded hover:bg-rose-950 text-oros-400 hover:text-rose-400 transition-colors"
                     title="Delete element"
                   >
@@ -568,7 +597,14 @@ export const Sidebar: React.FC = () => {
               }}
               onDragEnd={() => setDraggedItemId(null)}
               onClick={() => handleItemClick(item)}
-              className={`group flex items-center justify-between px-2 py-1 rounded-[3px] transition-colors cursor-pointer text-xs ${
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Delete' || e.key === 'Del') {
+                  e.stopPropagation()
+                  handleDeleteItem(item)
+                }
+              }}
+              className={`group flex items-center justify-between px-2 py-1 rounded-[3px] transition-colors cursor-pointer text-xs outline-none focus:ring-1 focus:ring-accent/40 ${
                 draggedItemId === item.id ? 'opacity-40' : ''
               } ${
                 active
@@ -599,18 +635,7 @@ export const Sidebar: React.FC = () => {
 
               {/* Delete from vault */}
               <button
-                onClick={async () => {
-                  const confirmed = await confirmDialog({
-                    title: 'Remove Item',
-                    message: `Remove "${item.name}" from vault?`,
-                    confirmText: 'Remove',
-                    variant: 'danger'
-                  })
-                  if (confirmed) {
-                    deleteDirectoryItem(item.id)
-                    addToast(`Removed "${item.name}" from vault`, 'info')
-                  }
-                }}
+                onClick={() => handleDeleteItem(item)}
                 className="p-1 rounded-[2px] hover:bg-rose-950 text-oros-400 hover:text-rose-400 transition-colors"
                 title="Delete element"
               >
@@ -630,7 +655,7 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* BOTTOM FEATURE DOCK */}
-      <div className="p-1.5 border-t border-oros-800/60 bg-oros-950">
+      <div className="p-1.5 border-t border-oros-800/60 bg-oros-950 relative">
         <div className="flex items-center justify-around bg-oros-900 border border-oros-800/80 rounded-[3px] px-1 py-0.5 shadow-sm">
           {/* Card / Wiki */}
           <button
@@ -639,15 +664,6 @@ export const Sidebar: React.FC = () => {
             className="p-1.5 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
           >
             <Layers className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Canvas */}
-          <button
-            onClick={() => openNewElementForFolder(null, 'canvas')}
-            title="Create Whiteboard Canvas"
-            className="p-1.5 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
           </button>
 
           {/* Cartography Map */}
@@ -659,13 +675,13 @@ export const Sidebar: React.FC = () => {
             <MapIcon className="w-3.5 h-3.5" />
           </button>
 
-          {/* Lineage Relations */}
+          {/* Canvas */}
           <button
-            onClick={() => openNewElementForFolder(null, 'relations')}
-            title="Create Lineage Tree"
+            onClick={() => openNewElementForFolder(null, 'canvas')}
+            title="Create Whiteboard Canvas"
             className="p-1.5 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
           >
-            <Users className="w-3.5 h-3.5" />
+            <LayoutGrid className="w-3.5 h-3.5" />
           </button>
 
           {/* Timeline */}
@@ -685,7 +701,90 @@ export const Sidebar: React.FC = () => {
           >
             <Feather className="w-3.5 h-3.5" />
           </button>
+
+          {/* More Features Dropdown */}
+          <button
+            onClick={() => setShowMoreFeaturesMenu(!showMoreFeaturesMenu)}
+            title="More Features (Conlang, Lineage, Reader, TTRPG...)"
+            className={`p-1.5 rounded-[2px] transition-colors flex items-center gap-0.5 ${
+              showMoreFeaturesMenu
+                ? 'bg-accent-muted text-accent shadow-xs'
+                : 'text-oros-400 hover:text-oros-100 hover:bg-oros-850'
+            }`}
+          >
+            <ChevronUp className={`w-3.5 h-3.5 transition-transform ${showMoreFeaturesMenu ? 'rotate-180 text-accent' : ''}`} />
+          </button>
         </div>
+
+        {/* More Features Popup Menu */}
+        {showMoreFeaturesMenu && (
+          <>
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={() => setShowMoreFeaturesMenu(false)} 
+            />
+            <div className="absolute bottom-full left-1.5 right-1.5 mb-1.5 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-1.5 z-50 animate-fade-in font-sans space-y-1">
+              {/* Conlang Dictionary */}
+              <button
+                onClick={() => {
+                  const worldLangs = conlangs[worldId] || []
+                  const target = worldLangs[0]
+                  if (target) {
+                    openTab({ title: target.name, type: 'dictionary', targetId: target.id })
+                  } else {
+                    openTab({ title: 'Conlang Lexicon', type: 'dictionary' })
+                  }
+                  setShowMoreFeaturesMenu(false)
+                }}
+                className="w-full text-left px-2 py-1.5 rounded-[3px] hover:bg-oros-850 text-oros-200 hover:text-white text-xs flex items-center justify-between transition-colors group"
+              >
+                <div className="flex items-center gap-2">
+                  <Languages className="w-3.5 h-3.5 text-oros-400 group-hover:text-oros-200 transition-colors" />
+                  <span className="font-medium">Conlang Lexicon</span>
+                </div>
+                <span className="text-[10px] font-mono text-oros-400 bg-oros-950 px-1.5 py-0.2 rounded border border-oros-800">
+                  {(conlangs[worldId] || []).length}
+                </span>
+              </button>
+
+              {/* Lineage Tree */}
+              <button
+                onClick={() => {
+                  openTab({ title: 'Lineage Tree', type: 'relations' })
+                  setShowMoreFeaturesMenu(false)
+                }}
+                className="w-full text-left px-2 py-1.5 rounded-[3px] hover:bg-oros-850 text-oros-200 hover:text-white text-xs flex items-center gap-2 transition-colors group"
+              >
+                <Users className="w-3.5 h-3.5 text-oros-400 group-hover:text-oros-200 transition-colors" />
+                <span>Lineage & Relations</span>
+              </button>
+
+              {/* Codex Reader */}
+              <button
+                onClick={() => {
+                  openReaderMode()
+                  setShowMoreFeaturesMenu(false)
+                }}
+                className="w-full text-left px-2 py-1.5 rounded-[3px] hover:bg-oros-850 text-oros-200 hover:text-white text-xs flex items-center gap-2 transition-colors group"
+              >
+                <BookOpenCheck className="w-3.5 h-3.5 text-oros-400 group-hover:text-oros-200 transition-colors" />
+                <span>Codex Reader Mode</span>
+              </button>
+
+              {/* TTRPG Campaign Hub */}
+              <button
+                onClick={() => {
+                  setAppView('home')
+                  setShowMoreFeaturesMenu(false)
+                }}
+                className="w-full text-left px-2 py-1.5 rounded-[3px] hover:bg-oros-850 text-oros-200 hover:text-white text-xs flex items-center gap-2 transition-colors group"
+              >
+                <Dices className="w-3.5 h-3.5 text-oros-400 group-hover:text-oros-200 transition-colors" />
+                <span>TTRPG Campaign Vault</span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   </aside>
@@ -761,14 +860,15 @@ export const Sidebar: React.FC = () => {
               {/* Element Type Picker */}
               <div>
                 <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-1">Type</label>
-                <div className="grid grid-cols-3 gap-1">
+                <div className="grid grid-cols-4 gap-1">
                   {[
                     { id: 'card', label: 'Card', icon: Layers },
                     { id: 'canvas', label: 'Canvas', icon: LayoutGrid },
                     { id: 'map', label: 'Map', icon: MapIcon },
                     { id: 'relations', label: 'Relations', icon: Users },
                     { id: 'timeline', label: 'Timeline', icon: Clock },
-                    { id: 'writer', label: 'Chapter', icon: Feather }
+                    { id: 'writer', label: 'Chapter', icon: Feather },
+                    { id: 'dictionary', label: 'Conlang', icon: Languages }
                   ].map((t) => {
                     const IconComp = t.icon
                     const isSelected = newElementType === t.id

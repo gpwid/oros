@@ -225,7 +225,7 @@ export const TimelineChronicleView: React.FC<TimelineChronicleViewProps> = ({
                         <div className="relative h-4 group/connector flex items-center">
                           <button
                             onClick={() => onAddAtYear(midpointYear, false, undefined, era)}
-                            className="absolute -left-[32px] w-4 h-4 rounded-full bg-oros-900 border border-oros-700 hover:border-accent hover:bg-accent hover:text-oros-950 text-oros-400 flex items-center justify-center transition-all opacity-0 group-hover/connector:opacity-100 z-10 shadow"
+                            className="absolute -left-[32px] w-4 h-4 rounded-full bg-oros-900 border border-oros-700 hover:border-accent hover:bg-accent hover:text-accent-contrast text-oros-400 flex items-center justify-center transition-all opacity-0 group-hover/connector:opacity-100 z-10 shadow"
                             title={`Insert Event around Year ${midpointYear}`}
                           >
                             <Plus className="w-2.5 h-2.5" />

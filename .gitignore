@@ -13,3 +13,7 @@ dist-ssr
 *.sln
 *.sw?
 oros_vault.json
+release
+release/
+*.zip
+*.tmp

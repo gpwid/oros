@@ -20,7 +20,7 @@ import {
   Spline, Minus, ArrowRight, ExternalLink,
   Scroll, Feather, Castle, Landmark, Flag, Scale, Key, Lock,
   Sparkles, Star, Eye, Compass, Crosshair, Coins, Sun, Moon,
-  Link2, Share2, GitFork, Magnet, MousePointer, Hand
+  Link2, Share2, GitFork, Magnet, MousePointer, Hand, Move
 } from 'lucide-react'
 import { RelationEdge, LoreEntity } from '@shared/types'
 import { QuickPeekCard } from '../common/QuickPeekCard'
@@ -922,7 +922,7 @@ const GenealogyCardNode = ({ id, data, selected }: {
   data: { 
     entity?: LoreEntity; 
     isUnassigned?: boolean;
-    onSelect: (id: string) => void;
+    onSelect: (id: string, e?: React.MouseEvent) => void;
     onQuickAdd: (sourceId: string, direction: 'top' | 'bottom' | 'left' | 'right') => void;
     onAssign: (nodeId: string) => void;
     onDelete?: (id: string) => void;
@@ -965,7 +965,7 @@ const GenealogyCardNode = ({ id, data, selected }: {
 
   return (
     <div 
-      onClick={() => onSelect(entity.id)}
+      onClick={(e) => onSelect(entity.id, e)}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Delete' || e.key === 'Del' || e.key === 'Backspace') {
@@ -1289,11 +1289,20 @@ const RelationGraphCanvasContent: React.FC = () => {
         data: {
           entity: ent,
           isSelected,
-          onSelect: (id: string) => {
-            const e = worldEntities.find(item => item.id === id)
-            if (e) {
-              setActiveEntityForPeek(e)
-              setSelectedEntityId(e.id)
+          onSelect: (id: string, e?: React.MouseEvent) => {
+            const isModifier = e ? (e.shiftKey || e.ctrlKey || e.metaKey) : false
+            if (isModifier) {
+              setNodes((nds) =>
+                nds.map((n) =>
+                  n.id === id ? { ...n, selected: !n.selected, data: { ...n.data, isSelected: !n.selected } } : n
+                )
+              )
+              return
+            }
+            const eObj = worldEntities.find(item => item.id === id)
+            if (eObj) {
+              setActiveEntityForPeek(eObj)
+              setSelectedEntityId(eObj.id)
               setNodes((nds) =>
                 nds.map((n) => ({
                   ...n,
@@ -1434,6 +1443,123 @@ const RelationGraphCanvasContent: React.FC = () => {
       saveRelationNodePosition(node.id, node.position)
     }
   }, [reactFlowInstance, saveRelationNodePosition])
+
+  // Viewport tracking for multi-select overlay calculations
+  const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 })
+
+  // Unified Multi-selection & Batch Operations
+  const selectedNodes = useMemo(() => nodes.filter((n) => n.selected), [nodes])
+
+  const handleDeselectAll = useCallback(() => {
+    setNodes((nds) =>
+      nds.map((n) => (n.selected ? { ...n, selected: false, data: { ...n.data, isSelected: false } } : n))
+    )
+  }, [setNodes])
+
+  // Escape key clears multi-selection
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedNodes.length > 0) {
+        handleDeselectAll()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedNodes.length, handleDeselectAll])
+
+  const unifiedBounds = useMemo(() => {
+    if (selectedNodes.length <= 1) return null
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const n of selectedNodes) {
+      const x = n.position.x
+      const y = n.position.y
+      const w = 144
+      const h = 192
+      if (x < minX) minX = x
+      if (y < minY) minY = y
+      if (x + w > maxX) maxX = x + w
+      if (y + h > maxY) maxY = y + h
+    }
+    if (!isFinite(minX) || !isFinite(minY)) return null
+    return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY }
+  }, [selectedNodes])
+
+  const screenBounds = useMemo(() => {
+    if (!unifiedBounds) return null
+    const { x, y, zoom } = viewport
+    const pad = 12
+    return {
+      left: (unifiedBounds.minX - pad) * zoom + x,
+      top: (unifiedBounds.minY - pad) * zoom + y,
+      width: (unifiedBounds.width + pad * 2) * zoom,
+      height: (unifiedBounds.height + pad * 2) * zoom
+    }
+  }, [unifiedBounds, viewport])
+
+  const handleMultiMoveDragStart = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    const startX = e.clientX
+    const startY = e.clientY
+    const initialPositions = new Map<string, { x: number; y: number }>()
+    selectedNodes.forEach((n) => {
+      initialPositions.set(n.id, { x: n.position.x, y: n.position.y })
+    })
+    const currentZoom = reactFlowInstance.getViewport().zoom
+
+    const onPointerMove = (me: PointerEvent) => {
+      const dx = (me.clientX - startX) / currentZoom
+      const dy = (me.clientY - startY) / currentZoom
+      setNodes((nds) =>
+        nds.map((n) => {
+          const init = initialPositions.get(n.id)
+          if (!init) return n
+          return {
+            ...n,
+            position: {
+              x: Math.round(init.x + dx),
+              y: Math.round(init.y + dy)
+            }
+          }
+        })
+      )
+    }
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      const currentNodes = reactFlowInstance.getNodes()
+      selectedNodes.forEach((sn) => {
+        const found = currentNodes.find((cn) => cn.id === sn.id)
+        if (found) {
+          saveRelationNodePosition(found.id, found.position)
+        }
+      })
+    }
+
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+  }
+
+  const handleBatchDeleteSelected = async () => {
+    if (selectedNodes.length === 0) return
+    const count = selectedNodes.length
+    const ok = await confirmDialog({
+      title: `Delete ${count} Entries`,
+      message: `Are you sure you want to delete ${count} selected entries from Codex? All associated relationship links will also be deleted.`,
+      confirmText: `Delete ${count} Entries`,
+      variant: 'danger'
+    })
+    if (!ok) return
+    selectedNodes.forEach((n) => {
+      deleteEntity(n.id)
+    })
+    if (activeEntityForPeek && selectedNodes.some((n) => n.id === activeEntityForPeek.id)) {
+      setActiveEntityForPeek(null)
+    }
+    handleDeselectAll()
+    addToast(`Deleted ${count} entries`, 'info')
+  }
 
   const handleExportGraphImage = async (format: 'png' | 'svg') => {
     if (!containerRef.current) return
@@ -1886,6 +2012,23 @@ const RelationGraphCanvasContent: React.FC = () => {
             colorMode={isLight ? 'light' : 'dark'}
             onNodesChange={handleNodesChangeWrapped}
             onEdgesChange={onEdgesChange}
+            onMove={(_, vp) => setViewport(vp)}
+            onPaneClick={() => {
+              handleDeselectAll()
+              setActiveEntityForPeek(null)
+            }}
+            onNodeClick={(e, node) => {
+              if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                e.stopPropagation()
+                setNodes((nds) =>
+                  nds.map((n) =>
+                    n.id === node.id
+                      ? { ...n, selected: !n.selected, data: { ...n.data, isSelected: !n.selected } }
+                      : n
+                  )
+                )
+              }
+            }}
             onNodesDelete={(deleted) => {
               deleted.forEach((n) => {
                 if (n.id) handleDeleteEntity(n.id)
@@ -1962,6 +2105,81 @@ const RelationGraphCanvasContent: React.FC = () => {
             
             <FloatingZoomControls />
           </ReactFlow>
+
+          {/* UNIFIED MULTI-SELECT BOUNDING BOX & FLOATING POPUP TOOLBAR */}
+          {screenBounds && (
+            <div
+              style={{
+                position: 'absolute',
+                left: screenBounds.left,
+                top: screenBounds.top,
+                width: screenBounds.width,
+                height: screenBounds.height,
+                pointerEvents: 'none',
+                zIndex: 25
+              }}
+            >
+              {/* Unified dashed selection boundary */}
+              <div className="w-full h-full border-2 border-dashed border-accent/80 rounded-lg bg-accent/5 relative">
+                {/* 4 corner markers */}
+                <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-accent border-2 border-oros-950 rounded-[2px]" />
+                <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-accent border-2 border-oros-950 rounded-[2px]" />
+                <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-accent border-2 border-oros-950 rounded-[2px]" />
+                <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-accent border-2 border-oros-950 rounded-[2px]" />
+              </div>
+
+              {/* Unified Floating Popup Toolbar */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: -46,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  pointerEvents: 'auto'
+                }}
+                className="flex items-center gap-1.5 bg-oros-900/95 backdrop-blur-md border border-oros-750 px-2.5 py-1 rounded-full shadow-2xl animate-dropdown-in select-none z-30"
+              >
+                <span className="font-mono text-[10px] text-accent font-semibold px-2 py-0.5 bg-accent/15 border border-accent/30 rounded-full shrink-0">
+                  {selectedNodes.length} entities
+                </span>
+
+                <div className="w-[1px] h-3.5 bg-oros-800 mx-0.5" />
+
+                {/* Move Together Drag Handle */}
+                <div
+                  onMouseDown={handleMultiMoveDragStart}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full hover:bg-oros-800 text-oros-300 hover:text-white text-xs cursor-grab active:cursor-grabbing transition-colors"
+                  title="Drag here to move all selected entities together"
+                >
+                  <Move className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-medium">Move</span>
+                </div>
+
+                <div className="w-[1px] h-3.5 bg-oros-800 mx-0.5" />
+
+                {/* Batch Delete */}
+                <button
+                  onClick={handleBatchDeleteSelected}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full hover:bg-rose-950/80 text-rose-400 hover:text-rose-300 text-xs transition-colors cursor-pointer"
+                  title="Delete selected entities"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-medium">Delete</span>
+                </button>
+
+                <div className="w-[1px] h-3.5 bg-oros-800 mx-0.5" />
+
+                {/* Deselect All */}
+                <button
+                  onClick={handleDeselectAll}
+                  className="p-1 rounded-full hover:bg-oros-800 text-oros-400 hover:text-oros-200 transition-colors cursor-pointer"
+                  title="Deselect all (Esc)"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Slide-out Entity Inspector Drawer (starts under top-11 header, buttons are 100% unobstructed) */}

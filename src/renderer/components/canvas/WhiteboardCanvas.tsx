@@ -36,9 +36,10 @@ import {
   MousePointer, Hand, StickyNote, Square, Circle, Diamond, 
   Type, PenTool, Sparkles, Plus, Trash2, X, ChevronDown, 
   User, Image as ImageIcon, Check, RefreshCw, Palette,
-  ArrowRight, Undo, Layers, Move, ZoomIn, ZoomOut,
+  ArrowRight, Undo, Redo, RotateCcw, RotateCw, Layers, Move, ZoomIn, ZoomOut,
   Magnet, GitBranch, ArrowRightLeft, Spline, Activity, Frame, Link2, Edit3,
-  Bold, Italic, Minus, CornerDownRight, AlignLeft, AlignCenter, AlignRight
+  Bold, Italic, Minus, CornerDownRight, AlignLeft, AlignCenter, AlignRight,
+  Triangle, Star, Hexagon, Octagon, Cylinder, Cloud, MessageSquare
 } from 'lucide-react'
 import { LoreEntity, CanvasStroke } from '@shared/types'
 import { ExportDropdown, ExportOption } from '../common/ExportDropdown'
@@ -127,6 +128,7 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     height?: number;
   }
   const reactFlow = useReactFlow()
+  const selectedCount = reactFlow.getNodes().filter((n) => n.selected).length
   
   const currentW = Math.round(Number(cardData.width) || BASE_CARD_WIDTH)
   const currentH = Math.round(Number(cardData.height) || BASE_CARD_HEIGHT)
@@ -174,7 +176,7 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   return (
     <div className="relative select-none w-full h-full">
       <NodeResizer
-        isVisible={selected}
+        isVisible={selected && selectedCount <= 1}
         minWidth={110}
         minHeight={150}
         onResizeEnd={(_, { x, y, width, height }) => {
@@ -195,7 +197,7 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         lineClassName="!border-accent/60"
       />
 
-      {selected && (
+      {selected && selectedCount <= 1 && (
         <NodeScalingToolbar
           scalePercent={scalePercent}
           onScale={handleScale}
@@ -336,6 +338,7 @@ const StickyNoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const reactFlow = useReactFlow()
+  const selectedCount = reactFlow.getNodes().filter((n) => n.selected).length
 
   const curTheme = NOTE_THEMES[colorTheme] || NOTE_THEMES.yellow
   const fontFamilyClass = fontFamily === 'sans' ? 'font-sans' : fontFamily === 'mono' ? 'font-mono' : 'font-serif'
@@ -445,7 +448,7 @@ const StickyNoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   return (
     <div className="relative select-none w-full h-full">
       <NodeResizer
-        isVisible={selected}
+        isVisible={selected && selectedCount <= 1}
         minWidth={140}
         minHeight={110}
         onResizeEnd={(_, { x, y, width, height }) => {
@@ -466,7 +469,7 @@ const StickyNoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         lineClassName="!border-accent/60"
       />
 
-      {selected && (
+      {selected && selectedCount <= 1 && (
         <NodeScalingToolbar
           scalePercent={scalePercent}
           onScale={handleScale}
@@ -751,9 +754,23 @@ const isColorBright = (c: string) => {
   return false
 }
 
+export type WhiteboardShapeType = 
+  | 'parallelogram' 
+  | 'diamond' 
+  | 'rectangle' 
+  | 'circle'
+  | 'triangle'
+  | 'star'
+  | 'hexagon'
+  | 'octagon'
+  | 'cylinder'
+  | 'cloud'
+  | 'speech'
+  | 'arrow'
+
 const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const shapeData = data as { 
-    shapeType?: 'parallelogram' | 'diamond' | 'rectangle' | 'circle'; 
+    shapeType?: WhiteboardShapeType; 
     color?: string; 
     text?: string;
     width?: number;
@@ -763,14 +780,18 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     isItalic?: boolean;
     textAlign?: 'left' | 'center' | 'right';
     fontSize?: number;
+    rotation?: number;
   }
   const themeTokens = useActiveThemeTokens()
   const [text, setText] = useState(shapeData.text || '')
+  const [rotation, setRotation] = useState(Number(shapeData.rotation) || 0)
   const [isEditing, setIsEditing] = useState(false)
   const [showColorPicker, setShowColorPicker] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const type = shapeData.shapeType || 'parallelogram'
+  const shapeInnerRef = useRef<HTMLDivElement>(null)
+  const type: WhiteboardShapeType = shapeData.shapeType || 'rectangle'
   const reactFlow = useReactFlow()
+  const selectedCount = reactFlow.getNodes().filter((n) => n.selected).length
   const color = shapeData.color || '#334155'
   const fillMode = shapeData.fillMode || 'solid'
   const isBold = Boolean(shapeData.isBold)
@@ -789,6 +810,12 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       setText(shapeData.text)
     }
   }, [shapeData.text])
+
+  useEffect(() => {
+    if (shapeData.rotation !== undefined) {
+      setRotation(Number(shapeData.rotation) || 0)
+    }
+  }, [shapeData.rotation])
 
   useEffect(() => {
     if (isEditing) {
@@ -849,13 +876,56 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     reactFlow.setNodes((nds) => nds.filter((n) => n.id !== id))
   }
 
+  // Smooth Drag to Rotate handler
+  const handleRotateStart = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    const el = shapeInnerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
+
+    const onPointerMove = (me: PointerEvent) => {
+      const rad = Math.atan2(me.clientY - centerY, me.clientX - centerX)
+      let deg = Math.round(rad * (180 / Math.PI) + 90)
+      if (deg < 0) deg += 360
+      // Snap to 45 degree intervals within 5 degrees
+      const snaps = [0, 45, 90, 135, 180, 225, 270, 315, 360]
+      for (const s of snaps) {
+        if (Math.abs(deg - s) <= 5) {
+          deg = s % 360
+          break
+        }
+      }
+      setRotation(deg)
+      updateShapeData({ rotation: deg })
+    }
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+    }
+
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+  }
+
   const cycleShapeType = (e: React.MouseEvent) => {
     e.stopPropagation()
-    const types: ('parallelogram' | 'diamond' | 'rectangle' | 'circle')[] = [
-      'parallelogram',
-      'diamond',
+    const types: WhiteboardShapeType[] = [
       'rectangle',
-      'circle'
+      'circle',
+      'diamond',
+      'parallelogram',
+      'triangle',
+      'star',
+      'hexagon',
+      'octagon',
+      'cylinder',
+      'cloud',
+      'speech',
+      'arrow'
     ]
     const next = types[(types.indexOf(type) + 1) % types.length]
     updateShapeData({ shapeType: next })
@@ -926,8 +996,9 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
   return (
     <div className="relative select-none w-full h-full">
+      {/* NodeResizer operates on the outer axis-aligned bounding box so scaling works cleanly with no rotation skew */}
       <NodeResizer
-        isVisible={selected}
+        isVisible={selected && selectedCount <= 1}
         minWidth={60}
         minHeight={45}
         onResizeEnd={(_, { x, y, width, height }) => {
@@ -948,7 +1019,21 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         lineClassName="!border-accent/60"
       />
 
-      {selected && (
+      {/* Rotation stalk knob above the shape for quick drag rotation */}
+      {selected && selectedCount <= 1 && (
+        <div
+          onMouseDown={handleRotateStart}
+          className="absolute -top-7 left-1/2 -translate-x-1/2 flex flex-col items-center cursor-grab active:cursor-grabbing z-20 nodrag nopan select-none group/rotate"
+          title="Drag to rotate shape"
+        >
+          <div className="w-3.5 h-3.5 rounded-full bg-accent border-2 border-oros-950 shadow-lg group-hover/rotate:scale-125 transition-transform flex items-center justify-center">
+            <div className="w-1 h-1 rounded-full bg-white" />
+          </div>
+          <div className="w-0.5 h-3 bg-accent/70" />
+        </div>
+      )}
+
+      {selected && selectedCount <= 1 && (
         <NodeScalingToolbar
           scalePercent={scalePercent}
           onScale={handleScale}
@@ -957,12 +1042,55 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           extraControls={
             <>
               <div className="w-[1px] h-3 bg-oros-800 mx-0.5" />
+              {/* Rotation Stepper Controls */}
+              <div className="flex items-center gap-0.5 bg-oros-950/80 px-1 py-0.5 rounded border border-oros-800" title="Rotate shape">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const next = (rotation - 15 + 360) % 360
+                    setRotation(next)
+                    updateShapeData({ rotation: next })
+                  }}
+                  className="p-0.5 rounded hover:bg-oros-800 text-oros-400 hover:text-oros-100 transition-colors cursor-pointer"
+                  title="Rotate -15°"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </button>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setRotation(0)
+                    updateShapeData({ rotation: 0 })
+                  }}
+                  className="text-[10px] font-mono text-accent min-w-7 text-center cursor-pointer hover:underline"
+                  title="Click to reset rotation (0°)"
+                >
+                  {rotation}°
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const next = (rotation + 15) % 360
+                    setRotation(next)
+                    updateShapeData({ rotation: next })
+                  }}
+                  className="p-0.5 rounded hover:bg-oros-800 text-oros-400 hover:text-oros-100 transition-colors cursor-pointer"
+                  title="Rotate +15°"
+                >
+                  <RotateCw className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="w-[1px] h-3 bg-oros-800 mx-0.5" />
+
               {/* Shape Type Cycle Button */}
               <button
                 type="button"
                 onClick={cycleShapeType}
                 className="p-1 rounded hover:bg-oros-850 text-oros-400 hover:text-oros-100 transition-colors cursor-pointer"
-                title="Change shape"
+                title={`Current: ${type} (click to cycle)`}
               >
                 {type === 'circle' ? (
                   <Circle className="w-3.5 h-3.5" />
@@ -970,6 +1098,22 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
                   <Square className="w-3.5 h-3.5" />
                 ) : type === 'diamond' ? (
                   <Diamond className="w-3.5 h-3.5" />
+                ) : type === 'triangle' ? (
+                  <Triangle className="w-3.5 h-3.5" />
+                ) : type === 'star' ? (
+                  <Star className="w-3.5 h-3.5" />
+                ) : type === 'hexagon' ? (
+                  <Hexagon className="w-3.5 h-3.5" />
+                ) : type === 'octagon' ? (
+                  <Octagon className="w-3.5 h-3.5" />
+                ) : type === 'cylinder' ? (
+                  <Cylinder className="w-3.5 h-3.5" />
+                ) : type === 'cloud' ? (
+                  <Cloud className="w-3.5 h-3.5" />
+                ) : type === 'speech' ? (
+                  <MessageSquare className="w-3.5 h-3.5" />
+                ) : type === 'arrow' ? (
+                  <ArrowRight className="w-3.5 h-3.5" />
                 ) : (
                   <span className="font-mono text-xs font-bold italic tracking-tighter">▱</span>
                 )}
@@ -1134,39 +1278,28 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         />
       )}
 
+      {/* Inner Rotated Geometry Container */}
       <div 
+        ref={shapeInnerRef}
         onDoubleClick={(e) => {
           e.stopPropagation()
           setIsEditing(true)
         }}
-        className={`relative w-full h-full select-none cursor-move flex items-center justify-center transition-colors duration-150 group ${
-          selected ? 'ring-2 ring-accent rounded-[4px]' : ''
+        style={{
+          transform: `rotate(${rotation}deg)`,
+          transformOrigin: 'center center'
+        }}
+        className={`relative w-full h-full select-none cursor-move flex items-center justify-center transition-transform duration-75 group ${
+          selected && selectedCount <= 1 ? 'ring-2 ring-accent/60 rounded-[4px]' : ''
         }`}
       >
-        {/* Handles matching shape geometry, only visible on hover */}
-        {type === 'parallelogram' ? (
-          <>
-            <Handle type="source" position={Position.Top} id="top" style={{ left: '60.7%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Bottom} id="bottom" style={{ left: '39.3%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !bottom-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Left} id="left" style={{ left: '14.3%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Right} id="right" style={{ left: '85.7%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-          </>
-        ) : type === 'diamond' ? (
-          <>
-            <Handle type="source" position={Position.Top} id="top" style={{ left: '50%', top: '5%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Bottom} id="bottom" style={{ left: '50%', top: '95%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Left} id="left" style={{ left: '5%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Right} id="right" style={{ left: '95%', top: '50%' }} className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-          </>
-        ) : (
-          <>
-            <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-            <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-          </>
-        )}
+        {/* 4 Cardinal Handles - visible on hover */}
+        <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
 
+        {/* 1. Parallelogram */}
         {type === 'parallelogram' && (
           <div className="relative w-full h-full flex items-center justify-center">
             <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 140 100" preserveAspectRatio="none">
@@ -1181,6 +1314,7 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           </div>
         )}
 
+        {/* 2. Diamond */}
         {type === 'diamond' && (
           <div className="relative w-full h-full flex items-center justify-center">
             <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -1195,6 +1329,7 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           </div>
         )}
 
+        {/* 3. Rectangle */}
         {type === 'rectangle' && (
           <div 
             style={{ 
@@ -1208,6 +1343,7 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           </div>
         )}
 
+        {/* 4. Circle */}
         {type === 'circle' && (
           <div 
             style={{ 
@@ -1218,6 +1354,135 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             className="w-full h-full rounded-full border shadow-xl flex items-center justify-center relative overflow-hidden"
           >
             {renderShapeText('p-4')}
+          </div>
+        )}
+
+        {/* 5. Triangle */}
+        {type === 'triangle' && (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <polygon 
+                points="50,5 95,95 5,95" 
+                fill={fillMode === 'outline' ? 'rgba(15,23,42,0.6)' : color} 
+                stroke={fillMode === 'outline' ? color : '#94a3b8'} 
+                strokeWidth={fillMode === 'outline' ? '2.5' : '1.5'}
+              />
+            </svg>
+            {renderShapeText('pt-7 px-4 pb-2')}
+          </div>
+        )}
+
+        {/* 6. Star */}
+        {type === 'star' && (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <polygon 
+                points="50,5 64,36 98,36 71,57 81,91 50,70 19,91 29,57 2,36 36,36" 
+                fill={fillMode === 'outline' ? 'rgba(15,23,42,0.6)' : color} 
+                stroke={fillMode === 'outline' ? color : '#94a3b8'} 
+                strokeWidth={fillMode === 'outline' ? '2.5' : '1.5'}
+              />
+            </svg>
+            {renderShapeText('p-5')}
+          </div>
+        )}
+
+        {/* 7. Hexagon */}
+        {type === 'hexagon' && (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <polygon 
+                points="25,5 75,5 95,50 75,95 25,95 5,50" 
+                fill={fillMode === 'outline' ? 'rgba(15,23,42,0.6)' : color} 
+                stroke={fillMode === 'outline' ? color : '#94a3b8'} 
+                strokeWidth={fillMode === 'outline' ? '2.5' : '1.5'}
+              />
+            </svg>
+            {renderShapeText('px-5 py-3')}
+          </div>
+        )}
+
+        {/* 8. Octagon */}
+        {type === 'octagon' && (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <polygon 
+                points="30,5 70,5 95,30 95,70 70,95 30,95 5,70 5,30" 
+                fill={fillMode === 'outline' ? 'rgba(15,23,42,0.6)' : color} 
+                stroke={fillMode === 'outline' ? color : '#94a3b8'} 
+                strokeWidth={fillMode === 'outline' ? '2.5' : '1.5'}
+              />
+            </svg>
+            {renderShapeText('p-4')}
+          </div>
+        )}
+
+        {/* 9. Cylinder (Database) */}
+        {type === 'cylinder' && (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <path
+                d="M 10,25 V 75 A 40,15 0 0,0 90,75 V 25"
+                fill={fillMode === 'outline' ? 'rgba(15,23,42,0.6)' : color}
+                stroke={fillMode === 'outline' ? color : '#94a3b8'}
+                strokeWidth={fillMode === 'outline' ? '2.5' : '1.5'}
+              />
+              <ellipse
+                cx="50"
+                cy="25"
+                rx="40"
+                ry="15"
+                fill={fillMode === 'outline' ? 'rgba(30,41,59,0.9)' : color}
+                stroke={fillMode === 'outline' ? color : '#94a3b8'}
+                strokeWidth={fillMode === 'outline' ? '2.5' : '1.5'}
+              />
+            </svg>
+            {renderShapeText('pt-8 pb-3 px-3')}
+          </div>
+        )}
+
+        {/* 10. Cloud */}
+        {type === 'cloud' && (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 120 80" preserveAspectRatio="none">
+              <path 
+                d="M 25,60 a 20,20 0 0,1 0,-35 a 22,22 0 0,1 32,-10 a 25,25 0 0,1 42,10 a 18,18 0 0,1 8,35 z" 
+                fill={fillMode === 'outline' ? 'rgba(15,23,42,0.6)' : color} 
+                stroke={fillMode === 'outline' ? color : '#94a3b8'} 
+                strokeWidth={fillMode === 'outline' ? '2.5' : '1.5'}
+              />
+            </svg>
+            {renderShapeText('p-4')}
+          </div>
+        )}
+
+        {/* 11. Speech Bubble */}
+        {type === 'speech' && (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <path 
+                d="M 10,12 H 90 Q 95,12 95,17 V 65 Q 95,70 90,70 H 45 L 25,88 V 70 H 10 Q 5,70 5,65 V 17 Q 5,12 10,12 Z" 
+                fill={fillMode === 'outline' ? 'rgba(15,23,42,0.6)' : color} 
+                stroke={fillMode === 'outline' ? color : '#94a3b8'} 
+                strokeWidth={fillMode === 'outline' ? '2.5' : '1.5'}
+              />
+            </svg>
+            {renderShapeText('pt-3 pb-6 px-4')}
+          </div>
+        )}
+
+        {/* 12. Block Arrow */}
+        {type === 'arrow' && (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 100 80" preserveAspectRatio="none">
+              <polygon 
+                points="5,25 60,25 60,10 95,40 60,70 60,55 5,55" 
+                fill={fillMode === 'outline' ? 'rgba(15,23,42,0.6)' : color} 
+                stroke={fillMode === 'outline' ? color : '#94a3b8'} 
+                strokeWidth={fillMode === 'outline' ? '2.5' : '1.5'}
+              />
+            </svg>
+            {renderShapeText('px-4 py-2')}
           </div>
         )}
       </div>
@@ -1247,6 +1512,7 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const [showColorPicker, setShowColorPicker] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const reactFlow = useReactFlow()
+  const selectedCount = reactFlow.getNodes().filter((n) => n.selected).length
 
   const color = textData.color || '#e2e8f0'
   const fontFamily = textData.fontFamily || 'serif'
@@ -1341,7 +1607,7 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   return (
     <div className="relative select-none w-full h-full">
       <NodeResizer
-        isVisible={selected}
+        isVisible={selected && selectedCount <= 1}
         minWidth={100}
         minHeight={30}
         onResizeEnd={(_, { x, y, width, height }) => {
@@ -1362,7 +1628,7 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         lineClassName="!border-accent/60"
       />
 
-      {selected && (
+      {selected && selectedCount <= 1 && (
         <NodeScalingToolbar
           scalePercent={scalePercent}
           onScale={handleScale}
@@ -2962,6 +3228,9 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     }
   }, [currentCanvas?.id])
 
+  // Viewport tracking for screen overlays & coordinates
+  const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 })
+
   // Active Tool state: 'select' | 'pan' | 'pen' | 'text'
   const [activeTool, setActiveTool] = useState<'select' | 'pan' | 'pen' | 'text'>('select')
   const [penColor, setPenColor] = useState(themeTokens.accent)
@@ -2972,6 +3241,209 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
   const [showCanvasDropdown, setShowCanvasDropdown] = useState(false)
   const [isRenamingCanvas, setIsRenamingCanvas] = useState(false)
   const [renameValue, setRenameValue] = useState('')
+
+  // ==========================================
+  // UNDO / REDO HISTORY ENGINE
+  // ==========================================
+  interface CanvasSnapshot {
+    nodes: Node[]
+    edges: Edge[]
+    strokes?: CanvasStroke[]
+  }
+
+  const pastRef = useRef<CanvasSnapshot[]>([])
+  const futureRef = useRef<CanvasSnapshot[]>([])
+  const [historyCount, setHistoryCount] = useState({ past: 0, future: 0 })
+
+  const takeSnapshot = useCallback(() => {
+    const currentSnapshot: CanvasSnapshot = {
+      nodes: JSON.parse(JSON.stringify(reactFlowInstance.getNodes())),
+      edges: JSON.parse(JSON.stringify(reactFlowInstance.getEdges())),
+      strokes: currentCanvas?.strokes ? JSON.parse(JSON.stringify(currentCanvas.strokes)) : []
+    }
+    pastRef.current.push(currentSnapshot)
+    if (pastRef.current.length > 35) {
+      pastRef.current.shift()
+    }
+    futureRef.current = []
+    setHistoryCount({ past: pastRef.current.length, future: 0 })
+  }, [reactFlowInstance, currentCanvas])
+
+  const handleUndo = useCallback(() => {
+    if (pastRef.current.length === 0) return
+    const currentSnapshot: CanvasSnapshot = {
+      nodes: JSON.parse(JSON.stringify(reactFlowInstance.getNodes())),
+      edges: JSON.parse(JSON.stringify(reactFlowInstance.getEdges())),
+      strokes: currentCanvas?.strokes ? JSON.parse(JSON.stringify(currentCanvas.strokes)) : []
+    }
+    futureRef.current.push(currentSnapshot)
+    const prev = pastRef.current.pop()!
+    setHistoryCount({ past: pastRef.current.length, future: futureRef.current.length })
+
+    setNodes(prev.nodes)
+    setEdges(prev.edges)
+    if (currentCanvas) {
+      saveCanvasNodesAndEdges(currentCanvas.id, prev.nodes, prev.edges)
+      if (prev.strokes) {
+        updateCanvas(currentCanvas.id, { strokes: prev.strokes })
+      }
+    }
+    addToast('Undo', 'info')
+  }, [reactFlowInstance, currentCanvas, setNodes, setEdges, saveCanvasNodesAndEdges, updateCanvas, addToast])
+
+  const handleRedo = useCallback(() => {
+    if (futureRef.current.length === 0) return
+    const currentSnapshot: CanvasSnapshot = {
+      nodes: JSON.parse(JSON.stringify(reactFlowInstance.getNodes())),
+      edges: JSON.parse(JSON.stringify(reactFlowInstance.getEdges())),
+      strokes: currentCanvas?.strokes ? JSON.parse(JSON.stringify(currentCanvas.strokes)) : []
+    }
+    pastRef.current.push(currentSnapshot)
+    const next = futureRef.current.pop()!
+    setHistoryCount({ past: pastRef.current.length, future: futureRef.current.length })
+
+    setNodes(next.nodes)
+    setEdges(next.edges)
+    if (currentCanvas) {
+      saveCanvasNodesAndEdges(currentCanvas.id, next.nodes, next.edges)
+      if (next.strokes) {
+        updateCanvas(currentCanvas.id, { strokes: next.strokes })
+      }
+    }
+    addToast('Redo', 'info')
+  }, [reactFlowInstance, currentCanvas, setNodes, setEdges, saveCanvasNodesAndEdges, updateCanvas, addToast])
+
+  // Undo / Redo Global Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || (activeEl as HTMLElement).isContentEditable)
+      ) {
+        return
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) {
+          handleRedo()
+        } else {
+          handleUndo()
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault()
+        handleRedo()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleUndo, handleRedo])
+
+  // ==========================================
+  // UNIFIED MULTI-SELECTION BOUNDS & POPUP
+  // ==========================================
+  const selectedNodes = useMemo(() => nodes.filter((n) => n.selected), [nodes])
+
+  const handleDeselectAll = useCallback(() => {
+    setNodes((nds) => nds.map((n) => (n.selected ? { ...n, selected: false } : n)))
+  }, [setNodes])
+
+  // Escape clears selection
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedNodes.length > 0) {
+        handleDeselectAll()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedNodes.length, handleDeselectAll])
+
+  const unifiedBounds = useMemo(() => {
+    if (selectedNodes.length <= 1) return null
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const n of selectedNodes) {
+      const x = n.position.x
+      const y = n.position.y
+      const w = (n.measured?.width || n.width || (n.style?.width as number) || (n.data?.width as number) || 160)
+      const h = (n.measured?.height || n.height || (n.style?.height as number) || (n.data?.height as number) || 120)
+      if (x < minX) minX = x
+      if (y < minY) minY = y
+      if (x + w > maxX) maxX = x + w
+      if (y + h > maxY) maxY = y + h
+    }
+    if (!isFinite(minX) || !isFinite(minY)) return null
+    return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY }
+  }, [selectedNodes])
+
+  const screenBounds = useMemo(() => {
+    if (!unifiedBounds) return null
+    const { x, y, zoom } = viewport
+    const pad = 12
+    return {
+      left: (unifiedBounds.minX - pad) * zoom + x,
+      top: (unifiedBounds.minY - pad) * zoom + y,
+      width: (unifiedBounds.width + pad * 2) * zoom,
+      height: (unifiedBounds.height + pad * 2) * zoom
+    }
+  }, [unifiedBounds, viewport])
+
+  const handleMultiMoveDragStart = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    takeSnapshot()
+    const startX = e.clientX
+    const startY = e.clientY
+    const initialPositions = new Map<string, { x: number; y: number }>()
+    selectedNodes.forEach((n) => {
+      initialPositions.set(n.id, { x: n.position.x, y: n.position.y })
+    })
+    const currentZoom = reactFlowInstance.getViewport().zoom
+
+    const onPointerMove = (me: PointerEvent) => {
+      const dx = (me.clientX - startX) / currentZoom
+      const dy = (me.clientY - startY) / currentZoom
+      setNodes((nds) =>
+        nds.map((n) => {
+          const init = initialPositions.get(n.id)
+          if (!init) return n
+          return {
+            ...n,
+            position: {
+              x: Math.round(init.x + dx),
+              y: Math.round(init.y + dy)
+            }
+          }
+        })
+      )
+    }
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      if (currentCanvas) {
+        saveCanvasNodesAndEdges(currentCanvas.id, reactFlowInstance.getNodes(), edges)
+      }
+    }
+
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+  }
+
+  const handleBatchDeleteSelected = async () => {
+    if (selectedNodes.length === 0) return
+    takeSnapshot()
+    const selectedIds = new Set(selectedNodes.map((n) => n.id))
+    setNodes((nds) => {
+      const updated = nds.filter((n) => !selectedIds.has(n.id))
+      if (currentCanvas) {
+        saveCanvasNodesAndEdges(currentCanvas.id, updated, edges)
+      }
+      return updated
+    })
+    addToast(`Deleted ${selectedNodes.length} items`, 'info')
+  }
 
   // Smart Snapping & Alignment state
   const [smartSnapEnabled, setSmartSnapEnabled] = useState(true)
@@ -3588,6 +4060,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
 
   // Add a Sticky Note at center of viewport
   const handleAddStickyNote = () => {
+    takeSnapshot()
     const center = reactFlowInstance.screenToFlowPosition({
       x: window.innerWidth / 2,
       y: window.innerHeight / 2
@@ -3607,8 +4080,9 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     addToast('Added Note', 'success')
   }
 
-  // Add Geometric Shape
-  const handleAddShape = (shapeType: 'parallelogram' | 'diamond' | 'rectangle' | 'circle') => {
+  // Add Geometric Shape (supports all 12 shape types)
+  const handleAddShape = (shapeType: WhiteboardShapeType) => {
+    takeSnapshot()
     setShowShapePicker(false)
     const center = reactFlowInstance.screenToFlowPosition({
       x: window.innerWidth / 2,
@@ -3619,7 +4093,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
       type: 'shape',
       position: { x: center.x - 80, y: center.y - 60 },
       style: { width: 160, height: 120 },
-      data: { shapeType, color: '#ffffff', text: '', width: 160, height: 120 }
+      data: { shapeType, color: '#ffffff', text: '', width: 160, height: 120, rotation: 0 }
     }
     setNodes((nds) => {
       const updated = [...nds, newNode]
@@ -3631,6 +4105,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
 
   // Add Text Annotation
   const handleAddText = () => {
+    takeSnapshot()
     const center = reactFlowInstance.screenToFlowPosition({
       x: window.innerWidth / 2,
       y: window.innerHeight / 2
@@ -3652,6 +4127,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
 
   // Drop Lore Card from Entity
   const handleDropCard = (entity: LoreEntity) => {
+    takeSnapshot()
     setShowCardPicker(false)
     const center = reactFlowInstance.screenToFlowPosition({
       x: window.innerWidth / 2,
@@ -3782,7 +4258,20 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
           colorMode={isLight ? 'light' : 'dark'}
           onNodesChange={handleNodesChangeWrapped}
           onEdgesChange={onEdgesChange}
+          onMove={(_, vp) => setViewport(vp)}
+          onNodeDragStart={() => takeSnapshot()}
+          onNodeClick={(e, node) => {
+            if (e.shiftKey || e.ctrlKey || e.metaKey) {
+              e.stopPropagation()
+              setNodes((nds) =>
+                nds.map((n) =>
+                  n.id === node.id ? { ...n, selected: !n.selected } : n
+                )
+              )
+            }
+          }}
           onNodesDelete={(deleted) => {
+            takeSnapshot()
             const delIds = new Set(deleted.map((n) => n.id))
             setNodes((nds) => {
               const updated = nds.filter((n) => !delIds.has(n.id))
@@ -3793,6 +4282,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             })
           }}
           onEdgesDelete={(deleted) => {
+            takeSnapshot()
             const delIds = new Set(deleted.map((e) => e.id))
             setEdges((eds) => {
               const updated = eds.filter((e) => !delIds.has(e.id))
@@ -3802,7 +4292,10 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
               return updated
             })
           }}
-          onConnect={onConnect}
+          onConnect={(connection) => {
+            takeSnapshot()
+            onConnect(connection)
+          }}
           onNodeDragStop={handleNodeDragStop}
           onEdgeClick={(e, edge) => {
             e.stopPropagation()
@@ -4006,9 +4499,106 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
         <ExportDropdown options={canvasExportOptions} align="right" />
       </div>
 
+      {/* UNIFIED MULTI-SELECT BOUNDING BOX & FLOATING POPUP TOOLBAR */}
+      {screenBounds && (
+        <div
+          style={{
+            position: 'absolute',
+            left: screenBounds.left,
+            top: screenBounds.top,
+            width: screenBounds.width,
+            height: screenBounds.height,
+            pointerEvents: 'none',
+            zIndex: 25
+          }}
+        >
+          {/* Unified dashed selection boundary */}
+          <div className="w-full h-full border-2 border-dashed border-accent/80 rounded-lg bg-accent/5 relative">
+            {/* 4 corner markers */}
+            <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-accent border-2 border-oros-950 rounded-[2px]" />
+            <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-accent border-2 border-oros-950 rounded-[2px]" />
+            <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-accent border-2 border-oros-950 rounded-[2px]" />
+            <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-accent border-2 border-oros-950 rounded-[2px]" />
+          </div>
+
+          {/* Unified Floating Popup Toolbar */}
+          <div
+            style={{
+              position: 'absolute',
+              top: -46,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              pointerEvents: 'auto'
+            }}
+            className="flex items-center gap-1.5 bg-oros-900/95 backdrop-blur-md border border-oros-750 px-2.5 py-1 rounded-full shadow-2xl animate-dropdown-in select-none z-30"
+          >
+            <span className="font-mono text-[10px] text-accent font-semibold px-2 py-0.5 bg-accent/15 border border-accent/30 rounded-full shrink-0">
+              {selectedNodes.length} items
+            </span>
+
+            <div className="w-[1px] h-3.5 bg-oros-800 mx-0.5" />
+
+            {/* Move Together Drag Handle */}
+            <div
+              onMouseDown={handleMultiMoveDragStart}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full hover:bg-oros-800 text-oros-300 hover:text-white text-xs cursor-grab active:cursor-grabbing transition-colors"
+              title="Drag here to move all selected items"
+            >
+              <Move className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-medium">Move</span>
+            </div>
+
+            <div className="w-[1px] h-3.5 bg-oros-800 mx-0.5" />
+
+            {/* Batch Delete */}
+            <button
+              onClick={handleBatchDeleteSelected}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full hover:bg-rose-950/80 text-rose-400 hover:text-rose-300 text-xs transition-colors cursor-pointer"
+              title="Delete selected items"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-medium">Delete</span>
+            </button>
+
+            <div className="w-[1px] h-3.5 bg-oros-800 mx-0.5" />
+
+            {/* Deselect All */}
+            <button
+              onClick={handleDeselectAll}
+              className="p-1 rounded-full hover:bg-oros-800 text-oros-400 hover:text-oros-200 transition-colors cursor-pointer"
+              title="Deselect all (Esc)"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* FLOATING BOTTOM CONSOLE DOCK */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 select-none">
         <div className="flex items-center gap-1 px-1.5 py-1 rounded-[4px] bg-oros-900 border border-oros-750 shadow-2xl">
+          {/* Undo */}
+          <button
+            onClick={handleUndo}
+            disabled={historyCount.past === 0}
+            title="Undo (Ctrl+Z)"
+            className="p-1.5 rounded-[3px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+          >
+            <Undo className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Redo */}
+          <button
+            onClick={handleRedo}
+            disabled={historyCount.future === 0}
+            title="Redo (Ctrl+Y / Ctrl+Shift+Z)"
+            className="p-1.5 rounded-[3px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+          >
+            <Redo className="w-3.5 h-3.5" />
+          </button>
+
+          <div className="w-[1px] h-4 bg-oros-800 mx-0.5" />
+
           {/* 1. Select Tool (Pointer) */}
           <button
             onClick={() => {
@@ -4082,35 +4672,37 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             </button>
 
             {showShapePicker && (
-              <div className="absolute bottom-11 left-1/2 -translate-x-1/2 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-1 flex items-center gap-1 z-30 animate-dropdown-in">
-                <button
-                  onClick={() => handleAddShape('parallelogram')}
-                  title="Parallelogram"
-                  className="p-1 rounded-[2px] hover:bg-oros-850 text-oros-300 hover:text-white"
-                >
-                  <span className="font-mono text-xs font-bold italic tracking-tighter">▱</span>
-                </button>
-                <button
-                  onClick={() => handleAddShape('diamond')}
-                  title="Diamond"
-                  className="p-1 rounded-[2px] hover:bg-oros-850 text-oros-300 hover:text-white"
-                >
-                  <Diamond className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => handleAddShape('rectangle')}
-                  title="Rectangle"
-                  className="p-1 rounded-[2px] hover:bg-oros-850 text-oros-300 hover:text-white"
-                >
-                  <Square className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => handleAddShape('circle')}
-                  title="Circle"
-                  className="p-1 rounded-[2px] hover:bg-oros-850 text-oros-300 hover:text-white"
-                >
-                  <Circle className="w-3.5 h-3.5" />
-                </button>
+              <div className="absolute bottom-11 left-1/2 -translate-x-1/2 bg-oros-900 border border-oros-750 rounded-[6px] shadow-2xl p-2 z-30 animate-dropdown-in w-60 select-none text-oros-100">
+                <div className="text-[10px] font-mono text-oros-400 uppercase tracking-wider mb-1.5 px-0.5 font-bold">
+                  Shapes
+                </div>
+                <div className="grid grid-cols-4 gap-1">
+                  {[
+                    { type: 'rectangle', label: 'Rectangle', icon: <Square className="w-3.5 h-3.5" /> },
+                    { type: 'circle', label: 'Circle', icon: <Circle className="w-3.5 h-3.5" /> },
+                    { type: 'diamond', label: 'Diamond', icon: <Diamond className="w-3.5 h-3.5" /> },
+                    { type: 'parallelogram', label: 'Parallelogram', icon: <span className="font-mono text-xs font-bold italic">▱</span> },
+                    { type: 'triangle', label: 'Triangle', icon: <Triangle className="w-3.5 h-3.5" /> },
+                    { type: 'star', label: 'Star', icon: <Star className="w-3.5 h-3.5" /> },
+                    { type: 'hexagon', label: 'Hexagon', icon: <Hexagon className="w-3.5 h-3.5" /> },
+                    { type: 'octagon', label: 'Octagon', icon: <Octagon className="w-3.5 h-3.5" /> },
+                    { type: 'cylinder', label: 'Cylinder', icon: <Cylinder className="w-3.5 h-3.5" /> },
+                    { type: 'cloud', label: 'Cloud', icon: <Cloud className="w-3.5 h-3.5" /> },
+                    { type: 'speech', label: 'Speech', icon: <MessageSquare className="w-3.5 h-3.5" /> },
+                    { type: 'arrow', label: 'Arrow', icon: <ArrowRight className="w-3.5 h-3.5" /> },
+                  ].map((item) => (
+                    <button
+                      key={item.type}
+                      type="button"
+                      onClick={() => handleAddShape(item.type as WhiteboardShapeType)}
+                      title={item.label}
+                      className="p-1.5 rounded hover:bg-oros-800 text-oros-300 hover:text-white flex flex-col items-center justify-center gap-0.5 transition-colors border border-transparent hover:border-oros-700 cursor-pointer"
+                    >
+                      {item.icon}
+                      <span className="text-[9px] font-mono truncate w-full text-center">{item.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>

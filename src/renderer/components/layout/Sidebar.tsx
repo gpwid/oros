@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react'
+import React, { useState, useRef, useMemo, useEffect } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
 import { confirmDialog } from '../../store/useConfirmStore'
@@ -36,9 +36,9 @@ export const Sidebar: React.FC = () => {
   const [newFolderName, setNewFolderName] = useState('')
   const [newFolderParentId, setNewFolderParentId] = useState<string | null>(null)
 
-  // Multi-selection mode state
-  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  // Multi-selection state (activated naturally via Shift or Ctrl/Cmd click on items and folders)
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set())
+  const [selectedFolderIds, setSelectedFolderIds] = useState<Set<string>>(new Set())
   const [showBatchMoveModal, setShowBatchMoveModal] = useState(false)
   const [batchTargetFolderId, setBatchTargetFolderId] = useState<string | null>(null)
 
@@ -279,56 +279,109 @@ export const Sidebar: React.FC = () => {
     addToast('Moved item to folder', 'info')
   }
 
-  // Multi-Selection Mode Actions
-  const toggleSelectItem = (itemId: string) => {
-    setSelectedItemIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(itemId)) {
-        next.delete(itemId)
-      } else {
-        next.add(itemId)
-      }
-      return next
-    })
+  // Natural Multi-Selection Actions (triggered via Shift or Ctrl/Cmd click)
+  const handleItemRowClick = (e: React.MouseEvent, item: DirectoryItem) => {
+    if (e.shiftKey || e.ctrlKey || e.metaKey) {
+      e.preventDefault()
+      e.stopPropagation()
+      setSelectedItemIds((prev) => {
+        const next = new Set(prev)
+        if (next.has(item.id)) next.delete(item.id)
+        else next.add(item.id)
+        return next
+      })
+      return
+    }
+
+    if (selectedItemIds.size > 0 || selectedFolderIds.size > 0) {
+      setSelectedItemIds(new Set())
+      setSelectedFolderIds(new Set())
+    }
+    handleItemClick(item)
+  }
+
+  const handleFolderRowClick = (e: React.MouseEvent, folder: DirectoryFolder) => {
+    if (e.shiftKey || e.ctrlKey || e.metaKey) {
+      e.preventDefault()
+      e.stopPropagation()
+      setSelectedFolderIds((prev) => {
+        const next = new Set(prev)
+        if (next.has(folder.id)) next.delete(folder.id)
+        else next.add(folder.id)
+        return next
+      })
+      return
+    }
+
+    if (selectedItemIds.size > 0 || selectedFolderIds.size > 0) {
+      setSelectedItemIds(new Set())
+      setSelectedFolderIds(new Set())
+    }
+    toggleFolderOpen(folder.id)
   }
 
   const selectAllFiltered = () => {
     setSelectedItemIds(new Set(filteredItems.map((i) => i.id)))
+    setSelectedFolderIds(new Set(currentFolders.map((f) => f.id)))
   }
 
   const clearSelection = () => {
     setSelectedItemIds(new Set())
+    setSelectedFolderIds(new Set())
   }
 
   const handleBatchDelete = async () => {
-    if (selectedItemIds.size === 0) return
-    const count = selectedItemIds.size
+    const totalCount = selectedItemIds.size + selectedFolderIds.size
+    if (totalCount === 0) return
     const confirmed = await confirmDialog({
-      title: `Delete ${count} Items`,
-      message: `Delete ${count} selected elements from the vault? This cannot be undone.`,
-      confirmText: `Delete ${count} Items`,
+      title: `Delete ${totalCount} Elements`,
+      message: `Delete ${totalCount} selected element${totalCount > 1 ? 's' : ''} from vault? Items inside deleted folders will be moved to root.`,
+      confirmText: `Delete ${totalCount} Elements`,
       variant: 'danger'
     })
     if (confirmed) {
-      batchDeleteDirectoryItems(Array.from(selectedItemIds))
-      addToast(`Deleted ${count} items from vault`, 'info')
-      setSelectedItemIds(new Set())
-      setIsSelectionMode(false)
+      if (selectedItemIds.size > 0) {
+        batchDeleteDirectoryItems(Array.from(selectedItemIds))
+      }
+      if (selectedFolderIds.size > 0) {
+        selectedFolderIds.forEach((fId) => deleteFolder(fId))
+      }
+      addToast(`Deleted ${totalCount} elements from vault`, 'info')
+      clearSelection()
     }
   }
 
   const handleBatchMoveSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (selectedItemIds.size === 0) return
-    const count = selectedItemIds.size
-    batchMoveItemsToFolder(Array.from(selectedItemIds), batchTargetFolderId)
+    const totalCount = selectedItemIds.size + selectedFolderIds.size
+    if (totalCount === 0) return
+    if (selectedItemIds.size > 0) {
+      batchMoveItemsToFolder(Array.from(selectedItemIds), batchTargetFolderId)
+    }
+    if (selectedFolderIds.size > 0) {
+      selectedFolderIds.forEach((fId) => {
+        if (fId !== batchTargetFolderId) {
+          moveFolderToFolder(fId, batchTargetFolderId)
+        }
+      })
+    }
     const targetFolder = currentFolders.find((f) => f.id === batchTargetFolderId)
-    addToast(`Moved ${count} items to ${targetFolder ? `"${targetFolder.name}"` : 'Vault Root'}`, 'success')
-    setSelectedItemIds(new Set())
-    setIsSelectionMode(false)
+    addToast(`Moved ${totalCount} elements to ${targetFolder ? `"${targetFolder.name}"` : 'Vault Root'}`, 'success')
+    clearSelection()
     setShowBatchMoveModal(false)
     setBatchTargetFolderId(null)
   }
+
+  // Keyboard shortcut: Escape clears selection
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && (selectedItemIds.size > 0 || selectedFolderIds.size > 0)) {
+        clearSelection()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedItemIds.size, selectedFolderIds.size])
 
   // Build flattened folder hierarchy list for selectors
   const getFolderHierarchy = (parentId: string | null = null, depth = 0): { folder: DirectoryFolder; depth: number }[] => {
@@ -394,11 +447,20 @@ export const Sidebar: React.FC = () => {
               handleDeleteFolder(folder)
             }
           }}
-          className="group flex items-center justify-between px-2 py-1 rounded-[3px] hover:bg-oros-900 text-oros-300 hover:text-oros-100 transition-colors cursor-pointer outline-none focus:ring-1 focus:ring-accent/40"
+          className={`group flex items-center justify-between px-2 py-1 rounded-[3px] transition-colors cursor-pointer outline-none focus:ring-1 focus:ring-accent/40 ${
+            selectedFolderIds.has(folder.id)
+              ? 'bg-accent/20 text-oros-100 font-medium border-l-2 border-accent'
+              : 'hover:bg-oros-900 text-oros-300 hover:text-oros-100 border-l-2 border-transparent'
+          }`}
           style={{ paddingLeft: `${Math.max(8, depth * 14 + 8)}px` }}
-          onClick={() => toggleFolderOpen(folder.id)}
+          onClick={(e) => handleFolderRowClick(e, folder)}
         >
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            {selectedFolderIds.has(folder.id) && (
+              <div className="w-3.5 h-3.5 rounded-[2px] bg-accent border border-accent flex items-center justify-center shrink-0">
+                <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
+              </div>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -486,24 +548,17 @@ export const Sidebar: React.FC = () => {
               return (
                 <div
                   key={item.id}
-                  draggable={!isSelectionMode}
+                  draggable={true}
                   onDragStart={(e) => {
-                    if (isSelectionMode) return
                     e.dataTransfer.setData('text/plain', item.id)
                     setDraggedItemId(item.id)
                   }}
                   onDragEnd={() => setDraggedItemId(null)}
-                  onClick={() => {
-                    if (isSelectionMode) {
-                      toggleSelectItem(item.id)
-                    } else {
-                      handleItemClick(item)
-                    }
-                  }}
+                  onClick={(e) => handleItemRowClick(e, item)}
                   style={{ paddingLeft: `${Math.max(16, (depth + 1) * 14 + 10)}px` }}
                   tabIndex={0}
                   onKeyDown={(e) => {
-                    if (!isSelectionMode && (e.key === 'Delete' || e.key === 'Del')) {
+                    if (e.key === 'Delete' || e.key === 'Del') {
                       e.stopPropagation()
                       handleDeleteItem(item)
                     }
@@ -512,59 +567,47 @@ export const Sidebar: React.FC = () => {
                     draggedItemId === item.id ? 'opacity-40' : ''
                   } ${
                     isSelected
-                      ? 'bg-accent/15 text-oros-100 font-medium border-l-2 border-accent'
-                      : active && !isSelectionMode
+                      ? 'bg-accent/20 text-oros-100 font-medium border-l-2 border-accent'
+                      : active
                       ? 'bg-accent-subtle text-oros-100 font-medium border-l-2 border-accent'
                       : 'hover:bg-oros-900 text-oros-300 hover:text-oros-100 border-l-2 border-transparent'
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    {isSelectionMode && (
-                      <div 
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleSelectItem(item.id)
-                        }}
-                        className={`w-3.5 h-3.5 rounded-[2px] border flex items-center justify-center transition-colors shrink-0 ${
-                          isSelected
-                            ? 'bg-accent border-accent text-white'
-                            : 'border-oros-700 bg-oros-950/80 hover:border-oros-500'
-                        }`}
-                      >
-                        {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                    {isSelected && (
+                      <div className="w-3.5 h-3.5 rounded-[2px] bg-accent border border-accent flex items-center justify-center shrink-0">
+                        <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
                       </div>
                     )}
                     {getItemIcon(item)}
                     <span className="truncate">{item.name}</span>
                   </div>
 
-                  {!isSelectionMode && (
-                    <div 
-                      className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity"
-                      onClick={(e) => e.stopPropagation()}
+                  <div 
+                    className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Move to folder */}
+                    <button
+                      onClick={() => {
+                        setMovingItemId(item.id)
+                        setTargetMoveFolderId(item.folderId || null)
+                      }}
+                      className="p-1 rounded-[2px] hover:bg-oros-800 text-oros-400 hover:text-oros-200"
+                      title="Move to another folder"
                     >
-                      {/* Move to folder */}
-                      <button
-                        onClick={() => {
-                          setMovingItemId(item.id)
-                          setTargetMoveFolderId(item.folderId || null)
-                        }}
-                        className="p-1 rounded-[2px] hover:bg-oros-800 text-oros-400 hover:text-oros-200"
-                        title="Move to another folder"
-                      >
-                        <FolderTree className="w-3 h-3" />
-                      </button>
+                      <FolderTree className="w-3 h-3" />
+                    </button>
 
-                      {/* Delete from vault */}
-                      <button
-                        onClick={() => handleDeleteItem(item)}
-                        className="p-1 rounded hover:bg-rose-950 text-oros-400 hover:text-rose-400 transition-colors"
-                        title="Delete element"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
+                    {/* Delete from vault */}
+                    <button
+                      onClick={() => handleDeleteItem(item)}
+                      className="p-1 rounded hover:bg-rose-950 text-oros-400 hover:text-rose-400 transition-colors"
+                      title="Delete element"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               )
             })}
@@ -631,26 +674,6 @@ export const Sidebar: React.FC = () => {
                 <FilePlus className="w-3.5 h-3.5" />
               </button>
 
-              {/* Multi-Selection Mode Button */}
-              <button
-                onClick={() => {
-                  if (isSelectionMode) {
-                    setIsSelectionMode(false)
-                    setSelectedItemIds(new Set())
-                  } else {
-                    setIsSelectionMode(true)
-                  }
-                }}
-                className={`p-1 rounded-[3px] border transition-colors btn-interactive ${
-                  isSelectionMode 
-                    ? 'bg-accent text-white border-accent shadow-sm' 
-                    : 'bg-oros-900 hover:bg-oros-850 border-oros-800 text-oros-400 hover:text-oros-100'
-                }`}
-                title={isSelectionMode ? 'Exit Selection Mode' : 'Multi-Select Mode'}
-              >
-                <CheckSquare className="w-3.5 h-3.5" />
-              </button>
-
               {/* Collapse Sidebar Button */}
               <button
                 onClick={toggleSidebar}
@@ -661,47 +684,42 @@ export const Sidebar: React.FC = () => {
               </button>
             </div>
 
-            {/* SELECTION MODE OPERATIONAL BAR */}
-            {isSelectionMode && (
+            {/* CONTEXTUAL BATCH ACTIONS BAR (Triggered automatically when items or folders are selected via Shift-click) */}
+            {(selectedItemIds.size + selectedFolderIds.size > 0) && (
               <div className="mt-2 pt-2 border-t border-oros-800/60 flex items-center justify-between text-xs animate-fade-in">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span className="font-mono text-[10px] text-accent font-semibold px-1.5 py-0.5 bg-accent/15 border border-accent/30 rounded-[3px] shrink-0">
-                    {selectedItemIds.size} selected
+                    {selectedItemIds.size + selectedFolderIds.size} selected
                   </span>
                   <button
-                    onClick={selectedItemIds.size === filteredItems.length && filteredItems.length > 0 ? clearSelection : selectAllFiltered}
+                    onClick={(selectedItemIds.size === filteredItems.length && selectedFolderIds.size === currentFolders.length) ? clearSelection : selectAllFiltered}
                     className="text-[11px] text-oros-400 hover:text-oros-100 underline decoration-oros-700 underline-offset-2 truncate"
                   >
-                    {selectedItemIds.size === filteredItems.length && filteredItems.length > 0 ? 'Deselect all' : 'Select all'}
+                    {(selectedItemIds.size === filteredItems.length && selectedFolderIds.size === currentFolders.length) ? 'Deselect all' : 'Select all'}
                   </button>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button
-                    disabled={selectedItemIds.size === 0}
                     onClick={() => {
                       setBatchTargetFolderId(null)
                       setShowBatchMoveModal(true)
                     }}
-                    className="p-1 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-800 text-oros-300 hover:text-oros-100 disabled:opacity-40 disabled:pointer-events-none transition-colors"
-                    title="Move selected items to folder"
+                    className="p-1 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-800 text-oros-300 hover:text-oros-100 transition-colors"
+                    title="Move selected to folder"
                   >
                     <FolderTree className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    disabled={selectedItemIds.size === 0}
                     onClick={handleBatchDelete}
-                    className="p-1 rounded-[3px] bg-oros-900 hover:bg-rose-950/80 border border-oros-800 hover:border-rose-800/60 text-oros-400 hover:text-rose-400 disabled:opacity-40 disabled:pointer-events-none transition-colors"
-                    title="Delete selected items"
+                    className="p-1 rounded-[3px] bg-oros-900 hover:bg-rose-950/80 border border-oros-800 hover:border-rose-800/60 text-oros-400 hover:text-rose-400 transition-colors"
+                    title="Delete selected elements"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    onClick={() => {
-                      setIsSelectionMode(false)
-                      setSelectedItemIds(new Set())
-                    }}
+                    onClick={clearSelection}
                     className="p-1 rounded-[3px] hover:bg-oros-850 text-oros-400 hover:text-oros-200 transition-colors ml-0.5"
-                    title="Exit Selection Mode"
+                    title="Clear selection (Esc)"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -744,23 +762,16 @@ export const Sidebar: React.FC = () => {
           return (
             <div
               key={item.id}
-              draggable={!isSelectionMode}
+              draggable={true}
               onDragStart={(e) => {
-                if (isSelectionMode) return
                 e.dataTransfer.setData('text/plain', item.id)
                 setDraggedItemId(item.id)
               }}
               onDragEnd={() => setDraggedItemId(null)}
-              onClick={() => {
-                if (isSelectionMode) {
-                  toggleSelectItem(item.id)
-                } else {
-                  handleItemClick(item)
-                }
-              }}
+              onClick={(e) => handleItemRowClick(e, item)}
               tabIndex={0}
               onKeyDown={(e) => {
-                if (!isSelectionMode && (e.key === 'Delete' || e.key === 'Del')) {
+                if (e.key === 'Delete' || e.key === 'Del') {
                   e.stopPropagation()
                   handleDeleteItem(item)
                 }
@@ -769,59 +780,47 @@ export const Sidebar: React.FC = () => {
                 draggedItemId === item.id ? 'opacity-40' : ''
               } ${
                 isSelected
-                  ? 'bg-accent/15 text-oros-100 font-medium border-l-2 border-accent'
-                  : active && !isSelectionMode
+                  ? 'bg-accent/20 text-oros-100 font-medium border-l-2 border-accent'
+                  : active
                   ? 'bg-accent-subtle text-oros-100 font-medium border-l-2 border-accent'
                   : 'hover:bg-oros-900 text-oros-300 hover:text-oros-100 border-l-2 border-transparent'
               }`}
             >
               <div className="flex items-center gap-2 min-w-0">
-                {isSelectionMode && (
-                  <div 
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      toggleSelectItem(item.id)
-                    }}
-                    className={`w-3.5 h-3.5 rounded-[2px] border flex items-center justify-center transition-colors shrink-0 ${
-                      isSelected
-                        ? 'bg-accent border-accent text-white'
-                        : 'border-oros-700 bg-oros-950/80 hover:border-oros-500'
-                    }`}
-                  >
-                    {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                {isSelected && (
+                  <div className="w-3.5 h-3.5 rounded-[2px] bg-accent border border-accent flex items-center justify-center shrink-0">
+                    <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
                   </div>
                 )}
                 {getItemIcon(item)}
                 <span className="truncate font-medium">{item.name}</span>
               </div>
 
-              {!isSelectionMode && (
-                <div 
-                  className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity"
-                  onClick={(e) => e.stopPropagation()}
+              <div 
+                className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Move to folder */}
+                <button
+                  onClick={() => {
+                    setMovingItemId(item.id)
+                    setTargetMoveFolderId(null)
+                  }}
+                  className="p-1 rounded-[2px] hover:bg-oros-800 text-oros-400 hover:text-oros-200"
+                  title="Move to folder"
                 >
-                  {/* Move to folder */}
-                  <button
-                    onClick={() => {
-                      setMovingItemId(item.id)
-                      setTargetMoveFolderId(null)
-                    }}
-                    className="p-1 rounded-[2px] hover:bg-oros-800 text-oros-400 hover:text-oros-200"
-                    title="Move to folder"
-                  >
-                    <FolderTree className="w-3 h-3" />
-                  </button>
+                  <FolderTree className="w-3 h-3" />
+                </button>
 
-                  {/* Delete from vault */}
-                  <button
-                    onClick={() => handleDeleteItem(item)}
-                    className="p-1 rounded-[2px] hover:bg-rose-950 text-oros-400 hover:text-rose-400 transition-colors"
-                    title="Delete element"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
+                {/* Delete from vault */}
+                <button
+                  onClick={() => handleDeleteItem(item)}
+                  className="p-1 rounded-[2px] hover:bg-rose-950 text-oros-400 hover:text-rose-400 transition-colors"
+                  title="Delete element"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
             </div>
           )
         })}

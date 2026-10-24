@@ -36,7 +36,7 @@ import {
   MousePointer, Hand, StickyNote, Square, Circle, Diamond, 
   Type, PenTool, Sparkles, Plus, Trash2, X, ChevronDown, 
   User, Image as ImageIcon, Check, RefreshCw, Palette,
-  ArrowRight, Undo, Redo, RotateCcw, RotateCw, Layers, Move, ZoomIn, ZoomOut,
+  ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Undo, Redo, RotateCcw, RotateCw, Layers, Move, ZoomIn, ZoomOut,
   Magnet, GitBranch, ArrowRightLeft, Spline, Activity, Frame, Link2, Edit3,
   Bold, Italic, Minus, CornerDownRight, AlignLeft, AlignCenter, AlignRight,
   Triangle, Star, Hexagon, Octagon, Cylinder, Cloud, MessageSquare,
@@ -131,7 +131,6 @@ interface CardinalHandleItemProps {
   nodeId: string
   dir: 'top' | 'bottom' | 'left' | 'right'
   position: Position
-  arrowPath: string
   isConnectable?: boolean
 }
 
@@ -139,12 +138,12 @@ const CardinalHandleItem: React.FC<CardinalHandleItemProps> = ({
   nodeId,
   dir,
   position,
-  arrowPath,
   isConnectable = true
 }) => {
   const quickConnectContext = useContext(CanvasQuickConnectContext)
   const pointerStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
   const lastTriggerRef = useRef<number>(0)
+  const [isHovered, setIsHovered] = useState(false)
 
   const handlePointerDown = (e: React.PointerEvent) => {
     pointerStartRef.current = { x: e.clientX, y: e.clientY, time: Date.now() }
@@ -163,6 +162,7 @@ const CardinalHandleItem: React.FC<CardinalHandleItemProps> = ({
       if (now - lastTriggerRef.current > 300) {
         lastTriggerRef.current = now
         e.stopPropagation()
+        setIsHovered(false)
         quickConnectContext?.quickConnect(nodeId, dir)
       }
     }
@@ -176,10 +176,10 @@ const CardinalHandleItem: React.FC<CardinalHandleItemProps> = ({
         position={position}
         id={dir}
         isConnectable={isConnectable}
-        className="!w-4 !h-4 !opacity-0 !border-none !bg-transparent pointer-events-auto"
+        className="!w-5 !h-5 !opacity-0 !border-none !bg-transparent pointer-events-auto"
       />
 
-      {/* Source Handle: prominent circular port with hover expansion, arrow indicator, and click-to-connect */}
+      {/* Source Handle: prominent circular port with hover expansion, clear white arrow icon, and click-to-connect */}
       <Handle
         type="source"
         position={position}
@@ -187,18 +187,74 @@ const CardinalHandleItem: React.FC<CardinalHandleItemProps> = ({
         isConnectable={isConnectable}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         title="Drag to connect arrow, or click to spawn connected element"
-        className="!w-3 !h-3 hover:!w-6 hover:!h-6 !bg-accent hover:!bg-accent !text-accent-contrast !border-2 !border-oros-950 hover:!border-white !rounded-full !shadow-md hover:!shadow-2xl hover:!ring-4 hover:!ring-accent/30 opacity-0 group-hover:opacity-100 transition-all duration-150 cursor-crosshair flex items-center justify-center overflow-visible z-10"
+        className={`!rounded-full transition-all duration-150 cursor-crosshair flex items-center justify-center overflow-visible z-30 ${
+          isHovered
+            ? '!w-6 !h-6 !bg-accent !text-white !border-2 !border-white !shadow-2xl !ring-4 !ring-accent/40 opacity-100'
+            : '!w-3 !h-3 !bg-accent !border-2 !border-oros-950 !shadow-md opacity-0 group-hover:opacity-100'
+        }`}
       >
-        <svg
-          className="w-3 h-3 stroke-[2.5] opacity-0 hover:opacity-100 transition-opacity duration-150 pointer-events-none shrink-0"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path d={arrowPath} strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        {isHovered && (
+          <div className="text-white pointer-events-none flex items-center justify-center">
+            {dir === 'top' && <ArrowUp className="w-3.5 h-3.5 stroke-[3] text-white" />}
+            {dir === 'bottom' && <ArrowDown className="w-3.5 h-3.5 stroke-[3] text-white" />}
+            {dir === 'left' && <ArrowLeft className="w-3.5 h-3.5 stroke-[3] text-white" />}
+            {dir === 'right' && <ArrowRight className="w-3.5 h-3.5 stroke-[3] text-white" />}
+          </div>
+        )}
       </Handle>
+
+      {/* Faint preview overlay showing what will be created on click */}
+      {isHovered && (
+        <div className="contents pointer-events-none">
+          {dir === 'right' && (
+            <>
+              <div className="absolute left-full top-1/2 -translate-y-1/2 w-[90px] border-t-2 border-dashed border-accent/80 z-20 flex items-center justify-end pointer-events-none">
+                <ArrowRight className="w-3.5 h-3.5 text-accent translate-x-1" />
+              </div>
+              <div className="absolute left-[calc(100%+90px)] top-0 w-full h-full rounded-[4px] border-2 border-dashed border-accent/70 bg-accent/15 backdrop-blur-[1px] shadow-xl z-20 pointer-events-none flex flex-col items-center justify-center gap-1.5 p-3 text-center animate-fadeIn">
+                <Plus className="w-5 h-5 text-accent/90" />
+                <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-accent/90">Click to place</span>
+              </div>
+            </>
+          )}
+          {dir === 'left' && (
+            <>
+              <div className="absolute right-full top-1/2 -translate-y-1/2 w-[90px] border-t-2 border-dashed border-accent/80 z-20 flex items-center justify-start pointer-events-none">
+                <ArrowLeft className="w-3.5 h-3.5 text-accent -translate-x-1" />
+              </div>
+              <div className="absolute right-[calc(100%+90px)] top-0 w-full h-full rounded-[4px] border-2 border-dashed border-accent/70 bg-accent/15 backdrop-blur-[1px] shadow-xl z-20 pointer-events-none flex flex-col items-center justify-center gap-1.5 p-3 text-center animate-fadeIn">
+                <Plus className="w-5 h-5 text-accent/90" />
+                <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-accent/90">Click to place</span>
+              </div>
+            </>
+          )}
+          {dir === 'bottom' && (
+            <>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 h-[90px] border-l-2 border-dashed border-accent/80 z-20 flex items-end justify-center pointer-events-none">
+                <ArrowDown className="w-3.5 h-3.5 text-accent translate-y-1" />
+              </div>
+              <div className="absolute top-[calc(100%+90px)] left-0 w-full h-full rounded-[4px] border-2 border-dashed border-accent/70 bg-accent/15 backdrop-blur-[1px] shadow-xl z-20 pointer-events-none flex flex-col items-center justify-center gap-1.5 p-3 text-center animate-fadeIn">
+                <Plus className="w-5 h-5 text-accent/90" />
+                <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-accent/90">Click to place</span>
+              </div>
+            </>
+          )}
+          {dir === 'top' && (
+            <>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 h-[90px] border-l-2 border-dashed border-accent/80 z-20 flex items-start justify-center pointer-events-none">
+                <ArrowUp className="w-3.5 h-3.5 text-accent -translate-y-1" />
+              </div>
+              <div className="absolute bottom-[calc(100%+90px)] left-0 w-full h-full rounded-[4px] border-2 border-dashed border-accent/70 bg-accent/15 backdrop-blur-[1px] shadow-xl z-20 pointer-events-none flex flex-col items-center justify-center gap-1.5 p-3 text-center animate-fadeIn">
+                <Plus className="w-5 h-5 text-accent/90" />
+                <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-accent/90">Click to place</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -213,28 +269,24 @@ export const CanvasCardinalHandles: React.FC<{ nodeId: string; isConnectable?: b
         nodeId={nodeId}
         dir="top"
         position={Position.Top}
-        arrowPath="M12 19V5M5 12l7-7 7 7"
         isConnectable={isConnectable}
       />
       <CardinalHandleItem
         nodeId={nodeId}
         dir="bottom"
         position={Position.Bottom}
-        arrowPath="M12 5v14M5 12l7 7 7-7"
         isConnectable={isConnectable}
       />
       <CardinalHandleItem
         nodeId={nodeId}
         dir="left"
         position={Position.Left}
-        arrowPath="M19 12H5M12 19l-7-7 7-7"
         isConnectable={isConnectable}
       />
       <CardinalHandleItem
         nodeId={nodeId}
         dir="right"
         position={Position.Right}
-        arrowPath="M5 12h14M12 5l7 7-7 7"
         isConnectable={isConnectable}
       />
     </>

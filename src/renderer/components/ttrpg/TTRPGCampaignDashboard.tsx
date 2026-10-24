@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { 
   ArrowLeft, Plus, Shield, Heart, Eye, 
   Trash2, BookOpen, Layers, Sparkles, User, FileText, 
-  ChevronRight, Calendar, Edit3, Map as MapIcon,
-  Swords, Flame, Moon, Sun, Search, Zap, Crosshair, Settings
+  ChevronRight, ChevronDown, Calendar, Edit3, Map as MapIcon,
+  Swords, Flame, Moon, Sun, Search, Zap, Crosshair, Settings,
+  Users, MoreHorizontal
 } from 'lucide-react'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { TTRPGCampaign, Dnd5eCharacter, Dnd5eAttack } from '@shared/types'
@@ -62,8 +63,29 @@ export const TTRPGCampaignDashboard: React.FC<TTRPGCampaignDashboardProps> = ({
   const [activeView, setActiveView] = useState<'battlemap' | 'roster' | 'notes'>('battlemap')
   const [showNewCharModal, setShowNewCharModal] = useState(false)
   const [showEditCampaignModal, setShowEditCampaignModal] = useState(false)
+  const [campaignMenuOpen, setCampaignMenuOpen] = useState(false)
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const [sessionNotesInput, setSessionNotesInput] = useState('')
+  const campaignMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (campaignMenuRef.current && !campaignMenuRef.current.contains(e.target as Node)) {
+        setCampaignMenuOpen(false)
+      }
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setCampaignMenuOpen(false)
+      }
+    }
+    window.addEventListener('mousedown', handleClickOutside)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
 
   const campaign = campaigns.find(c => c.id === campaignId) || campaigns[0]
   const campaignCharacters = characters[campaign?.id || ''] || []
@@ -237,105 +259,118 @@ export const TTRPGCampaignDashboard: React.FC<TTRPGCampaignDashboardProps> = ({
 
   return (
     <div className="flex-1 flex flex-col bg-oros-950 text-oros-100 overflow-hidden select-text font-sans">
-      {/* Top Campaign Bar - pr-[152px] ensures native window controls do not overlap */}
-      <header className="shrink-0 bg-oros-900 border-b border-oros-800 px-6 py-2.5 pr-[152px] flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      {/* Top Campaign Bar - refined, minimalist desktop aesthetic */}
+      <header className="shrink-0 h-10 bg-oros-950 border-b border-oros-850 px-3.5 pr-[144px] flex items-center justify-between text-xs select-none">
+        {/* Left: Clean Breadcrumbs & Title Dropdown */}
+        <div className="flex items-center gap-2 min-w-0">
           <button
             onClick={onBackToHub}
-            className="px-2.5 py-1.5 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-white border border-oros-750 text-xs flex items-center gap-1.5 transition-colors font-medium shadow-sm"
+            className="p-1 px-2 rounded text-oros-400 hover:text-white hover:bg-oros-900 transition-colors flex items-center gap-1.5 font-medium cursor-pointer"
+            title="Return to Campaigns Hub"
           >
-            <ArrowLeft className="w-3.5 h-3.5 text-oros-400" />
-            <span>TTRPG Hub</span>
-            <span className="text-[9px] uppercase tracking-wider font-mono font-bold px-1.5 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-[2px] leading-tight">
-              BETA
-            </span>
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline text-oros-300">Campaigns</span>
           </button>
-          <div className="h-4 w-px bg-oros-800" />
-          <div className="flex items-center gap-2">
-            <h1 className="font-serif font-bold text-base text-oros-100 flex items-center gap-2">
-              <span>{campaign?.title}</span>
-              <span className="px-1.5 py-0.2 rounded bg-accent-muted text-accent border border-accent/40 font-mono text-[10px] uppercase font-bold tracking-wider">
+
+          <span className="text-oros-700 font-mono text-xs">/</span>
+
+          {/* Campaign Menu Trigger */}
+          <div className="relative" ref={campaignMenuRef}>
+            <button
+              onClick={() => setCampaignMenuOpen(!campaignMenuOpen)}
+              className="flex items-center gap-2 px-2 py-1 rounded hover:bg-oros-900 text-oros-100 hover:text-white transition-colors cursor-pointer group"
+              title="Campaign Options (Edit / Delete)"
+            >
+              <span className="font-semibold text-white max-w-[220px] truncate tracking-tight">{campaign?.title}</span>
+              <span className="text-[9px] font-mono font-bold text-oros-400 px-1.5 py-0.2 bg-oros-900 border border-oros-800 rounded">
                 {campaign?.system.toUpperCase()}
               </span>
-            </h1>
+              <ChevronDown className={`w-3 h-3 text-oros-500 group-hover:text-oros-300 transition-transform ${campaignMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-            <div className="flex items-center gap-1 ml-1.5">
-              <button
-                onClick={() => setShowEditCampaignModal(true)}
-                title="Edit Campaign Details"
-                className="px-2 py-1 rounded-[3px] bg-oros-950 hover:bg-oros-850 text-oros-400 hover:text-white border border-oros-800 text-[11px] font-mono flex items-center gap-1 transition-colors"
-              >
-                <Edit3 className="w-3 h-3 text-accent" />
-                <span>Edit</span>
-              </button>
-              <button
-                onClick={handleDeleteCurrentCampaign}
-                title="Delete Campaign"
-                className="px-2 py-1 rounded-[3px] bg-oros-950 hover:bg-rose-950 text-oros-400 hover:text-rose-300 border border-oros-800 hover:border-rose-800/60 text-[11px] font-mono flex items-center gap-1 transition-colors"
-              >
-                <Trash2 className="w-3 h-3 text-rose-400" />
-                <span>Delete</span>
-              </button>
-            </div>
+            {campaignMenuOpen && (
+              <div className="absolute left-0 mt-1 w-48 bg-oros-900 border border-oros-750 rounded shadow-2xl py-1 z-50 animate-dropdown-in text-xs font-sans">
+                <button
+                  onClick={() => {
+                    setCampaignMenuOpen(false)
+                    setShowEditCampaignModal(true)
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-oros-200 hover:text-white hover:bg-oros-850 flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-oros-400" />
+                  <span>Edit Campaign Details</span>
+                </button>
+                <div className="h-px bg-oros-800/80 my-1" />
+                <button
+                  onClick={() => {
+                    setCampaignMenuOpen(false)
+                    handleDeleteCurrentCampaign()
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Campaign</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* View Switcher Tabs: Battlemap as Primary View */}
-        <div className="flex items-center gap-1 bg-oros-950 p-1 rounded-[4px] border border-oros-800">
+        {/* Center: Sleek Segmented Control */}
+        <nav className="flex items-center p-0.5 rounded-md bg-oros-900/60 border border-oros-800/60 text-xs">
           <button
             onClick={() => setActiveView('battlemap')}
-            className={`px-3 py-1 rounded-[3px] text-xs font-medium flex items-center gap-1.5 transition-colors ${
+            className={`px-3 py-1 rounded-[4px] text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
               activeView === 'battlemap'
-                ? 'bg-accent-muted text-accent border border-accent/40 font-semibold shadow-sm'
-                : 'text-oros-400 hover:text-oros-200 hover:bg-oros-900'
+                ? 'bg-oros-800 text-white shadow-sm font-semibold'
+                : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850/40'
             }`}
           >
-            <MapIcon className="w-3.5 h-3.5 text-accent" />
-            <span>Tactical Battlemap</span>
+            <MapIcon className="w-3.5 h-3.5 opacity-80" />
+            <span>Battlemap</span>
           </button>
 
           <button
             onClick={() => setActiveView('roster')}
-            className={`px-3 py-1 rounded-[3px] text-xs font-medium flex items-center gap-1.5 transition-colors ${
+            className={`px-3 py-1 rounded-[4px] text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
               activeView === 'roster'
-                ? 'bg-accent-muted text-accent border border-accent/40 font-semibold shadow-sm'
-                : 'text-oros-400 hover:text-oros-200 hover:bg-oros-900'
+                ? 'bg-oros-800 text-white shadow-sm font-semibold'
+                : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850/40'
             }`}
           >
-            <Shield className="w-3.5 h-3.5 text-accent" />
-            <span>Party Roster ({campaignCharacters.length})</span>
+            <Users className="w-3.5 h-3.5 opacity-80" />
+            <span>Party ({campaignCharacters.length})</span>
           </button>
 
           <button
             onClick={() => setActiveView('notes')}
-            className={`px-3 py-1 rounded-[3px] text-xs font-medium flex items-center gap-1.5 transition-colors ${
+            className={`px-3 py-1 rounded-[4px] text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
               activeView === 'notes'
-                ? 'bg-accent-muted text-accent border border-accent/40 font-semibold shadow-sm'
-                : 'text-oros-400 hover:text-oros-200 hover:bg-oros-900'
+                ? 'bg-oros-800 text-white shadow-sm font-semibold'
+                : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850/40'
             }`}
           >
-            <FileText className="w-3.5 h-3.5 text-accent" />
-            <span>Session Journal</span>
+            <FileText className="w-3.5 h-3.5 opacity-80" />
+            <span>Journal</span>
           </button>
-        </div>
+        </nav>
 
-        {/* Right Actions */}
+        {/* Right: Settings & Action */}
         <div className="flex items-center gap-2">
           <button
             onClick={() => openSettings()}
-            title="Application Settings & Preferences (Ctrl+,)"
-            className="p-1 px-2.5 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-white border border-oros-750 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Settings (Ctrl+,)"
+            className="p-1.5 rounded-md text-oros-400 hover:text-white hover:bg-oros-900 transition-colors cursor-pointer"
           >
-            <Settings className="w-3.5 h-3.5 text-oros-400" />
-            <span className="hidden sm:inline">Settings</span>
+            <Settings className="w-3.5 h-3.5" />
           </button>
 
           <button
             onClick={() => setShowNewCharModal(true)}
-            className="px-3 py-1.5 rounded-[3px] btn-accent text-xs font-semibold flex items-center gap-1.5 shadow-sm"
+            className="px-2.5 py-1 rounded-md bg-oros-100 hover:bg-white text-oros-950 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>New Character</span>
+            <Plus className="w-3.5 h-3.5 text-oros-950" />
+            <span>Character</span>
           </button>
         </div>
       </header>

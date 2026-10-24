@@ -973,8 +973,8 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
             }}
             className="px-2.5 py-1.5 rounded-[4px] bg-oros-900 hover:bg-oros-850 border border-oros-750 text-xs font-semibold text-oros-100 flex items-center gap-2 shadow-2xl transition-all group"
           >
-            <MapIcon className="w-4 h-4 text-accent group-hover:scale-110 transition-transform" />
-            <span className="font-serif max-w-[170px] truncate">{currentBattlemap?.name || 'Select Battlemap'}</span>
+            <MapIcon className="w-4 h-4 text-accent group-hover:scale-105 transition-transform" />
+            <span className="font-medium max-w-[170px] truncate">{currentBattlemap?.name || 'Select Battlemap'}</span>
             <span className="text-[10px] font-mono font-bold text-oros-400 px-1 py-0.2 bg-oros-950 rounded border border-oros-800">
               {campaignMaps.findIndex(m => m.id === currentBattlemap?.id) + 1}/{campaignMaps.length}
             </span>

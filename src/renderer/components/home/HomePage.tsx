@@ -9,7 +9,7 @@ import {
   Compass, Clock, LayoutGrid, Dices, Shield, Swords, User,
   Settings
 } from 'lucide-react'
-import { World } from '@shared/types'
+import { World, TTRPGCampaign } from '@shared/types'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { OrosLogoFull } from '../common/OrosLogo'
 import { NewProjectModal } from './NewProjectModal'
@@ -39,6 +39,7 @@ export const HomePage: React.FC = () => {
   const [showNewModal, setShowNewModal] = useState(false)
   const [editingWorld, setEditingWorld] = useState<World | null>(null)
   const [showNewCampaignModal, setShowNewCampaignModal] = useState(false)
+  const [editingCampaign, setEditingCampaign] = useState<TTRPGCampaign | null>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -609,13 +610,26 @@ export const HomePage: React.FC = () => {
                             {camp.system.toUpperCase()}
                           </span>
 
-                          <button
-                            onClick={(e) => handleDeleteCampaign(camp.id, camp.title, e)}
-                            title="Delete Campaign"
-                            className="p-1 text-oros-500 hover:text-rose-400 transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setEditingCampaign(camp)
+                                setShowNewCampaignModal(true)
+                              }}
+                              title="Edit Campaign"
+                              className="p-1 text-oros-500 hover:text-white transition-colors"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => handleDeleteCampaign(camp.id, camp.title, e)}
+                              title="Delete Campaign"
+                              className="p-1 text-oros-500 hover:text-rose-400 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Title */}
@@ -699,12 +713,18 @@ export const HomePage: React.FC = () => {
         }}
       />
 
-      {/* New Campaign Dialog */}
+      {/* New / Edit Campaign Dialog */}
       <NewCampaignModal
         isOpen={showNewCampaignModal}
-        onClose={() => setShowNewCampaignModal(false)}
+        campaignToEdit={editingCampaign}
+        onClose={() => {
+          setShowNewCampaignModal(false)
+          setEditingCampaign(null)
+        }}
         onCreated={(campId) => {
           setActiveCampaignId(campId)
+          setShowNewCampaignModal(false)
+          setEditingCampaign(null)
         }}
       />
     </div>

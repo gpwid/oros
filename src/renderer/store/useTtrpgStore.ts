@@ -369,30 +369,7 @@ export const sampleBattlemaps: Record<string, TTRPGBattlemap[]> = {
           isEnemy: true
         }
       ],
-      effects: [
-        {
-          id: 'fx-sample-fog',
-          battlemapId: 'bmap-salt-quay',
-          name: 'Sea-Mist & Coastal Fog',
-          type: 'smoke',
-          shape: 'circle',
-          x: 20,
-          y: 35,
-          radiusFeet: 25,
-          opacity: 0.65
-        },
-        {
-          id: 'fx-sample-fire',
-          battlemapId: 'bmap-salt-quay',
-          name: 'Signal Brazier Flame',
-          type: 'fire',
-          shape: 'circle',
-          x: 75,
-          y: 28,
-          radiusFeet: 15,
-          opacity: 0.85
-        }
-      ],
+      effects: [],
       createdAt: '2026-10-18T10:00:00.000Z',
       updatedAt: '2026-10-18T18:00:00.000Z'
     }
@@ -442,6 +419,7 @@ interface TtrpgState {
   addEffectToBattlemap: (campaignId: string, battlemapId: string, effect: Omit<TTRPGBattlemapEffect, 'id'>) => TTRPGBattlemapEffect
   updateEffectOnBattlemap: (campaignId: string, battlemapId: string, effectId: string, updates: Partial<TTRPGBattlemapEffect>) => void
   removeEffectFromBattlemap: (campaignId: string, battlemapId: string, effectId: string) => void
+  clearAllEffectsOnBattlemap: (campaignId: string, battlemapId: string) => void
 
   // Rolls
   executeRoll: (label: string, diceNotation: string, modifier?: number, characterName?: string) => DiceRollResult
@@ -473,12 +451,22 @@ export const useTtrpgStore = create<TtrpgState>((set, get) => ({
       if (raw) {
         const parsed = JSON.parse(raw)
         if (parsed.ttrpgCampaigns && parsed.ttrpgCampaigns.length > 0) {
+          const rawBattlemaps = parsed.ttrpgBattlemaps || sampleBattlemaps
+          const sanitizedBattlemaps: Record<string, TTRPGBattlemap[]> = {}
+          for (const [cId, bmaps] of Object.entries(rawBattlemaps as Record<string, TTRPGBattlemap[]>)) {
+            sanitizedBattlemaps[cId] = (bmaps || []).map((bm) => ({
+              ...bm,
+              // Strip out legacy sample effects so maps always start clean
+              effects: (bm.effects || []).filter((eff) => !eff.id?.startsWith('fx-sample-'))
+            }))
+          }
+
           set({
             campaigns: parsed.ttrpgCampaigns,
             characters: parsed.ttrpgCharacters || {},
-            battlemaps: parsed.ttrpgBattlemaps || sampleBattlemaps,
+            battlemaps: sanitizedBattlemaps,
             activeCampaignId: parsed.ttrpgCampaigns[0]?.id || null,
-            activeBattlemapId: parsed.ttrpgBattlemaps?.[parsed.ttrpgCampaigns[0]?.id]?.[0]?.id || 'bmap-salt-quay'
+            activeBattlemapId: sanitizedBattlemaps[parsed.ttrpgCampaigns[0]?.id]?.[0]?.id || 'bmap-salt-quay'
           })
           return
         }
@@ -864,6 +852,27 @@ export const useTtrpgStore = create<TtrpgState>((set, get) => ({
               ? {
                   ...bm,
                   effects: (bm.effects || []).filter((fx) => fx.id !== effectId),
+                  updatedAt: new Date().toISOString()
+                }
+              : bm
+          )
+        }
+      }
+    })
+    get().persistTtrpg()
+  },
+
+  clearAllEffectsOnBattlemap: (campaignId, battlemapId) => {
+    set((state) => {
+      const campMaps = state.battlemaps[campaignId] || []
+      return {
+        battlemaps: {
+          ...state.battlemaps,
+          [campaignId]: campMaps.map((bm) =>
+            bm.id === battlemapId
+              ? {
+                  ...bm,
+                  effects: [],
                   updatedAt: new Date().toISOString()
                 }
               : bm

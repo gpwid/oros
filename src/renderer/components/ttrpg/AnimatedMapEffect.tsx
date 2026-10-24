@@ -1,6 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { TTRPGBattlemapEffect } from '@shared/types'
-import { Flame, Cloud, Zap, Skull, Shield, Sparkles, Snowflake, Wind, Sparkle } from 'lucide-react'
+import { Flame, Cloud, Zap, Skull, Shield, Sparkles, Snowflake, Wind, Sparkle, Trash2 } from 'lucide-react'
+
+// Helper to generate smooth multi-point starburst/corona polygons
+const getStarPolygonPoints = (cx: number, cy: number, outerR: number, innerR: number, points: number): string => {
+  const step = Math.PI / points
+  const coords: string[] = []
+  for (let i = 0; i < 2 * points; i++) {
+    const r = i % 2 === 0 ? outerR : innerR
+    const angle = i * step - Math.PI / 2
+    const x = cx + Math.cos(angle) * r
+    const y = cy + Math.sin(angle) * r
+    coords.push(`${x.toFixed(1)},${y.toFixed(1)}`)
+  }
+  return coords.join(' ')
+}
 
 interface AnimatedMapEffectProps {
   effect: TTRPGBattlemapEffect
@@ -43,14 +57,14 @@ export const AnimatedMapEffect: React.FC<AnimatedMapEffectProps> = ({
 
   // Auto-delete effect after animation completion (ephemeral VFX spellcasting)
   useEffect(() => {
-    if (!isPreview) {
+    if (!isPreview && effect.isTemporary) {
       const deleteDuration = effect.durationMs || (isProjectile ? 3400 : 3000)
       const timer = setTimeout(() => {
         onAutoDelete?.(effect.id)
       }, deleteDuration)
       return () => clearTimeout(timer)
     }
-  }, [effect.id, effect.durationMs, isProjectile, isPreview, onAutoDelete])
+  }, [effect.id, effect.durationMs, effect.isTemporary, isProjectile, isPreview, onAutoDelete])
 
   // Compute geometry in pixels
   const geometry = useMemo(() => {
@@ -380,11 +394,20 @@ export const AnimatedMapEffect: React.FC<AnimatedMapEffectProps> = ({
             style={{ opacity }}
           />
 
-          {/* Counter-Rotating Inferno Plasma Core */}
-          <g className="animate-spin" style={{ animationDuration: '6s', transformOrigin: `${r}px ${r}px` }}>
-            <circle cx={r} cy={r} r={r * 0.65} fill={`url(#${coreGradId})`} opacity="0.85" filter={`url(#${filterId})`} />
-            <path
-              d={`M ${r} ${r - r * 0.6} Q ${r + r * 0.5} ${r} ${r} ${r + r * 0.6} Q ${r - r * 0.5} ${r} ${r} ${r - r * 0.6}`}
+          {/* Concentric Detonation Plasma Corona */}
+          <g className="animate-spin" style={{ animationDuration: '8s', transformOrigin: `${r}px ${r}px` }}>
+            <polygon
+              points={getStarPolygonPoints(r, r, r * 0.72, r * 0.48, 10)}
+              fill={`url(#${coreGradId})`}
+              opacity="0.85"
+              filter={`url(#${filterId})`}
+            />
+          </g>
+
+          {/* Inner Counter-Rotating Blast Burst */}
+          <g className="animate-spin" style={{ animationDuration: '5s', animationDirection: 'reverse', transformOrigin: `${r}px ${r}px` }}>
+            <polygon
+              points={getStarPolygonPoints(r, r, r * 0.52, r * 0.32, 8)}
               fill={palette.bright}
               opacity="0.75"
             />
@@ -400,16 +423,16 @@ export const AnimatedMapEffect: React.FC<AnimatedMapEffectProps> = ({
                 key={`spark-${idx}`}
                 cx={ex}
                 cy={ey}
-                r={Math.max(2.5, r * 0.04)}
+                r={Math.max(2, r * 0.03)}
                 fill="#ffffff"
-                className="animate-ping"
-                style={{ animationDuration: `${0.8 + (idx % 4) * 0.3}s` }}
+                className="animate-pulse"
+                style={{ animationDuration: `${0.6 + (idx % 4) * 0.25}s` }}
               />
             )
           })}
 
-          {/* Blinding White-Hot Flash at Core */}
-          <circle cx={r} cy={r} r={r * 0.3} fill="#ffffff" opacity="0.95" />
+          {/* Luminous Pulsating Core Energy Flash */}
+          <circle cx={r} cy={r} r={r * 0.3} fill={`url(#${coreGradId})`} opacity="0.9" className="animate-pulse" />
 
           {/* High-Contrast Impact Perimeter Ring */}
           <circle
@@ -456,36 +479,99 @@ export const AnimatedMapEffect: React.FC<AnimatedMapEffectProps> = ({
 
           {/* ELEMENT-SPECIFIC HIGH FIDELITY LAYERS */}
 
-          {/* 🔥 FIRE: Big Fireball, Inferno Core, Leaping Embers */}
+          {/* 🔥 FIRE: High-Fidelity Tabletop Spell Template */}
           {type === 'fire' && (
             <>
-              {/* Inner Swirling Flame Disc */}
-              <g className="animate-spin" style={{ animationDuration: '8s', transformOrigin: `${r}px ${r}px` }}>
-                <circle cx={r} cy={r} r={r * 0.65} fill={`url(#${coreGradId})`} opacity="0.85" filter={`url(#${filterId})`} />
-                <path
-                  d={`M ${r} ${r - r * 0.55} C ${r + r * 0.4} ${r - r * 0.2} ${r + r * 0.4} ${r + r * 0.4} ${r} ${r + r * 0.55} C ${r - r * 0.4} ${r + r * 0.4} ${r - r * 0.4} ${r - r * 0.2} ${r} ${r - r * 0.55}`}
-                  fill="#fef08a"
+              {/* Tactical Concentric Range Rings */}
+              <circle
+                cx={r}
+                cy={r}
+                r={r * 0.33}
+                fill="none"
+                stroke="#fef08a"
+                strokeWidth="1"
+                strokeDasharray="4 4"
+                opacity="0.35"
+              />
+              <circle
+                cx={r}
+                cy={r}
+                r={r * 0.66}
+                fill="none"
+                stroke="#f97316"
+                strokeWidth="1.2"
+                strokeDasharray="6 4"
+                opacity="0.45"
+              />
+
+              {/* 8-Point Compass Range Ticks */}
+              {[0, 45, 90, 135, 180, 225, 270, 315].map((deg, idx) => {
+                const rad = (deg * Math.PI) / 180
+                const x1 = r + Math.cos(rad) * (r * 0.88)
+                const y1 = r + Math.sin(rad) * (r * 0.88)
+                const x2 = r + Math.cos(rad) * (r * 0.98)
+                const y2 = r + Math.sin(rad) * (r * 0.98)
+                return (
+                  <line
+                    key={`fire-tick-${idx}`}
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke="#fef08a"
+                    strokeWidth="1.5"
+                    opacity="0.6"
+                  />
+                )
+              })}
+
+              {/* Outer Solar Corona Flame Flaring Star (Rotating) */}
+              <g className="animate-spin" style={{ animationDuration: '22s', transformOrigin: `${r}px ${r}px` }}>
+                <polygon
+                  points={getStarPolygonPoints(r, r, r * 0.82, r * 0.6, 12)}
+                  fill={`url(#${coreGradId})`}
                   opacity="0.75"
+                  filter={`url(#${filterId})`}
                 />
               </g>
 
-              {/* White-Hot Core Flash */}
-              <circle cx={r} cy={r} r={r * 0.26} fill="#ffffff" opacity="0.9" />
+              {/* Inner Counter-Rotating Flame Tongue Corona */}
+              <g className="animate-spin" style={{ animationDuration: '14s', animationDirection: 'reverse', transformOrigin: `${r}px ${r}px` }}>
+                <polygon
+                  points={getStarPolygonPoints(r, r, r * 0.6, r * 0.42, 8)}
+                  fill="#fef08a"
+                  opacity="0.65"
+                  filter={`url(#${filterId})`}
+                />
+              </g>
 
-              {/* Leaping Fiery Embers & Sparks around Perimeter */}
-              {[0, 24, 48, 72, 96, 120, 144, 168, 192, 216, 240, 264, 288, 312, 336].map((angle, idx) => {
+              {/* Core Heat Shimmer Disc */}
+              <circle
+                cx={r}
+                cy={r}
+                r={r * 0.38}
+                fill={`url(#${coreGradId})`}
+                opacity="0.85"
+                className="animate-pulse"
+                style={{ animationDuration: '2s' }}
+              />
+
+              {/* Natural Drifting Embers */}
+              {[0, 40, 85, 130, 175, 215, 260, 305, 345].map((angle, idx) => {
                 const rad = (angle * Math.PI) / 180
-                const ex = r + Math.cos(rad) * (r * 0.75)
-                const ey = r + Math.sin(rad) * (r * 0.75)
+                const distRatio = 0.45 + ((idx * 7) % 40) / 100
+                const ex = r + Math.cos(rad) * (r * distRatio)
+                const ey = r + Math.sin(rad) * (r * distRatio)
                 return (
                   <circle
                     key={`fire-spark-${idx}`}
                     cx={ex}
                     cy={ey}
-                    r={Math.max(2, r * 0.035)}
-                    fill="#fef08a"
-                    className="animate-ping"
-                    style={{ animationDuration: `${1.2 + (idx % 4) * 0.4}s` }}
+                    r={Math.max(1.8, r * 0.025)}
+                    fill={idx % 2 === 0 ? '#fef08a' : '#f97316'}
+                    opacity="0.85"
+                    className="animate-pulse"
+                    style={{ animationDuration: `${1.4 + (idx % 3) * 0.5}s` }}
                   />
                 )
               })}
@@ -803,10 +889,16 @@ export const AnimatedMapEffect: React.FC<AnimatedMapEffectProps> = ({
 
   return (
     <div
-      className={`absolute transition-transform select-none pointer-events-none ${
+      onClick={(e) => {
+        if (!isPreview && onSelect) {
+          e.stopPropagation()
+          onSelect()
+        }
+      }}
+      className={`absolute transition-transform select-none group ${
         isPreview
-          ? 'z-35 opacity-90'
-          : 'z-25'
+          ? 'z-35 opacity-90 pointer-events-none'
+          : 'z-25 pointer-events-none'
       }`}
       style={{
         left: `${effect.x}%`,
@@ -817,11 +909,33 @@ export const AnimatedMapEffect: React.FC<AnimatedMapEffectProps> = ({
         transform: isDirectional
           ? `translate(-50%, 0%) rotate(${rotation}deg)`
           : `translate(-50%, -50%) rotate(${rotation}deg)`,
-        filter: `drop-shadow(0 0 20px ${palette.glow})`
+        filter: isSelected
+          ? `drop-shadow(0 0 28px ${palette.bright}) drop-shadow(0 0 12px #ffffff)`
+          : `drop-shadow(0 0 20px ${palette.glow})`
       }}
     >
       {/* Visual Content Layer */}
       {renderVisualContent()}
+
+      {/* Interactive GM Overlay Pill on Hover */}
+      {!isPreview && (
+        <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 pointer-events-auto transition-opacity z-50 flex items-center gap-1.5 px-2 py-0.5 rounded-[3px] bg-oros-950/95 border border-oros-750 shadow-2xl text-[10px] font-mono text-white whitespace-nowrap">
+          <span className="font-semibold text-accent">{effect.name || effect.type.toUpperCase()}</span>
+          <span className="text-oros-400">({effect.radiusFeet || effect.lengthFeet || 20}ft)</span>
+          {onAutoDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onAutoDelete(effect.id)
+              }}
+              title="Dismiss / Remove this effect"
+              className="p-0.5 text-oros-400 hover:text-rose-400 transition-colors ml-1 cursor-pointer"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
-import { X, Dices, Layers, Sparkles } from 'lucide-react'
-import { TTRPGSystem } from '@shared/types'
+import React, { useState, useEffect } from 'react'
+import { X, Dices, Layers, Sparkles, Edit3 } from 'lucide-react'
+import { TTRPGSystem, TTRPGCampaign } from '@shared/types'
 import { useTtrpgStore } from '../../store/useTtrpgStore'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
@@ -8,15 +8,17 @@ import { useToastStore } from '../../store/useToastStore'
 interface NewCampaignModalProps {
   isOpen: boolean
   onClose: () => void
-  onCreated: (campaignId: string) => void
+  onCreated?: (campaignId: string) => void
+  campaignToEdit?: TTRPGCampaign | null
 }
 
 export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({
   isOpen,
   onClose,
-  onCreated
+  onCreated,
+  campaignToEdit
 }) => {
-  const { createCampaign } = useTtrpgStore()
+  const { createCampaign, updateCampaign } = useTtrpgStore()
   const { worlds } = useWorldStore()
   const { addToast } = useToastStore()
 
@@ -26,12 +28,41 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({
   const [description, setDescription] = useState('')
   const [linkedWorldId, setLinkedWorldId] = useState<string>(worlds[0]?.id || '')
 
+  useEffect(() => {
+    if (campaignToEdit) {
+      setTitle(campaignToEdit.title || '')
+      setSystem(campaignToEdit.system || 'dnd5e')
+      setTagline(campaignToEdit.tagline || '')
+      setDescription(campaignToEdit.description || '')
+      setLinkedWorldId(campaignToEdit.linkedWorldId || '')
+    } else {
+      setTitle('')
+      setSystem('dnd5e')
+      setTagline('')
+      setDescription('')
+      setLinkedWorldId(worlds[0]?.id || '')
+    }
+  }, [campaignToEdit, isOpen, worlds])
+
   if (!isOpen) return null
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) {
       addToast('Campaign title is required', 'error')
+      return
+    }
+
+    if (campaignToEdit) {
+      updateCampaign(campaignToEdit.id, {
+        title: title.trim(),
+        system,
+        tagline: tagline.trim(),
+        description: description.trim(),
+        linkedWorldId: linkedWorldId || undefined
+      })
+      addToast(`Updated campaign: ${title.trim()}`, 'success')
+      onClose()
       return
     }
 
@@ -44,7 +75,7 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({
     )
 
     addToast(`Created campaign: ${camp.title}`, 'success')
-    onCreated(camp.id)
+    onCreated?.(camp.id)
     onClose()
   }
 
@@ -53,9 +84,13 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({
       <div className="bg-oros-900 border border-oros-750 rounded-[4px] w-full max-w-lg p-6 shadow-2xl space-y-5 animate-scale-in">
         <div className="flex items-center justify-between border-b border-oros-800 pb-3">
           <div className="flex items-center gap-2">
-            <Dices className="w-4 h-4 text-accent" />
+            {campaignToEdit ? (
+              <Edit3 className="w-4 h-4 text-accent" />
+            ) : (
+              <Dices className="w-4 h-4 text-accent" />
+            )}
             <h2 className="font-serif font-bold text-base text-white">
-              Create New TTRPG Campaign
+              {campaignToEdit ? 'Edit TTRPG Campaign' : 'Create New TTRPG Campaign'}
             </h2>
           </div>
           <button onClick={onClose} className="text-oros-400 hover:text-white">
@@ -139,7 +174,7 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({
               type="submit"
               className="px-4 py-1.5 rounded-[3px] btn-accent text-xs font-semibold shadow-sm"
             >
-              Create Campaign
+              {campaignToEdit ? 'Save Changes' : 'Create Campaign'}
             </button>
           </div>
         </form>

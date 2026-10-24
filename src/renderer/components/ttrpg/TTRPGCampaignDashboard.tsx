@@ -12,6 +12,7 @@ import { useToastStore } from '../../store/useToastStore'
 import { confirmDialog } from '../../store/useConfirmStore'
 import { Dnd5eCharacterSheet } from './Dnd5eCharacterSheet'
 import { NewCharacterModal } from './NewCharacterModal'
+import { NewCampaignModal } from './NewCampaignModal'
 import { TTRPGBattlemapViewer } from './TTRPGBattlemapViewer'
 
 interface TTRPGCampaignDashboardProps {
@@ -50,7 +51,7 @@ export const TTRPGCampaignDashboard: React.FC<TTRPGCampaignDashboardProps> = ({
 }) => {
   const { 
     campaigns, characters, activeCharacterId, 
-    setActiveCharacterId, updateCampaign, updateCharacter, deleteCharacter,
+    setActiveCharacterId, updateCampaign, deleteCampaign, updateCharacter, deleteCharacter,
     battlemaps, activeBattlemapId, addTokenToBattlemap
   } = useTtrpgStore()
 
@@ -60,6 +61,7 @@ export const TTRPGCampaignDashboard: React.FC<TTRPGCampaignDashboardProps> = ({
   // Tactical Battlemap is the primary view by default
   const [activeView, setActiveView] = useState<'battlemap' | 'roster' | 'notes'>('battlemap')
   const [showNewCharModal, setShowNewCharModal] = useState(false)
+  const [showEditCampaignModal, setShowEditCampaignModal] = useState(false)
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const [sessionNotesInput, setSessionNotesInput] = useState('')
 
@@ -89,6 +91,20 @@ export const TTRPGCampaignDashboard: React.FC<TTRPGCampaignDashboardProps> = ({
     if (ok) {
       deleteCharacter(campaign.id, char.id)
       addToast(`Deleted ${char.name}`, 'info')
+    }
+  }
+
+  const handleDeleteCurrentCampaign = async () => {
+    const ok = await confirmDialog({
+      title: 'Delete Campaign',
+      message: `Permanently delete "${campaign.title}"? This will delete all character sheets, combat encounters, and battlemaps. This cannot be undone.`,
+      confirmText: 'Delete Campaign',
+      variant: 'danger'
+    })
+    if (ok) {
+      deleteCampaign(campaign.id)
+      addToast(`Deleted campaign: ${campaign.title}`, 'info')
+      onBackToHub()
     }
   }
 
@@ -235,12 +251,33 @@ export const TTRPGCampaignDashboard: React.FC<TTRPGCampaignDashboardProps> = ({
             </span>
           </button>
           <div className="h-4 w-px bg-oros-800" />
-          <h1 className="font-serif font-bold text-base text-oros-100 flex items-center gap-2">
-            <span>{campaign?.title}</span>
-            <span className="px-1.5 py-0.2 rounded bg-accent-muted text-accent border border-accent/40 font-mono text-[10px] uppercase font-bold tracking-wider">
-              {campaign?.system.toUpperCase()}
-            </span>
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-serif font-bold text-base text-oros-100 flex items-center gap-2">
+              <span>{campaign?.title}</span>
+              <span className="px-1.5 py-0.2 rounded bg-accent-muted text-accent border border-accent/40 font-mono text-[10px] uppercase font-bold tracking-wider">
+                {campaign?.system.toUpperCase()}
+              </span>
+            </h1>
+
+            <div className="flex items-center gap-1 ml-1.5">
+              <button
+                onClick={() => setShowEditCampaignModal(true)}
+                title="Edit Campaign Details"
+                className="px-2 py-1 rounded-[3px] bg-oros-950 hover:bg-oros-850 text-oros-400 hover:text-white border border-oros-800 text-[11px] font-mono flex items-center gap-1 transition-colors"
+              >
+                <Edit3 className="w-3 h-3 text-accent" />
+                <span>Edit</span>
+              </button>
+              <button
+                onClick={handleDeleteCurrentCampaign}
+                title="Delete Campaign"
+                className="px-2 py-1 rounded-[3px] bg-oros-950 hover:bg-rose-950 text-oros-400 hover:text-rose-300 border border-oros-800 hover:border-rose-800/60 text-[11px] font-mono flex items-center gap-1 transition-colors"
+              >
+                <Trash2 className="w-3 h-3 text-rose-400" />
+                <span>Delete</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* View Switcher Tabs: Battlemap as Primary View */}
@@ -725,6 +762,13 @@ export const TTRPGCampaignDashboard: React.FC<TTRPGCampaignDashboardProps> = ({
         onCreated={(newChar) => {
           setActiveCharacterId(newChar.id)
         }}
+      />
+
+      {/* Edit Campaign Details Modal */}
+      <NewCampaignModal
+        isOpen={showEditCampaignModal}
+        campaignToEdit={campaign}
+        onClose={() => setShowEditCampaignModal(false)}
       />
     </div>
   )

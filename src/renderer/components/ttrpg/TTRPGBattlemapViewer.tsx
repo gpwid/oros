@@ -129,9 +129,8 @@ const PRESET_EFFECTS: {
     lengthFeet: 40,
     widthFeet: 5,
     opacity: 0.85,
-    isTemporary: true,
-    durationMs: 3200,
-    description: '40ft blazing barrier of opaque flame'
+    isTemporary: false,
+    description: '40ft blazing barrier of opaque flame (Concentration)'
   },
 
   // ⚡ LIGHTNING
@@ -206,9 +205,8 @@ const PRESET_EFFECTS: {
     shape: 'circle',
     radiusFeet: 30,
     opacity: 0.85,
-    isTemporary: true,
-    durationMs: 3200,
-    description: '30ft radius swirling mystic rune circle and astral vortex'
+    isTemporary: false,
+    description: '30ft radius swirling mystic rune circle and astral ward'
   },
 
   // ✨ RADIANCE / HOLY
@@ -228,9 +226,8 @@ const PRESET_EFFECTS: {
     shape: 'circle',
     radiusFeet: 15,
     opacity: 0.8,
-    isTemporary: true,
-    durationMs: 3200,
-    description: '15ft radius revolving celestial mandala and solar motes'
+    isTemporary: false,
+    description: '15ft radius revolving celestial mandala and protective motes'
   },
 
   // ☠️ POISON / ACID
@@ -250,8 +247,7 @@ const PRESET_EFFECTS: {
     shape: 'circle',
     radiusFeet: 20,
     opacity: 0.75,
-    isTemporary: true,
-    durationMs: 3200,
+    isTemporary: false,
     description: '20ft radius billowing noxious toxic vapors'
   },
 
@@ -272,8 +268,7 @@ const PRESET_EFFECTS: {
     shape: 'circle',
     radiusFeet: 15,
     opacity: 0.98,
-    isTemporary: true,
-    durationMs: 3200,
+    isTemporary: false,
     description: '15ft radius pitch-black magical void that consumes all light'
   },
 
@@ -284,8 +279,7 @@ const PRESET_EFFECTS: {
     shape: 'circle',
     radiusFeet: 20,
     opacity: 0.75,
-    isTemporary: true,
-    durationMs: 3200,
+    isTemporary: false,
     description: '20ft radius heavy obscuring mist with organic billowing clouds'
   },
   {
@@ -294,8 +288,7 @@ const PRESET_EFFECTS: {
     shape: 'square',
     widthFeet: 20,
     opacity: 0.7,
-    isTemporary: true,
-    durationMs: 3200,
+    isTemporary: false,
     description: '20ft cube of sticky anchored webbing'
   }
 ]
@@ -343,7 +336,7 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
     battlemaps, activeBattlemapId, setActiveBattlemapId,
     createBattlemap, updateBattlemap, deleteBattlemap,
     addTokenToBattlemap, updateTokenOnBattlemap, removeTokenFromBattlemap,
-    addEffectToBattlemap, updateEffectOnBattlemap, removeEffectFromBattlemap,
+    addEffectToBattlemap, updateEffectOnBattlemap, removeEffectFromBattlemap, clearAllEffectsOnBattlemap,
     createCharacter, characters
   } = useTtrpgStore()
 
@@ -409,7 +402,7 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
   const [saveAsCampaignChar, setSaveAsCampaignChar] = useState(false)
 
   // Custom Effect Form State & Popover Tabs
-  const [effectsMenuTab, setEffectsMenuTab] = useState<'presets' | 'custom'>('presets')
+  const [effectsMenuTab, setEffectsMenuTab] = useState<'presets' | 'custom' | 'active'>('presets')
   const [presetFilter, setPresetFilter] = useState<'all' | BattlemapEffectType>('all')
   const [effectName, setEffectName] = useState('')
   const [effectType, setEffectType] = useState<BattlemapEffectType>('fire')
@@ -420,9 +413,12 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
   const [effectOpacity, setEffectOpacity] = useState(0.85)
   const [effectIsTemporary, setEffectIsTemporary] = useState(true)
 
-  // New Map Form State
+  // Map & Level Management State
+  const [editingMapId, setEditingMapId] = useState<string | null>(null)
+  const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null)
   const [newMapName, setNewMapName] = useState('')
   const [newMapUrl, setNewMapUrl] = useState('')
+  const mapFileInputRef = useRef<HTMLInputElement>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const mapElementRef = useRef<HTMLDivElement>(null)
@@ -847,24 +843,58 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
     }
   }
 
-  // Create new battlemap
-  const handleCreateNewMap = (e: React.FormEvent) => {
+  // Create or edit battlemap
+  const handleCreateOrUpdateMap = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMapName.trim()) return
     const url = newMapUrl.trim() || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1920&q=80'
-    const created = createBattlemap(campaign.id, newMapName.trim(), url, {
-      gridType: 'square',
-      gridSize: 64,
-      gridOpacity: 0.35,
-      gridUnitFeet: 5,
-      showCoordinates: true,
-      snapToGrid: true
-    })
-    setActiveBattlemapId(created.id)
+    
+    if (editingMapId) {
+      updateBattlemap(campaign.id, editingMapId, {
+        name: newMapName.trim(),
+        imageUrl: url
+      })
+      addToast(`Updated battlemap "${newMapName.trim()}"`, 'success')
+    } else {
+      const created = createBattlemap(campaign.id, newMapName.trim(), url, {
+        gridType: 'square',
+        gridSize: 64,
+        gridOpacity: 0.35,
+        gridUnitFeet: 5,
+        showCoordinates: true,
+        snapToGrid: true
+      })
+      setActiveBattlemapId(created.id)
+      addToast(`Created battlemap "${created.name}"`, 'success')
+    }
+
     setShowNewMapModal(false)
+    setEditingMapId(null)
     setNewMapName('')
     setNewMapUrl('')
-    addToast(`Created battlemap "${created.name}"`, 'success')
+  }
+
+  const handleOpenEditMap = (bm: TTRPGBattlemap) => {
+    setEditingMapId(bm.id)
+    setNewMapName(bm.name)
+    setNewMapUrl(bm.imageUrl)
+    setShowNewMapModal(true)
+    setShowMapDropdown(false)
+  }
+
+  const handleDirectImportMap = async () => {
+    if (window.oros) {
+      const assetUrl = await window.oros.importAsset()
+      if (assetUrl) {
+        setEditingMapId(null)
+        setNewMapName(`Level ${campaignMaps.length + 1}`)
+        setNewMapUrl(assetUrl)
+        setShowNewMapModal(true)
+        setShowMapDropdown(false)
+      }
+    } else {
+      mapFileInputRef.current?.click()
+    }
   }
 
   // Delete battlemap
@@ -929,9 +959,10 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
   return (
     <div className="flex-1 flex flex-col bg-[#080b11] text-oros-100 overflow-hidden relative select-none font-sans">
       {/* ============================================================== */}
-      {/* FLOATING TOP-LEFT MAP SELECTOR PILL                            */}
+      {/* FLOATING TOP-LEFT MAP & LEVEL BAR                              */}
       {/* ============================================================== */}
-      <div className="absolute top-4 left-4 z-40">
+      <div className="absolute top-3.5 left-4 z-40 flex items-center gap-1.5 flex-wrap max-w-[calc(100vw-220px)]">
+        {/* Main Map Dropdown Pill */}
         <div className="relative">
           <button
             onClick={() => {
@@ -940,37 +971,52 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
               setShowAddTokenMenu(false)
               setShowEffectsMenu(false)
             }}
-            className="px-3 py-1.5 rounded-[4px] bg-oros-900 hover:bg-oros-850 border border-oros-750 text-xs font-semibold text-oros-100 flex items-center gap-2 shadow-2xl transition-all group"
+            className="px-2.5 py-1.5 rounded-[4px] bg-oros-900 hover:bg-oros-850 border border-oros-750 text-xs font-semibold text-oros-100 flex items-center gap-2 shadow-2xl transition-all group"
           >
             <MapIcon className="w-4 h-4 text-accent group-hover:scale-110 transition-transform" />
-            <span className="font-serif max-w-[200px] truncate">{currentBattlemap?.name || 'Select Battlemap'}</span>
+            <span className="font-serif max-w-[170px] truncate">{currentBattlemap?.name || 'Select Battlemap'}</span>
+            <span className="text-[10px] font-mono font-bold text-oros-400 px-1 py-0.2 bg-oros-950 rounded border border-oros-800">
+              {campaignMaps.findIndex(m => m.id === currentBattlemap?.id) + 1}/{campaignMaps.length}
+            </span>
             <ChevronDown className={`w-3.5 h-3.5 text-oros-400 transition-transform ${showMapDropdown ? 'rotate-180' : ''}`} />
           </button>
 
           {showMapDropdown && (
             <div 
               onClick={(e) => e.stopPropagation()}
-              className="absolute left-0 top-10 w-64 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-2 z-50 text-xs space-y-1.5 animate-fade-in"
+              className="absolute left-0 top-10 w-72 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl p-2 z-50 text-xs space-y-2 animate-fade-in"
             >
               <div className="px-2 py-1 text-[10px] font-mono uppercase text-oros-400 font-bold border-b border-oros-800 flex items-center justify-between">
-                <span>Campaign Battlemaps</span>
-                <button
-                  onClick={() => {
-                    setShowNewMapModal(true)
-                    setShowMapDropdown(false)
-                  }}
-                  className="text-accent hover:underline flex items-center gap-1 normal-case font-sans"
-                >
-                  <Plus className="w-3 h-3" /> New
-                </button>
+                <span>Maps & Levels ({campaignMaps.length})</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDirectImportMap}
+                    className="text-accent hover:underline flex items-center gap-1 normal-case font-sans cursor-pointer"
+                    title="Import image from disk as new level"
+                  >
+                    <ImageIcon className="w-3 h-3" /> Load File
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingMapId(null)
+                      setNewMapName(`Level ${campaignMaps.length + 1}`)
+                      setNewMapUrl('')
+                      setShowNewMapModal(true)
+                      setShowMapDropdown(false)
+                    }}
+                    className="text-accent hover:underline flex items-center gap-1 normal-case font-sans cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" /> New
+                  </button>
+                </div>
               </div>
 
-              <div className="max-h-52 overflow-y-auto space-y-0.5">
-                {campaignMaps.map((bm) => (
+              <div className="max-h-56 overflow-y-auto space-y-1">
+                {campaignMaps.map((bm, idx) => (
                   <div
                     key={bm.id}
                     className={`w-full px-2 py-1.5 rounded-[3px] flex items-center justify-between transition-colors group/item ${
-                      currentBattlemap?.id === bm.id ? 'bg-accent/20 text-accent font-semibold' : 'text-oros-300 hover:bg-oros-950 hover:text-white'
+                      currentBattlemap?.id === bm.id ? 'bg-accent/20 text-accent font-semibold border border-accent/40' : 'text-oros-300 hover:bg-oros-950 hover:text-white border border-transparent'
                     }`}
                   >
                     <button
@@ -980,21 +1026,34 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
                       }}
                       className="flex-1 text-left truncate flex items-center gap-2"
                     >
-                      <MapIcon className="w-3 h-3 opacity-60 shrink-0" />
+                      <span className="text-[10px] font-mono font-bold text-oros-500 w-4">{idx + 1}.</span>
+                      <MapIcon className="w-3.5 h-3.5 opacity-70 shrink-0" />
                       <span className="truncate">{bm.name}</span>
                     </button>
-                    {campaignMaps.length > 1 && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleDeleteMap(bm.id, bm.name)
+                          handleOpenEditMap(bm)
                         }}
-                        className="text-oros-600 hover:text-rose-400 p-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity"
-                        title="Delete map"
+                        className="text-oros-400 hover:text-white p-1"
+                        title="Edit map name or image"
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Settings className="w-3 h-3" />
                       </button>
-                    )}
+                      {campaignMaps.length > 1 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteMap(bm.id, bm.name)
+                          }}
+                          className="text-oros-400 hover:text-rose-400 p-1"
+                          title="Delete level"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
 
@@ -1016,6 +1075,80 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
                 )}
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Quick Level Switcher Tabs (if multiple maps) */}
+        {campaignMaps.length > 1 && (
+          <div className="flex items-center gap-1 p-0.5 bg-oros-900/90 border border-oros-750 rounded-[4px] shadow-2xl backdrop-blur-sm">
+            {campaignMaps.map((bm, idx) => (
+              <button
+                key={`lvl-tab-${bm.id}`}
+                onClick={() => setActiveBattlemapId(bm.id)}
+                className={`px-2 py-1 rounded-[3px] text-xs font-mono transition-all flex items-center gap-1.5 ${
+                  currentBattlemap?.id === bm.id
+                    ? 'bg-accent text-accent-contrast font-bold shadow-sm'
+                    : 'text-oros-400 hover:text-white hover:bg-oros-850'
+                }`}
+                title={`Switch to ${bm.name}`}
+              >
+                <span>Lvl {idx + 1}</span>
+                <span className="max-w-[75px] truncate text-[10px] opacity-80">{bm.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Quick Level Actions */}
+        <div className="flex items-center gap-1 p-0.5 bg-oros-900/90 border border-oros-750 rounded-[4px] shadow-2xl backdrop-blur-sm">
+          <button
+            onClick={() => {
+              setEditingMapId(null)
+              setNewMapName(`Level ${campaignMaps.length + 1}`)
+              setNewMapUrl('')
+              setShowNewMapModal(true)
+            }}
+            className="px-2 py-1 rounded-[3px] text-oros-300 hover:text-white hover:bg-oros-850 text-xs font-mono flex items-center gap-1 transition-colors"
+            title="Add a new level or map"
+          >
+            <Plus className="w-3 h-3 text-accent" />
+            <span className="hidden sm:inline">Add Level</span>
+          </button>
+
+          <button
+            onClick={handleDirectImportMap}
+            className="px-2 py-1 rounded-[3px] text-oros-300 hover:text-white hover:bg-oros-850 text-xs font-mono flex items-center gap-1 transition-colors"
+            title="Load local map image file"
+          >
+            <ImageIcon className="w-3 h-3 text-sky-400" />
+            <span className="hidden sm:inline">Load Map</span>
+          </button>
+
+          {currentBattlemap && (
+            <button
+              onClick={() => handleOpenEditMap(currentBattlemap)}
+              className="p-1 rounded-[3px] text-oros-400 hover:text-white hover:bg-oros-850 transition-colors"
+              title="Edit current map settings or change image"
+            >
+              <Settings className="w-3 h-3" />
+            </button>
+          )}
+
+          {/* Quick Clear Effects Button if any effects on current map */}
+          {(currentBattlemap?.effects || []).length > 0 && (
+            <button
+              onClick={() => {
+                if (currentBattlemap) {
+                  clearAllEffectsOnBattlemap(campaign.id, currentBattlemap.id)
+                  addToast(`Cleared all effects on "${currentBattlemap.name}"`, 'info')
+                }
+              }}
+              className="px-2 py-1 rounded-[3px] bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800 text-[11px] font-mono flex items-center gap-1 transition-colors"
+              title="Clear all active effects from this battlemap"
+            >
+              <Trash2 className="w-3 h-3 text-rose-400" />
+              <span>Clear Effects ({currentBattlemap.effects?.length || 0})</span>
+            </button>
           )}
         </div>
       </div>
@@ -1608,7 +1741,18 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
                   : 'text-oros-400 hover:text-oros-200'
               }`}
             >
-              Custom Spell
+              Custom
+            </button>
+            <button
+              type="button"
+              onClick={() => setEffectsMenuTab('active')}
+              className={`flex-1 py-1 text-center font-mono text-[10px] uppercase font-bold rounded-[2px] transition-colors ${
+                effectsMenuTab === 'active'
+                  ? 'bg-oros-850 text-white shadow-sm'
+                  : 'text-oros-400 hover:text-oros-200'
+              }`}
+            >
+              Active ({(currentBattlemap.effects || []).length})
             </button>
           </div>
 
@@ -1803,6 +1947,17 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
                 />
               </div>
 
+              {/* Persistence Toggle */}
+              <label className="flex items-center gap-2 text-oros-300 cursor-pointer text-xs pt-1">
+                <input
+                  type="checkbox"
+                  checked={!effectIsTemporary}
+                  onChange={(e) => setEffectIsTemporary(!e.target.checked)}
+                  className="rounded bg-oros-950 border-oros-800 text-accent cursor-pointer"
+                />
+                <span className="text-[11px] font-sans">Persistent Hazard / Concentration Zone</span>
+              </label>
+
               {/* Action Button */}
               <button
                 type="button"
@@ -1815,7 +1970,7 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
                     lengthFeet: effectLengthFeet,
                     widthFeet: effectWidthFeet,
                     opacity: effectOpacity,
-                    isTemporary: true,
+                    isTemporary: effectIsTemporary,
                     durationMs: 3200
                   })
                 }}
@@ -1823,6 +1978,65 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
               >
                 <span>Cast on Map</span>
               </button>
+            </div>
+          )}
+
+          {/* TAB 3: ACTIVE EFFECTS & CLEAR ALL */}
+          {effectsMenuTab === 'active' && (
+            <div className="space-y-2.5 pt-0.5">
+              {(currentBattlemap.effects || []).length === 0 ? (
+                <div className="p-6 text-center text-oros-400 italic space-y-1">
+                  <p>No active effects on this map.</p>
+                  <p className="text-[10px] text-oros-500 font-sans">Cast spells from Grimoire or Custom to place effects.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between pb-1.5 border-b border-oros-800">
+                    <span className="text-[10px] font-mono text-oros-400 uppercase font-bold">
+                      Active Spell Effects ({(currentBattlemap.effects || []).length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearAllEffectsOnBattlemap(campaign.id, currentBattlemap.id)
+                        addToast(`Cleared all active effects`, 'info')
+                      }}
+                      className="text-rose-400 hover:text-rose-300 font-mono text-[10px] font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" /> Clear All
+                    </button>
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto space-y-1 pr-0.5">
+                    {(currentBattlemap.effects || []).map((fx) => (
+                      <div
+                        key={fx.id}
+                        className="px-2.5 py-1.5 rounded-[3px] bg-oros-950 border border-oros-800 flex items-center justify-between text-xs group"
+                      >
+                        <div className="truncate pr-2">
+                          <span className="font-semibold text-oros-100 block truncate">
+                            {fx.name || fx.type.toUpperCase()}
+                          </span>
+                          <span className="text-[9px] font-mono text-oros-400 block mt-0.5">
+                            {fx.shape} • {fx.radiusFeet || fx.lengthFeet || 20}ft {fx.isTemporary ? '• Temporary' : '• Persistent'}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            removeEffectFromBattlemap(campaign.id, currentBattlemap.id, fx.id)
+                            addToast(`Removed ${fx.name || 'effect'}`, 'info')
+                          }}
+                          className="p-1 text-oros-500 hover:text-rose-400 transition-colors shrink-0 cursor-pointer"
+                          title="Remove effect"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -1938,6 +2152,8 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
                 effect={fx}
                 gridSize={currentBattlemap.gridSize || 64}
                 gridUnitFeet={currentBattlemap.gridUnitFeet || 5}
+                isSelected={selectedEffectId === fx.id}
+                onSelect={() => setSelectedEffectId(fx.id)}
                 onAutoDelete={handleAutoDeleteEffect}
               />
             ))}
@@ -2306,7 +2522,7 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
       </div>
 
       {/* ============================================================== */}
-      {/* SOLID OROS NEW BATTLEMAP MODAL                                 */}
+      {/* SOLID OROS NEW / EDIT BATTLEMAP MODAL                          */}
       {/* ============================================================== */}
       {showNewMapModal && (
         <div className="fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50">
@@ -2314,17 +2530,20 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
             <div className="flex items-center justify-between border-b border-oros-800 pb-2.5">
               <h3 className="font-serif font-bold text-base text-white flex items-center gap-2">
                 <MapIcon className="w-4 h-4 text-accent" />
-                <span>New Encounter Battlemap</span>
+                <span>{editingMapId ? 'Edit Battlemap / Level' : 'New Battlemap / Level'}</span>
               </h3>
               <button
-                onClick={() => setShowNewMapModal(false)}
+                onClick={() => {
+                  setShowNewMapModal(false)
+                  setEditingMapId(null)
+                }}
                 className="text-oros-400 hover:text-white p-1"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateNewMap} className="space-y-4">
+            <form onSubmit={handleCreateOrUpdateMap} className="space-y-4">
               <div>
                 <label className="block text-xs font-mono uppercase text-oros-400 font-bold mb-1">Battlemap Name</label>
                 <input
@@ -2332,7 +2551,7 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
                   required
                   value={newMapName}
                   onChange={(e) => setNewMapName(e.target.value)}
-                  placeholder="e.g. Salt-Cairn Tavern, Coastal Ambush, Dungeon Crypt..."
+                  placeholder="e.g. Salt-Cairn Tavern, Coastal Ambush, Dungeon Crypt, Level 2..."
                   className="w-full px-3 py-1.5 bg-oros-950 border border-oros-800 rounded-[3px] text-xs text-white placeholder-oros-600 focus:outline-none focus:border-accent"
                 />
               </div>
@@ -2341,10 +2560,10 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
                 <label className="block text-xs font-mono uppercase text-oros-400 font-bold mb-1">Artwork URL or Local File</label>
                 <div className="flex gap-2">
                   <input
-                    type="url"
+                    type="text"
                     value={newMapUrl}
                     onChange={(e) => setNewMapUrl(e.target.value)}
-                    placeholder="https://... (leave blank for sample map)"
+                    placeholder="https://... or C:\... or local path (leave blank for default)"
                     className="flex-1 px-3 py-1.5 bg-oros-950 border border-oros-800 rounded-[3px] text-xs text-white placeholder-oros-600 focus:outline-none focus:border-accent"
                   />
                   <button
@@ -2353,20 +2572,42 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
                       if (window.oros) {
                         const asset = await window.oros.importAsset()
                         if (asset) setNewMapUrl(asset)
+                      } else {
+                        mapFileInputRef.current?.click()
                       }
                     }}
-                    className="px-2.5 py-1.5 bg-oros-950 hover:bg-oros-850 text-oros-200 border border-oros-800 rounded-[3px] text-xs font-medium"
+                    className="px-2.5 py-1.5 bg-oros-950 hover:bg-oros-850 text-oros-200 border border-oros-800 rounded-[3px] text-xs font-medium cursor-pointer"
                     title="Import image from your computer"
                   >
                     Browse
                   </button>
                 </div>
+
+                {/* Live Artwork Thumbnail Preview */}
+                {newMapUrl && (
+                  <div className="mt-2.5 w-full h-28 rounded-[3px] bg-black/60 border border-oros-800 overflow-hidden relative flex items-center justify-center">
+                    <img
+                      src={newMapUrl}
+                      alt="Map Preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        ;(e.target as HTMLElement).style.display = 'none'
+                      }}
+                    />
+                    <div className="absolute bottom-1 right-2 bg-black/70 px-1.5 py-0.5 rounded text-[9px] font-mono text-oros-300">
+                      Artwork Preview
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-oros-800">
                 <button
                   type="button"
-                  onClick={() => setShowNewMapModal(false)}
+                  onClick={() => {
+                    setShowNewMapModal(false)
+                    setEditingMapId(null)
+                  }}
                   className="px-3 py-1.5 rounded-[3px] bg-oros-950 text-oros-400 hover:text-white text-xs font-medium"
                 >
                   Cancel
@@ -2375,13 +2616,34 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
                   type="submit"
                   className="px-4 py-1.5 rounded-[3px] btn-accent text-xs font-semibold shadow-sm"
                 >
-                  Create Battlemap
+                  {editingMapId ? 'Save Changes' : 'Create Battlemap'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Hidden file input for web fallback map image import */}
+      <input
+        ref={mapFileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) {
+            const reader = new FileReader()
+            reader.onload = () => {
+              setNewMapUrl(reader.result as string)
+              if (!newMapName) {
+                setNewMapName(file.name.replace(/\.[^/.]+$/, ''))
+              }
+            }
+            reader.readAsDataURL(file)
+          }
+        }}
+      />
     </div>
   )
 }

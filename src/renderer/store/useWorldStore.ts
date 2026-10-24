@@ -432,8 +432,13 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       : (validTabs[0]?.id || '');
     const nextActiveTab = validTabs.find((t) => t.id === nextActiveTabId)?.type as ActiveNavTab || 'wiki-network';
 
+    const updatedWorlds = get().worlds.map((w) =>
+      w.id === id ? { ...w, updatedAt: new Date().toISOString() } : w
+    );
+
     set({ 
       activeWorldId: id,
+      worlds: updatedWorlds,
       openTabs: validTabs,
       activeTabId: nextActiveTabId,
       activeTab: nextActiveTab,

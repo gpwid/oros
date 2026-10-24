@@ -56,6 +56,18 @@ export const WorkspaceTabs: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const activeWorld = worlds.find((w) => w.id === activeWorldId) || worlds[0]
+
+  // Reveal at most 3 most recent projects for the top project dropdown
+  const recentWorlds = useMemo(() => {
+    const sorted = [...worlds].sort((a, b) => {
+      if (a.id === activeWorldId) return -1
+      if (b.id === activeWorldId) return 1
+      const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime()
+      const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime()
+      return dateB - dateA
+    })
+    return sorted.slice(0, 3)
+  }, [worlds, activeWorldId])
   const worldId = activeWorldId || 'world-aethelgard'
   const worldEntities = entities[worldId] || []
   const worldMaps = maps[worldId] || []
@@ -372,10 +384,11 @@ export const WorkspaceTabs: React.FC = () => {
                   <span>All Projects & Hub (Home)</span>
                 </button>
 
-                <div className="px-3 py-1 text-[10px] font-mono font-bold text-oros-400 uppercase tracking-wider">
-                  World Vaults
+                <div className="px-3 py-1 text-[10px] font-mono font-bold text-oros-400 uppercase tracking-wider flex items-center justify-between">
+                  <span>Recent Projects</span>
+                  <span className="text-[9px] text-oros-500 font-mono">Max 3</span>
                 </div>
-                {worlds.map((w) => {
+                {recentWorlds.map((w) => {
                   const genreMeta = getGenreMeta(w.genre)
                   const GenreIcon = genreMeta.icon
                   return (
@@ -401,6 +414,17 @@ export const WorkspaceTabs: React.FC = () => {
                     </button>
                   )
                 })}
+                {worlds.length > 3 && (
+                  <button
+                    onClick={() => {
+                      setWorldDropdownOpen(false)
+                      setAppView('home')
+                    }}
+                    className="w-full text-center py-1 text-[11px] text-accent hover:text-white hover:bg-oros-850/60 font-medium transition-colors border-t border-oros-850/50 mt-0.5"
+                  >
+                    View all {worlds.length} projects in Hub →
+                  </button>
+                )}
 
                 {/* Theme Selector for Active World */}
                 <div className="border-t border-oros-800/80 my-1 px-3 py-1.5">

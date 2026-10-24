@@ -20,7 +20,7 @@ import {
   Spline, Minus, ArrowRight, ExternalLink,
   Scroll, Feather, Castle, Landmark, Flag, Scale, Key, Lock,
   Sparkles, Star, Eye, Compass, Crosshair, Coins, Sun, Moon,
-  Link2, Share2, GitFork, Magnet, MousePointer, Hand, Move
+  Link2, Share2, GitFork, Magnet, MousePointer, Hand, Move, Copy
 } from 'lucide-react'
 import { RelationEdge, LoreEntity } from '@shared/types'
 import { QuickPeekCard } from '../common/QuickPeekCard'
@@ -1139,7 +1139,7 @@ export const RelationGraphCanvas: React.FC = () => {
 const RelationGraphCanvasContent: React.FC = () => {
   const { 
     worlds, entities, relations, activeWorldId, setSelectedEntityId, openTab,
-    createRelation, updateRelation, deleteRelation, createEntity, deleteEntity,
+    createRelation, updateRelation, deleteRelation, createEntity, duplicateEntity, deleteEntity,
     relationNodePositions, saveRelationNodePosition 
   } = useWorldStore()
 
@@ -1290,6 +1290,7 @@ const RelationGraphCanvasContent: React.FC = () => {
           entity: ent,
           isSelected,
           onSelect: (id: string, e?: React.MouseEvent) => {
+            if (e) e.stopPropagation()
             const isModifier = e ? (e.shiftKey || e.ctrlKey || e.metaKey) : false
             if (isModifier) {
               setNodes((nds) =>
@@ -1447,6 +1448,43 @@ const RelationGraphCanvasContent: React.FC = () => {
   // Viewport tracking for multi-select overlay calculations
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 })
 
+  // Duplicate Selected Entities (Ctrl+D)
+  const handleDuplicateSelected = useCallback(() => {
+    const selected = nodes.filter((n) => n.selected)
+    if (selected.length === 0) return
+
+    const newNodes: Node[] = []
+    selected.forEach((n) => {
+      const ent = worldEntities.find((e) => e.id === n.id)
+      if (!ent) return
+      const cloned = duplicateEntity(ent.id)
+      if (cloned) {
+        newNodes.push({
+          ...n,
+          id: cloned.id,
+          position: {
+            x: Math.round(n.position.x + 40),
+            y: Math.round(n.position.y + 40)
+          },
+          selected: true,
+          data: {
+            ...n.data,
+            entity: cloned,
+            isSelected: true
+          }
+        })
+      }
+    })
+
+    if (newNodes.length > 0) {
+      setNodes((nds) => [
+        ...nds.map((n) => ({ ...n, selected: false, data: { ...n.data, isSelected: false } })),
+        ...newNodes
+      ])
+      addToast(`Duplicated ${newNodes.length} entity`, 'info')
+    }
+  }, [nodes, worldEntities, duplicateEntity, addToast])
+
   // Unified Multi-selection & Batch Operations
   const selectedNodes = useMemo(() => nodes.filter((n) => n.selected), [nodes])
 
@@ -1456,16 +1494,23 @@ const RelationGraphCanvasContent: React.FC = () => {
     )
   }, [setNodes])
 
-  // Escape key clears multi-selection
+  // Escape key clears multi-selection, Ctrl+D duplicates selection
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && selectedNodes.length > 0) {
         handleDeselectAll()
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+        const activeTag = (document.activeElement?.tagName || '').toLowerCase()
+        if (activeTag === 'input' || activeTag === 'textarea') return
+        if (selectedNodes.length > 0) {
+          e.preventDefault()
+          handleDuplicateSelected()
+        }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedNodes.length, handleDeselectAll])
+  }, [selectedNodes.length, handleDeselectAll, handleDuplicateSelected])
 
   const unifiedBounds = useMemo(() => {
     if (selectedNodes.length <= 1) return null
@@ -2017,18 +2062,7 @@ const RelationGraphCanvasContent: React.FC = () => {
               handleDeselectAll()
               setActiveEntityForPeek(null)
             }}
-            onNodeClick={(e, node) => {
-              if (e.shiftKey || e.ctrlKey || e.metaKey) {
-                e.stopPropagation()
-                setNodes((nds) =>
-                  nds.map((n) =>
-                    n.id === node.id
-                      ? { ...n, selected: !n.selected, data: { ...n.data, isSelected: !n.selected } }
-                      : n
-                  )
-                )
-              }
-            }}
+            // Multi-selection is handled via onSelect on the node and multiSelectionKeyCode
             onNodesDelete={(deleted) => {
               deleted.forEach((n) => {
                 if (n.id) handleDeleteEntity(n.id)
@@ -2154,6 +2188,19 @@ const RelationGraphCanvasContent: React.FC = () => {
                   <Move className="w-3.5 h-3.5" />
                   <span className="text-[11px] font-medium">Move</span>
                 </div>
+
+                <div className="w-[1px] h-3.5 bg-oros-800 mx-0.5" />
+
+                {/* Duplicate */}
+                <button
+                  type="button"
+                  onClick={handleDuplicateSelected}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full hover:bg-oros-800 text-oros-300 hover:text-white text-xs transition-colors cursor-pointer"
+                  title="Duplicate selected entities (Ctrl+D)"
+                >
+                  <Copy className="w-3.5 h-3.5 text-accent" />
+                  <span className="text-[11px] font-medium">Duplicate</span>
+                </button>
 
                 <div className="w-[1px] h-3.5 bg-oros-800 mx-0.5" />
 

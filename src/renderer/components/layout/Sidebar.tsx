@@ -8,7 +8,7 @@ import {
   Map as MapIcon, Feather, Trash2, Edit2, MoreVertical,
   FolderPlus, FilePlus, User, Compass, Shield, Gem,
   Flame, Sparkles, Move, Check, X, FolderTree, PanelLeftClose,
-  Languages, ChevronUp, BookOpenCheck, Dices, CheckSquare
+  Languages, ChevronUp, BookOpenCheck, Dices, CheckSquare, Copy
 } from 'lucide-react'
 import { DirectoryItem, DirectoryFolder, DirectoryItemType, LoreEntity } from '@shared/types'
 import { 
@@ -21,8 +21,8 @@ export const Sidebar: React.FC = () => {
   const { 
     activeWorldId, folders, directoryItems, openTab, setSelectedEntityId,
     openTabs, activeTabId, sidebarCollapsed, toggleSidebar,
-    createFolder, renameFolder, deleteFolder, toggleFolderOpen, moveFolderToFolder,
-    createDirectoryItem, deleteDirectoryItem, moveItemToFolder,
+    createFolder, renameFolder, deleteFolder, toggleFolderOpen, moveFolderToFolder, duplicateFolder,
+    createDirectoryItem, renameDirectoryItem, duplicateDirectoryItem, deleteDirectoryItem, moveItemToFolder,
     batchMoveItemsToFolder, batchDeleteDirectoryItems,
     createCanvas, createEntity, createMap, createChapter, createLanguage,
     entities, maps, timelines, relations, manuscripts, categories, conlangs,
@@ -56,6 +56,26 @@ export const Sidebar: React.FC = () => {
   // Editing folder name inline
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null)
   const [editingFolderName, setEditingFolderName] = useState('')
+
+  // Editing item name inline
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editingItemName, setEditingItemName] = useState('')
+
+  // Move Folder Modal state
+  const [movingFolderId, setMovingFolderId] = useState<string | null>(null)
+  const [targetMoveFolderParentId, setTargetMoveFolderParentId] = useState<string | null>(null)
+
+  // Context Menu state
+  const [contextMenu, setContextMenu] = useState<{
+    x: number
+    y: number
+    type: 'folder' | 'item'
+    id: string
+    name: string
+    folder?: DirectoryFolder
+    item?: DirectoryItem
+  } | null>(null)
+  const contextMenuRef = useRef<HTMLDivElement>(null)
 
   // Drag-and-drop state
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
@@ -175,6 +195,68 @@ export const Sidebar: React.FC = () => {
     setEditingFolderName('')
     addToast('Folder renamed', 'info')
   }
+
+  // Item rename
+  const handleRenameItemSubmit = (itemId: string) => {
+    if (!editingItemName.trim()) {
+      setEditingItemId(null)
+      return
+    }
+    renameDirectoryItem(itemId, editingItemName.trim())
+    setEditingItemId(null)
+    setEditingItemName('')
+    addToast('Item renamed', 'info')
+  }
+
+  // Move Folder
+  const handleMoveFolderSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!movingFolderId) return
+    if (targetMoveFolderParentId === movingFolderId) {
+      addToast('Cannot move a folder into itself', 'error')
+      return
+    }
+    moveFolderToFolder(movingFolderId, targetMoveFolderParentId)
+    setMovingFolderId(null)
+    setTargetMoveFolderParentId(null)
+    addToast('Folder moved', 'info')
+  }
+
+  // Close context menu on outside click or Escape
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null)
+      }
+    }
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setContextMenu(null)
+    }
+    window.addEventListener('mousedown', handleOutsideClick)
+    window.addEventListener('keydown', handleEsc)
+    return () => {
+      window.removeEventListener('mousedown', handleOutsideClick)
+      window.removeEventListener('keydown', handleEsc)
+    }
+  }, [])
+
+  // Ctrl+D shortcut in Sidebar to duplicate selected items/folders
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+        const activeTag = (document.activeElement?.tagName || '').toLowerCase()
+        if (activeTag === 'input' || activeTag === 'textarea') return
+        if (selectedItemIds.size > 0 || selectedFolderIds.size > 0) {
+          e.preventDefault()
+          selectedItemIds.forEach((id) => duplicateDirectoryItem(id))
+          selectedFolderIds.forEach((id) => duplicateFolder(id))
+          addToast('Duplicated selected element(s)', 'info')
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedItemIds, selectedFolderIds, duplicateDirectoryItem, duplicateFolder, addToast])
 
   const handleDeleteItem = async (item: DirectoryItem) => {
     const confirmed = await confirmDialog({
@@ -454,6 +536,18 @@ export const Sidebar: React.FC = () => {
           }`}
           style={{ paddingLeft: `${Math.max(8, depth * 14 + 8)}px` }}
           onClick={(e) => handleFolderRowClick(e, folder)}
+          onContextMenu={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setContextMenu({
+              x: Math.min(e.clientX, window.innerWidth - 200),
+              y: Math.min(e.clientY, window.innerHeight - 220),
+              type: 'folder',
+              id: folder.id,
+              name: folder.name,
+              folder
+            })
+          }}
         >
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
             {selectedFolderIds.has(folder.id) && (
@@ -555,6 +649,18 @@ export const Sidebar: React.FC = () => {
                   }}
                   onDragEnd={() => setDraggedItemId(null)}
                   onClick={(e) => handleItemRowClick(e, item)}
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setContextMenu({
+                      x: Math.min(e.clientX, window.innerWidth - 200),
+                      y: Math.min(e.clientY, window.innerHeight - 220),
+                      type: 'item',
+                      id: item.id,
+                      name: item.name,
+                      item
+                    })
+                  }}
                   style={{ paddingLeft: `${Math.max(16, (depth + 1) * 14 + 10)}px` }}
                   tabIndex={0}
                   onKeyDown={(e) => {
@@ -580,7 +686,23 @@ export const Sidebar: React.FC = () => {
                       </div>
                     )}
                     {getItemIcon(item)}
-                    <span className="truncate">{item.name}</span>
+                    {editingItemId === item.id ? (
+                      <input
+                        type="text"
+                        autoFocus
+                        value={editingItemName}
+                        onChange={(e) => setEditingItemName(e.target.value)}
+                        onBlur={() => handleRenameItemSubmit(item.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRenameItemSubmit(item.id)
+                          if (e.key === 'Escape') setEditingItemId(null)
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-oros-950 border border-accent rounded-[3px] px-1.5 py-0.5 text-xs text-white outline-none w-32 focus:ring-1 focus:ring-accent/40"
+                      />
+                    ) : (
+                      <span className="truncate">{item.name}</span>
+                    )}
                   </div>
 
                   <div 
@@ -769,6 +891,18 @@ export const Sidebar: React.FC = () => {
               }}
               onDragEnd={() => setDraggedItemId(null)}
               onClick={(e) => handleItemRowClick(e, item)}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setContextMenu({
+                  x: Math.min(e.clientX, window.innerWidth - 200),
+                  y: Math.min(e.clientY, window.innerHeight - 220),
+                  type: 'item',
+                  id: item.id,
+                  name: item.name,
+                  item
+                })
+              }}
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Delete' || e.key === 'Del') {

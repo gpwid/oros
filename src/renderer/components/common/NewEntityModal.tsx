@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { X, User, MapPin, Shield, Sparkles, Gem, FileText, Check, Tag, Folder, Plus } from 'lucide-react'
 import { ENTITY_TEMPLATES, EntityArchetypeTemplate } from '../../utils/entityTemplates'
+import { DEFAULT_PRESET_CATEGORIES } from '../../utils/categoryIcons'
 import { useWorldStore } from '../../store/useWorldStore'
 
 interface NewEntityModalProps {
@@ -35,7 +36,8 @@ export const NewEntityModal: React.FC<NewEntityModalProps> = ({
 }) => {
   const { folders, categories, entities, activeWorldId } = useWorldStore()
   const worldFolders = activeWorldId ? folders[activeWorldId] || [] : []
-  const worldCategories = activeWorldId ? categories[activeWorldId] || [] : []
+  const rawCategories = activeWorldId ? categories[activeWorldId] || [] : []
+  const worldCategories = rawCategories.length > 0 ? rawCategories : DEFAULT_PRESET_CATEGORIES
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
 
   const [title, setTitle] = useState('')

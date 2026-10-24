@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useRef, useCallback, useEffect, useMemo, useContext } from 'react'
 import {
   ReactFlow,
   Background,
@@ -39,9 +39,13 @@ import {
   ArrowRight, Undo, Redo, RotateCcw, RotateCw, Layers, Move, ZoomIn, ZoomOut,
   Magnet, GitBranch, ArrowRightLeft, Spline, Activity, Frame, Link2, Edit3,
   Bold, Italic, Minus, CornerDownRight, AlignLeft, AlignCenter, AlignRight,
-  Triangle, Star, Hexagon, Octagon, Cylinder, Cloud, MessageSquare
+  Triangle, Star, Hexagon, Octagon, Cylinder, Cloud, MessageSquare,
+  Copy, Eye, ExternalLink
 } from 'lucide-react'
 import { LoreEntity, CanvasStroke } from '@shared/types'
+import { OrosLogoMark } from '../common/OrosLogo'
+import { getCategoryMeta, getCategoryIconComponent } from '../../utils/categoryIcons'
+import { QuickPeekCard } from '../common/QuickPeekCard'
 import { ExportDropdown, ExportOption } from '../common/ExportDropdown'
 import { exportReactFlowToImage, exportCanvasToJson } from '../../utils/exportUtils'
 
@@ -113,6 +117,10 @@ const NodeScalingToolbar: React.FC<{
 // CUSTOM NODES (Hardware-Accelerated Responsive Scaling)
 // ==========================================
 
+export const CanvasPeekContext = React.createContext<{
+  openPeek: (id: string) => void
+}>({ openPeek: () => {} })
+
 // 1. Draggable Character / Lore Card Node
 const BASE_CARD_WIDTH = 180
 const BASE_CARD_HEIGHT = 250
@@ -128,8 +136,18 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     height?: number;
   }
   const reactFlow = useReactFlow()
+  const { openPeek } = useContext(CanvasPeekContext)
+  const { entities, categories, activeWorldId, openTab } = useWorldStore()
   const selectedCount = reactFlow.getNodes().filter((n) => n.selected).length
   
+  const worldEntities = (activeWorldId && entities[activeWorldId]) || []
+  const entity = cardData.entityId ? worldEntities.find((e) => e.id === cardData.entityId) : undefined
+  const worldCats = (activeWorldId && categories[activeWorldId]) ? categories[activeWorldId] : undefined
+  const catMeta = getCategoryMeta(entity?.type || cardData.subtitle || 'character', worldCats)
+  const CategoryIcon = getCategoryIconComponent(catMeta.icon)
+  const cardTitle = entity?.title || cardData.title || 'Untitled Card'
+  const cardAvatar = entity?.avatar || cardData.avatar
+
   const currentW = Math.round(Number(cardData.width) || BASE_CARD_WIDTH)
   const currentH = Math.round(Number(cardData.height) || BASE_CARD_HEIGHT)
   const scalePercent = Math.round((currentW / BASE_CARD_WIDTH) * 100)
@@ -171,7 +189,7 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     reactFlow.setNodes((nds) => nds.filter((n) => n.id !== id))
   }
 
-  const fallbackAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
+  const hasAvatar = !!cardAvatar && !imgError
 
   return (
     <div className="relative select-none w-full h-full">
@@ -203,12 +221,48 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           onScale={handleScale}
           onResetScale={handleReset}
           onDelete={handleDelete}
+          extraControls={cardData.entityId ? (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (cardData.entityId) openPeek(cardData.entityId)
+                }}
+                className="p-1 rounded-full hover:bg-oros-800 text-oros-300 hover:text-accent transition-colors cursor-pointer"
+                title="Quick Peek"
+              >
+                <Eye className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (entity) {
+                    openTab({ title: entity.title, type: 'wiki', targetId: entity.id })
+                  }
+                }}
+                className="p-1 rounded-full hover:bg-oros-800 text-oros-300 hover:text-accent transition-colors cursor-pointer"
+                title="Open in Codex"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            </>
+          ) : undefined}
         />
       )}
 
-      <div className={`relative w-full h-full flex flex-col rounded-[4px] bg-oros-950/95 border transition-colors duration-150 shadow-md select-none group cursor-move ${
-        selected ? 'border-accent ring-2 ring-accent/40' : 'border-oros-800/80 hover:border-oros-700'
-      }`}>
+      <div 
+        onDoubleClick={(e) => {
+          e.stopPropagation()
+          if (cardData.entityId) {
+            openPeek(cardData.entityId)
+          }
+        }}
+        className={`relative w-full h-full flex flex-col rounded-[4px] bg-oros-950/95 border transition-colors duration-150 shadow-md select-none group cursor-move ${
+          selected ? 'border-accent ring-2 ring-accent/40' : 'border-oros-800/80 hover:border-oros-700'
+        }`}
+      >
         {/* 4 Cardinal Handles - only visible on hover */}
         <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
         <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
@@ -217,23 +271,37 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
         {/* Card Portrait Banner (flex-1 fills available space cleanly) */}
         <div className="flex-1 w-full min-h-0 bg-oros-900 relative overflow-hidden rounded-t-[4px]">
-          <img
-            src={imgError ? fallbackAvatar : (cardData.avatar || fallbackAvatar)}
-            alt={cardData.title || 'Card'}
-            onError={() => setImgError(true)}
-            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-oros-950 via-transparent to-transparent opacity-80 pointer-events-none" />
+          {hasAvatar ? (
+            <>
+              <img
+                src={cardAvatar}
+                alt={cardTitle}
+                onError={() => setImgError(true)}
+                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-oros-950 via-transparent to-transparent opacity-80 pointer-events-none" />
+            </>
+          ) : (
+            <div className="w-full h-full bg-gradient-to-b from-oros-900/90 via-oros-950 to-oros-900/40 flex flex-col items-center justify-center p-3 text-center border-b border-oros-800/40 relative group/empty">
+              <div className="w-14 h-14 rounded-2xl bg-oros-850/60 border border-oros-750/70 flex items-center justify-center shadow-inner group-hover/empty:scale-105 group-hover/empty:border-accent/60 transition-all duration-200">
+                <OrosLogoMark className="w-9 h-9 text-oros-600/70 group-hover/empty:text-accent/80 transition-colors" />
+              </div>
+              <span className="text-[9px] font-mono uppercase tracking-widest text-oros-500 mt-2 font-medium">No Portrait</span>
+            </div>
+          )}
         </div>
 
         {/* Card Info Footer */}
         <div className="p-3 bg-oros-950/95 shrink-0">
-          <div className="flex items-center gap-1.5 text-[10px] text-accent font-semibold uppercase tracking-wider mb-0.5">
-            <User className="w-3 h-3 text-accent shrink-0" />
-            <span className="truncate">{cardData.subtitle || 'Character'}</span>
+          <div 
+            className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider mb-0.5 truncate"
+            style={{ color: catMeta.color }}
+          >
+            <CategoryIcon className="w-3 h-3 shrink-0" style={{ color: catMeta.color }} />
+            <span className="truncate">{catMeta.name}</span>
           </div>
-          <div className="font-serif font-bold text-sm text-slate-100 truncate">
-            {cardData.title || 'Untitled Card'}
+          <div className="font-serif font-bold text-sm text-slate-100 truncate" title={cardTitle}>
+            {cardTitle}
           </div>
         </div>
       </div>
@@ -3150,7 +3218,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
   const { 
     worlds, activeWorldId, canvases, selectedCanvasId, setSelectedCanvasId,
     createCanvas, updateCanvas, deleteCanvas, saveCanvasNodesAndEdges,
-    entities
+    entities, openTab
   } = useWorldStore()
 
   const activeWorld = (worlds || []).find((w) => w.id === activeWorldId)
@@ -3233,6 +3301,12 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
 
   // Active Tool state: 'select' | 'pan' | 'pen' | 'text'
   const [activeTool, setActiveTool] = useState<'select' | 'pan' | 'pen' | 'text'>('select')
+  const [peekEntityId, setPeekEntityId] = useState<string | null>(null)
+  const peekEntity = useMemo(() => {
+    const list = (activeWorldId && entities[activeWorldId]) || []
+    return list.find((e) => e.id === peekEntityId)
+  }, [entities, activeWorldId, peekEntityId])
+
   const [penColor, setPenColor] = useState(themeTokens.accent)
   const [penWidth, setPenWidth] = useState<number>(3.5)
   const [showPenOptions, setShowPenOptions] = useState<boolean>(false)
@@ -3268,6 +3342,63 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     futureRef.current = []
     setHistoryCount({ past: pastRef.current.length, future: 0 })
   }, [reactFlowInstance, currentCanvas])
+
+  // Duplicate Selected Nodes (Ctrl+D)
+  const handleDuplicateSelected = useCallback(() => {
+    const selected = nodes.filter((n) => n.selected)
+    if (selected.length === 0) return
+
+    takeSnapshot()
+    const idMap = new Map<string, string>()
+    const duplicatedNodes: Node[] = selected.map((n) => {
+      const newId = `${n.type || 'element'}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+      idMap.set(n.id, newId)
+      return {
+        ...n,
+        id: newId,
+        position: {
+          x: Math.round(n.position.x + 30),
+          y: Math.round(n.position.y + 30)
+        },
+        selected: true,
+        data: {
+          ...n.data,
+          title: n.data?.title ? `${n.data.title} (Copy)` : undefined
+        }
+      }
+    })
+
+    const selectedIdSet = new Set(selected.map((n) => n.id))
+    const duplicatedEdges: Edge[] = edges
+      .filter((e) => selectedIdSet.has(e.source) && selectedIdSet.has(e.target))
+      .map((e) => ({
+        ...e,
+        id: `edge-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        source: idMap.get(e.source) || e.source,
+        target: idMap.get(e.target) || e.target,
+        selected: false
+      }))
+
+    setNodes((nds) => [
+      ...nds.map((n) => (n.selected ? { ...n, selected: false } : n)),
+      ...duplicatedNodes
+    ])
+    if (duplicatedEdges.length > 0) {
+      setEdges((eds) => [...eds, ...duplicatedEdges])
+    }
+
+    addToast(`Duplicated ${duplicatedNodes.length} item${duplicatedNodes.length > 1 ? 's' : ''}`, 'info')
+
+    setTimeout(() => {
+      if (currentCanvas) {
+        saveCanvasNodesAndEdges(
+          currentCanvas.id,
+          reactFlowInstance.getNodes(),
+          reactFlowInstance.getEdges()
+        )
+      }
+    }, 150)
+  }, [nodes, edges, takeSnapshot, addToast, currentCanvas, saveCanvasNodesAndEdges, reactFlowInstance])
 
   const handleUndo = useCallback(() => {
     if (pastRef.current.length === 0) return
@@ -3349,16 +3480,23 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     setNodes((nds) => nds.map((n) => (n.selected ? { ...n, selected: false } : n)))
   }, [setNodes])
 
-  // Escape clears selection
+  // Escape clears selection, Ctrl+D duplicates selection
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && selectedNodes.length > 0) {
         handleDeselectAll()
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+        const activeTag = (document.activeElement?.tagName || '').toLowerCase()
+        if (activeTag === 'input' || activeTag === 'textarea') return
+        if (selectedNodes.length > 0) {
+          e.preventDefault()
+          handleDuplicateSelected()
+        }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedNodes.length, handleDeselectAll])
+  }, [selectedNodes.length, handleDeselectAll, handleDuplicateSelected])
 
   const unifiedBounds = useMemo(() => {
     if (selectedNodes.length <= 1) return null
@@ -4239,8 +4377,9 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
   const worldEntities = entities[worldId] || []
 
   return (
-    <div 
-      ref={containerRef}
+    <CanvasPeekContext.Provider value={{ openPeek: (id) => setPeekEntityId(id) }}>
+      <div 
+        ref={containerRef}
       className="relative w-full h-full bg-oros-950 overflow-hidden select-none"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -4260,16 +4399,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
           onEdgesChange={onEdgesChange}
           onMove={(_, vp) => setViewport(vp)}
           onNodeDragStart={() => takeSnapshot()}
-          onNodeClick={(e, node) => {
-            if (e.shiftKey || e.ctrlKey || e.metaKey) {
-              e.stopPropagation()
-              setNodes((nds) =>
-                nds.map((n) =>
-                  n.id === node.id ? { ...n, selected: !n.selected } : n
-                )
-              )
-            }
-          }}
+          // Multi-selection is handled natively via multiSelectionKeyCode
           onNodesDelete={(deleted) => {
             takeSnapshot()
             const delIds = new Set(deleted.map((n) => n.id))
@@ -4550,6 +4680,32 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
 
             <div className="w-[1px] h-3.5 bg-oros-800 mx-0.5" />
 
+            {/* Batch Duplicate */}
+            <button
+              type="button"
+              onClick={handleDuplicateSelected}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full hover:bg-oros-800 text-oros-300 hover:text-white text-xs transition-colors cursor-pointer"
+              title="Duplicate selected items (Ctrl+D)"
+            >
+              <Copy className="w-3.5 h-3.5 text-accent" />
+              <span className="text-[11px] font-medium">Duplicate</span>
+            </button>
+
+            <div className="w-[1px] h-3.5 bg-oros-800 mx-0.5" />
+
+            {/* Batch Duplicate */}
+            <button
+              type="button"
+              onClick={handleDuplicateSelected}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full hover:bg-oros-800 text-oros-300 hover:text-white text-xs transition-colors cursor-pointer"
+              title="Duplicate selected items (Ctrl+D)"
+            >
+              <Copy className="w-3.5 h-3.5 text-accent" />
+              <span className="text-[11px] font-medium">Duplicate</span>
+            </button>
+
+            <div className="w-[1px] h-3.5 bg-oros-800 mx-0.5" />
+
             {/* Batch Delete */}
             <button
               onClick={handleBatchDeleteSelected}
@@ -4742,11 +4898,17 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
                     onClick={() => handleDropCard(ent)}
                     className="w-full text-left p-1.5 rounded-[2px] hover:bg-oros-850 flex items-center gap-2 text-xs text-oros-200 transition-colors"
                   >
-                    <img
-                      src={ent.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80'}
-                      alt={ent.title}
-                      className="w-5 h-5 rounded-[2px] object-cover border border-oros-800"
-                    />
+                    {ent.avatar ? (
+                      <img
+                        src={ent.avatar}
+                        alt={ent.title}
+                        className="w-5 h-5 rounded-[2px] object-cover border border-oros-800"
+                      />
+                    ) : (
+                      <div className="w-5 h-5 rounded-[2px] bg-oros-800 border border-oros-750 flex items-center justify-center shrink-0">
+                        <OrosLogoMark className="w-3.5 h-3.5 text-oros-500" />
+                      </div>
+                    )}
                     <div className="truncate flex-1">
                       <div className="font-medium truncate text-oros-200">{ent.title}</div>
                       <div className="text-[10px] text-oros-500 font-mono capitalize">{ent.type}</div>
@@ -5055,7 +5217,49 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
           </button>
         </div>
       </div>
+
+      {/* Slide-out Drawer / Popup: Card Quick-Peek Profile */}
+      {peekEntity && (
+        <aside className="absolute top-11 right-3 bottom-14 w-84 bg-oros-950/98 backdrop-blur-md border border-oros-800 shadow-2xl z-40 rounded-lg flex flex-col overflow-hidden animate-dropdown-in">
+          <div className="p-3 border-b border-oros-800 flex items-center justify-between shrink-0 bg-oros-950/90">
+            <span className="text-xs font-mono font-bold text-slate-200 tracking-wider uppercase flex items-center gap-1.5">
+              <Eye className="w-3.5 h-3.5 text-accent" />
+              Quick Peek
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => {
+                  openTab({
+                    title: peekEntity.title,
+                    type: 'wiki',
+                    targetId: peekEntity.id
+                  })
+                }}
+                className="px-2 py-1 rounded-md bg-oros-900 border border-oros-750 hover:border-oros-600 text-oros-300 hover:text-oros-100 text-[10px] font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Open in Codex"
+              >
+                <ExternalLink className="w-3 h-3 text-accent" />
+                <span>Open Codex</span>
+              </button>
+              <button
+                onClick={() => setPeekEntityId(null)}
+                className="p-1 rounded-md text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          <div className="p-3.5 overflow-y-auto flex-1">
+            <QuickPeekCard
+              entity={peekEntity}
+              onClose={() => setPeekEntityId(null)}
+            />
+          </div>
+        </aside>
+      )}
     </div>
+    </CanvasPeekContext.Provider>
   )
 }
 

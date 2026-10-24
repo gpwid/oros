@@ -824,11 +824,17 @@ export const WorkspaceTabs: React.FC = () => {
                             onClick={() => handleOpenEntityTab(ent)}
                             className="text-left p-2 rounded-[3px] bg-oros-950/70 border border-oros-800 hover:border-oros-600 hover:bg-oros-850 transition-colors flex items-center gap-2.5 group"
                           >
-                            <img
-                              src={ent.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80'}
-                              alt={ent.title}
-                              className="w-7 h-7 rounded-[2px] object-cover border border-oros-750 shrink-0"
-                            />
+                            {ent.avatar ? (
+                              <img
+                                src={ent.avatar}
+                                alt={ent.title}
+                                className="w-7 h-7 rounded-[2px] object-cover border border-oros-750 shrink-0"
+                              />
+                            ) : (
+                              <div className="w-7 h-7 rounded-[2px] bg-oros-900 border border-oros-750 flex items-center justify-center shrink-0">
+                                <OrosLogoMark className="w-4 h-4 text-oros-500" />
+                              </div>
+                            )}
                             <div className="truncate flex-1">
                               <div className="font-sans font-medium text-xs text-oros-200 group-hover:text-white truncate">
                                 {ent.title}
@@ -1002,11 +1008,17 @@ export const WorkspaceTabs: React.FC = () => {
                           onClick={() => handleOpenEntityTab(ent)}
                           className="text-left p-2 rounded-[3px] bg-oros-950/70 border border-oros-800 hover:border-oros-600 hover:bg-oros-850 transition-colors flex items-center gap-2.5 group"
                         >
-                          <img
-                            src={ent.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80'}
-                            alt={ent.title}
-                            className="w-7 h-7 rounded-[2px] object-cover border border-oros-750 shrink-0"
-                          />
+                          {ent.avatar ? (
+                            <img
+                              src={ent.avatar}
+                              alt={ent.title}
+                              className="w-7 h-7 rounded-[2px] object-cover border border-oros-750 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-7 h-7 rounded-[2px] bg-oros-900 border border-oros-750 flex items-center justify-center shrink-0">
+                              <OrosLogoMark className="w-4 h-4 text-oros-500" />
+                            </div>
+                          )}
                           <div className="truncate flex-1">
                             <div className="font-sans font-medium text-xs text-oros-200 group-hover:text-white truncate">
                               {ent.title}

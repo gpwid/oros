@@ -311,18 +311,36 @@ export function getCategoryMeta(
   typeOrId: string,
   customCategories: EntityCategory[] = []
 ): EntityCategory {
-  const all = [...DEFAULT_PRESET_CATEGORIES, ...customCategories]
-  const exact = all.find((c) => c.id.toLowerCase() === typeOrId.toLowerCase())
+  let categoriesToUse = customCategories
+  if (!categoriesToUse || categoriesToUse.length === 0) {
+    if (typeof globalThis !== 'undefined' && typeof (globalThis as any).__getOrosCategories === 'function') {
+      try {
+        categoriesToUse = (globalThis as any).__getOrosCategories() || []
+      } catch {
+        categoriesToUse = []
+      }
+    }
+  }
+
+  const all = [...DEFAULT_PRESET_CATEGORIES, ...(categoriesToUse || [])]
+  const exact = all.find((c) => c.id.toLowerCase() === typeOrId?.toLowerCase())
   if (exact) return exact
 
   // Match by name
-  const nameMatch = all.find((c) => c.name.toLowerCase() === typeOrId.toLowerCase())
+  const nameMatch = all.find((c) => c.name.toLowerCase() === typeOrId?.toLowerCase())
   if (nameMatch) return nameMatch
 
-  // Fallback for custom or legacy ids
+  // Friendly name for custom or legacy ids (avoid raw CAT-123 IDs in UI)
+  let friendlyName = typeOrId || 'General'
+  if (friendlyName.toLowerCase().startsWith('cat-')) {
+    friendlyName = 'Custom Label'
+  } else {
+    friendlyName = friendlyName.charAt(0).toUpperCase() + friendlyName.slice(1).replace(/_/g, ' ')
+  }
+
   return {
     id: typeOrId,
-    name: typeOrId.charAt(0).toUpperCase() + typeOrId.slice(1).replace(/_/g, ' '),
+    name: friendlyName,
     icon: 'Layers',
     color: '#f5c542',
     isPreset: false,

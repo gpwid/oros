@@ -6,7 +6,7 @@ import {
   WhiteboardCanvasData, CanvasStroke, EntityCategory, WorldCalendarConfig, InfoboxSection,
   ConlangLanguage, ConlangWord
 } from '@shared/types'
-import { DEFAULT_PRESET_CATEGORIES } from '../utils/categoryIcons'
+import { DEFAULT_PRESET_CATEGORIES, getCategoryMeta } from '../utils/categoryIcons'
 import { 
   DEFAULT_FANTASY_CALENDAR_CONFIG,
   DEFAULT_TIMELINE_CATEGORIES,
@@ -93,11 +93,14 @@ interface WorldState {
   createFolder: (name: string, parentId?: string | null) => DirectoryFolder;
   renameFolder: (folderId: string, name: string) => void;
   deleteFolder: (folderId: string) => void;
+  duplicateFolder: (folderId: string) => DirectoryFolder | null;
   toggleFolderOpen: (folderId: string) => void;
   moveFolderToFolder: (folderId: string, parentId: string | null) => void;
 
   // Directory Items CRUD
   createDirectoryItem: (name: string, type: DirectoryItemType, folderId?: string | null, targetId?: string) => DirectoryItem;
+  renameDirectoryItem: (itemId: string, newName: string) => void;
+  duplicateDirectoryItem: (itemId: string) => DirectoryItem | null;
   deleteDirectoryItem: (itemId: string) => void;
   moveItemToFolder: (itemId: string, folderId: string | null) => void;
   batchMoveItemsToFolder: (itemIds: string[], folderId: string | null) => void;
@@ -128,6 +131,7 @@ interface WorldState {
   
   // Entity CRUD
   createEntity: (type: LoreEntity['type'], title: string, folderId?: string | null, templateId?: string) => LoreEntity;
+  duplicateEntity: (entityId: string) => LoreEntity | null;
   updateEntity: (entityId: string, updates: Partial<LoreEntity>) => void;
   deleteEntity: (entityId: string) => void;
 
@@ -672,6 +676,38 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     get().persistStore();
   },
 
+  duplicateFolder: (folderId) => {
+    const worldId = get().activeWorldId || sampleWorld.id;
+    const currentFolders = get().folders[worldId] || [];
+    const sourceFolder = currentFolders.find((f) => f.id === folderId);
+    if (!sourceFolder) return null;
+
+    const newFolder = get().createFolder(`${sourceFolder.name} (Copy)`, sourceFolder.parentId);
+
+    // Duplicate items in this folder
+    const dirList = get().directoryItems[worldId] || [];
+    const itemsInFolder = dirList.filter((d) => d.folderId === folderId);
+    itemsInFolder.forEach((item) => {
+      const cloned = get().duplicateDirectoryItem(item.id);
+      if (cloned) {
+        get().moveItemToFolder(cloned.id, newFolder.id);
+      }
+    });
+
+    // Recursively duplicate subfolders
+    const subfolders = currentFolders.filter((f) => f.parentId === folderId);
+    subfolders.forEach((sub) => {
+      const clonedSub = get().duplicateFolder(sub.id);
+      if (clonedSub) {
+        get().moveFolderToFolder(clonedSub.id, newFolder.id);
+      }
+    });
+
+    get().syncVaultDirectory(worldId);
+    get().persistStore();
+    return newFolder;
+  },
+
   toggleFolderOpen: (folderId) => {
     const worldId = get().activeWorldId;
     if (!worldId) return;
@@ -721,6 +757,135 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     }));
     get().persistStore();
     return newItem;
+  },
+
+  renameDirectoryItem: (itemId, newName) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const worldId = get().activeWorldId;
+    if (!worldId) return;
+    const dirList = get().directoryItems[worldId] || [];
+    const item = dirList.find((d) => d.id === itemId);
+    if (!item) return;
+
+    set((state) => ({
+      directoryItems: {
+        ...state.directoryItems,
+        [worldId]: (state.directoryItems[worldId] || []).map((d) =>
+          d.id === itemId ? { ...d, name: trimmed, updatedAt: new Date().toISOString() } : d
+        )
+      },
+      openTabs: state.openTabs.map((t) =>
+        (t.targetId === item.targetId || t.id === itemId) ? { ...t, title: trimmed } : t
+      )
+    }));
+
+    // Update target element
+    if (item.targetId) {
+      if (item.type === 'card' || item.type === 'wiki') {
+        get().updateEntity(item.targetId, { title: trimmed });
+      } else if (item.type === 'writer') {
+        const chap = (get().manuscripts[worldId] || []).find((c) => c.id === item.targetId);
+        if (chap) get().updateChapter(item.targetId, chap.content, trimmed);
+      } else if (item.type === 'map') {
+        get().updateMap(item.targetId, { name: trimmed });
+      } else if (item.type === 'canvas') {
+        get().updateCanvas(item.targetId, { name: trimmed });
+      } else if (item.type === 'timeline') {
+        set((state) => ({
+          timelines: {
+            ...state.timelines,
+            [worldId]: (state.timelines[worldId] || []).map((t) =>
+              t.id === item.targetId ? { ...t, title: trimmed } : t
+            )
+          }
+        }));
+      } else if (item.type === 'dictionary') {
+        get().updateLanguage(item.targetId, { name: trimmed });
+      }
+    }
+    get().persistStore();
+  },
+
+  duplicateDirectoryItem: (itemId) => {
+    const worldId = get().activeWorldId || sampleWorld.id;
+    const dirList = get().directoryItems[worldId] || [];
+    const item = dirList.find((d) => d.id === itemId);
+    if (!item) return null;
+
+    if ((item.type === 'card' || item.type === 'wiki') && item.targetId) {
+      const ent = get().duplicateEntity(item.targetId);
+      if (!ent) return null;
+      return (get().directoryItems[worldId] || []).find((d) => d.targetId === ent.id) || null;
+    }
+
+    if (item.type === 'writer' && item.targetId) {
+      const chaps = get().manuscripts[worldId] || [];
+      const src = chaps.find((c) => c.id === item.targetId);
+      if (src) {
+        const newId = `ch-${Date.now()}`;
+        const newTitle = `${src.title} (Copy)`;
+        const newChap = { ...src, id: newId, title: newTitle, order: chaps.length };
+        const newDirItem: DirectoryItem = {
+          id: `doc-chap-${newId}`,
+          worldId,
+          name: newTitle,
+          type: 'writer',
+          folderId: item.folderId,
+          targetId: newId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        set((state) => ({
+          manuscripts: {
+            ...state.manuscripts,
+            [worldId]: [...(state.manuscripts[worldId] || []), newChap]
+          },
+          directoryItems: {
+            ...state.directoryItems,
+            [worldId]: [...(state.directoryItems[worldId] || []), newDirItem]
+          }
+        }));
+        get().syncVaultDirectory(worldId);
+        get().persistStore();
+        return newDirItem;
+      }
+    }
+
+    if (item.type === 'canvas' && item.targetId) {
+      const canvases = get().canvases[worldId] || [];
+      const src = canvases.find((c) => c.id === item.targetId);
+      if (src) {
+        const newCanvas = get().createCanvas(`${src.name} (Copy)`, item.folderId);
+        get().saveCanvasNodesAndEdges(newCanvas.id, src.nodes || [], src.edges || []);
+        return (get().directoryItems[worldId] || []).find((d) => d.targetId === newCanvas.id) || null;
+      }
+    }
+
+    if (item.type === 'map' && item.targetId) {
+      const maps = get().maps[worldId] || [];
+      const src = maps.find((m) => m.id === item.targetId);
+      if (src) {
+        const newMap = get().createMap(`${src.name} (Copy)`, src.imageUrl, item.folderId);
+        if (src.pins?.length) {
+          src.pins.forEach((p) => {
+            get().addPinToMap(newMap.id, {
+              title: p.title,
+              description: p.description,
+              x: p.x,
+              y: p.y,
+              color: p.color,
+              icon: p.icon,
+              entityId: p.entityId,
+              subMapId: p.subMapId
+            });
+          });
+        }
+        return (get().directoryItems[worldId] || []).find((d) => d.targetId === newMap.id) || null;
+      }
+    }
+
+    return null;
   },
 
   deleteDirectoryItem: (itemId) => {
@@ -1168,7 +1333,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       relations: { ...state.relations, [newWorld.id]: [] },
       timelines: { ...state.timelines, [newWorld.id]: [] },
       manuscripts: { ...state.manuscripts, [newWorld.id]: [] },
-      calendars: { ...state.calendars, [newWorld.id]: initialCalendar }
+      calendars: { ...state.calendars, [newWorld.id]: initialCalendar },
+      categories: { ...state.categories, [newWorld.id]: DEFAULT_PRESET_CATEGORIES }
     }));
     get().syncVaultDirectory(newWorld.id);
     get().persistStore();
@@ -1246,7 +1412,9 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   createEntity: (type, title, folderId = null, templateId) => {
     const worldId = get().activeWorldId || sampleWorld.id;
     const worldName = get().worlds.find(w => w.id === worldId)?.name;
-    const template = templateId ? getTemplateById(templateId) : getTemplateForType(type);
+    const finalType = type || templateId || 'character';
+    const template = templateId ? getTemplateById(templateId) : getTemplateForType(finalType);
+    const catMeta = getCategoryMeta(finalType, get().categories[worldId] || []);
 
     const generatedSections: InfoboxSection[] = template?.sections ? template.sections.map((sec, sIdx) => ({
       ...sec,
@@ -1268,13 +1436,13 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       id: `entity-${Date.now()}`,
       worldId,
       title,
-      type: template?.entityType || type,
+      type: finalType,
       summary: '',
       content: template?.content || `<p>Start writing about <strong>${title}</strong> here...</p>`,
       tags: [],
       aliases: [],
       infobox: {
-        subtitle: `${template?.defaultSubtitle || type.toUpperCase()}${worldName ? ` · ${worldName}` : ''}`,
+        subtitle: `${catMeta.name.toUpperCase()}${worldName ? ` · ${worldName}` : ''}`,
         sections: generatedSections
       },
       createdAt: new Date().toISOString(),
@@ -1314,6 +1482,70 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       targetId: newEntity.id
     });
 
+    get().persistStore();
+    return newEntity;
+  },
+
+  duplicateEntity: (entityId) => {
+    const worldId = get().activeWorldId || sampleWorld.id;
+    const currentList = get().entities[worldId] || [];
+    const source = currentList.find((e) => e.id === entityId);
+    if (!source) return null;
+
+    const newId = `entity-${Date.now()}`;
+    const newTitle = `${source.title} (Copy)`;
+    const newEntity: LoreEntity = {
+      ...source,
+      id: newId,
+      title: newTitle,
+      infobox: source.infobox ? {
+        ...source.infobox,
+        sections: source.infobox.sections ? source.infobox.sections.map((sec, sIdx) => ({
+          ...sec,
+          fields: sec.fields.map((f, fIdx) => ({
+            ...f,
+            id: `f-${Date.now()}-${sIdx}-${fIdx}`
+          }))
+        })) : []
+      } : { sections: [] },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const dirList = get().directoryItems[worldId] || [];
+    const sourceDirItem = dirList.find((d) => d.targetId === entityId);
+    const folderId = sourceDirItem?.folderId || null;
+
+    const newDirItem: DirectoryItem = {
+      id: `doc-card-${newEntity.id}`,
+      worldId,
+      name: newEntity.title,
+      type: 'card',
+      folderId,
+      targetId: newEntity.id,
+      createdAt: newEntity.createdAt,
+      updatedAt: newEntity.updatedAt
+    };
+
+    set((state) => ({
+      entities: {
+        ...state.entities,
+        [worldId]: [newEntity, ...(state.entities[worldId] || [])]
+      },
+      directoryItems: {
+        ...state.directoryItems,
+        [worldId]: [...(state.directoryItems[worldId] || []), newDirItem]
+      },
+      selectedEntityId: newEntity.id
+    }));
+
+    get().openTab({
+      title: newEntity.title,
+      type: 'card',
+      targetId: newEntity.id
+    });
+
+    get().syncVaultDirectory(worldId);
     get().persistStore();
     return newEntity;
   },
@@ -2238,5 +2470,16 @@ if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
     useWorldStore.getState().flushSave();
   });
+}
+
+if (typeof globalThis !== 'undefined') {
+  ;(globalThis as any).__getOrosCategories = () => {
+    try {
+      const s = useWorldStore.getState();
+      return s.activeWorldId ? (s.categories[s.activeWorldId] || []) : [];
+    } catch {
+      return [];
+    }
+  };
 }
 

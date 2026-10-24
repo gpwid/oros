@@ -46,6 +46,7 @@ export interface LoreEntity {
   aliases: string[];
   infobox: {
     subtitle?: string;
+    imageCaption?: string;
     sections: InfoboxSection[];
   };
   isSecret?: boolean;

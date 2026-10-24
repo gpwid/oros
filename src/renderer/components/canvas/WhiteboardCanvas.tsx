@@ -121,6 +121,126 @@ export const CanvasPeekContext = React.createContext<{
   openPeek: (id: string) => void
 }>({ openPeek: () => {} })
 
+export interface CanvasQuickConnectContextType {
+  quickConnect: (sourceNodeId: string, direction: 'top' | 'bottom' | 'left' | 'right') => void
+}
+
+export const CanvasQuickConnectContext = React.createContext<CanvasQuickConnectContextType | null>(null)
+
+interface CardinalHandleItemProps {
+  nodeId: string
+  dir: 'top' | 'bottom' | 'left' | 'right'
+  position: Position
+  arrowPath: string
+  isConnectable?: boolean
+}
+
+const CardinalHandleItem: React.FC<CardinalHandleItemProps> = ({
+  nodeId,
+  dir,
+  position,
+  arrowPath,
+  isConnectable = true
+}) => {
+  const quickConnectContext = useContext(CanvasQuickConnectContext)
+  const pointerStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
+  const lastTriggerRef = useRef<number>(0)
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerStartRef.current = { x: e.clientX, y: e.clientY, time: Date.now() }
+  }
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!pointerStartRef.current) return
+    const dx = e.clientX - pointerStartRef.current.x
+    const dy = e.clientY - pointerStartRef.current.y
+    const dist = Math.hypot(dx, dy)
+    const dt = Date.now() - pointerStartRef.current.time
+    pointerStartRef.current = null
+
+    if (dist < 6 && dt < 450) {
+      const now = Date.now()
+      if (now - lastTriggerRef.current > 300) {
+        lastTriggerRef.current = now
+        e.stopPropagation()
+        quickConnectContext?.quickConnect(nodeId, dir)
+      }
+    }
+  }
+
+  return (
+    <div className="contents">
+      {/* Target Handle: enables dropping incoming edges with exact cardinal ID */}
+      <Handle
+        type="target"
+        position={position}
+        id={dir}
+        isConnectable={isConnectable}
+        className="!w-4 !h-4 !opacity-0 !border-none !bg-transparent pointer-events-auto"
+      />
+
+      {/* Source Handle: prominent circular port with hover expansion, arrow indicator, and click-to-connect */}
+      <Handle
+        type="source"
+        position={position}
+        id={dir}
+        isConnectable={isConnectable}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        title="Drag to connect arrow, or click to spawn connected element"
+        className="!w-3 !h-3 hover:!w-6 hover:!h-6 !bg-accent hover:!bg-accent !text-accent-contrast !border-2 !border-oros-950 hover:!border-white !rounded-full !shadow-md hover:!shadow-2xl hover:!ring-4 hover:!ring-accent/30 opacity-0 group-hover:opacity-100 transition-all duration-150 cursor-crosshair flex items-center justify-center overflow-visible z-10"
+      >
+        <svg
+          className="w-3 h-3 stroke-[2.5] opacity-0 hover:opacity-100 transition-opacity duration-150 pointer-events-none shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <path d={arrowPath} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </Handle>
+    </div>
+  )
+}
+
+export const CanvasCardinalHandles: React.FC<{ nodeId: string; isConnectable?: boolean }> = ({
+  nodeId,
+  isConnectable = true
+}) => {
+  return (
+    <>
+      <CardinalHandleItem
+        nodeId={nodeId}
+        dir="top"
+        position={Position.Top}
+        arrowPath="M12 19V5M5 12l7-7 7 7"
+        isConnectable={isConnectable}
+      />
+      <CardinalHandleItem
+        nodeId={nodeId}
+        dir="bottom"
+        position={Position.Bottom}
+        arrowPath="M12 5v14M5 12l7 7 7-7"
+        isConnectable={isConnectable}
+      />
+      <CardinalHandleItem
+        nodeId={nodeId}
+        dir="left"
+        position={Position.Left}
+        arrowPath="M19 12H5M12 19l-7-7 7-7"
+        isConnectable={isConnectable}
+      />
+      <CardinalHandleItem
+        nodeId={nodeId}
+        dir="right"
+        position={Position.Right}
+        arrowPath="M5 12h14M12 5l7 7-7 7"
+        isConnectable={isConnectable}
+      />
+    </>
+  )
+}
+
 // 1. Draggable Character / Lore Card Node
 const BASE_CARD_WIDTH = 180
 const BASE_CARD_HEIGHT = 250
@@ -211,8 +331,8 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             )
           )
         }}
-        handleClassName="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !rounded-full shadow-md"
-        lineClassName="!border-accent/60"
+        handleClassName="!w-3.5 !h-3.5 !bg-accent !border-2 !border-oros-950 !rounded-none shadow-md hover:scale-110 transition-transform"
+        lineClassName="!border-accent/70 !border-dashed"
       />
 
       {selected && selectedCount <= 1 && (
@@ -263,11 +383,8 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           selected ? 'border-accent ring-2 ring-accent/40' : 'border-oros-800/80 hover:border-oros-700'
         }`}
       >
-        {/* 4 Cardinal Handles - only visible on hover */}
-        <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        {/* Cardinal Handles: circles with arrow on hover and click-to-connect */}
+        <CanvasCardinalHandles nodeId={id} />
 
         {/* Card Portrait Banner (flex-1 fills available space cleanly) */}
         <div className="flex-1 w-full min-h-0 bg-oros-900 relative overflow-hidden rounded-t-[4px]">
@@ -533,8 +650,8 @@ const StickyNoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             )
           )
         }}
-        handleClassName="!w-2.5 !h-2.5 !bg-accent !border-2 !border-white !rounded-full shadow-md"
-        lineClassName="!border-accent/60"
+        handleClassName="!w-3.5 !h-3.5 !bg-accent !border-2 !border-oros-950 !rounded-none shadow-md hover:scale-110 transition-transform"
+        lineClassName="!border-accent/70 !border-dashed"
       />
 
       {selected && selectedCount <= 1 && (
@@ -694,11 +811,8 @@ const StickyNoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             : 'hover:shadow-xl cursor-grab active:cursor-grabbing'
         }`}
       >
-        {/* 4 Cardinal Handles - only visible on hover */}
-        <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-white !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-white !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-white !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-white !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        {/* Cardinal Handles: circles with arrow on hover and click-to-connect */}
+        <CanvasCardinalHandles nodeId={id} />
 
         {/* Notepad Pin & Title */}
         <div
@@ -1083,8 +1197,8 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             )
           )
         }}
-        handleClassName="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !rounded-full shadow-md"
-        lineClassName="!border-accent/60"
+        handleClassName="!w-3.5 !h-3.5 !bg-accent !border-2 !border-oros-950 !rounded-none shadow-md hover:scale-110 transition-transform"
+        lineClassName="!border-accent/70 !border-dashed"
       />
 
       {/* Rotation stalk knob above the shape for quick drag rotation */}
@@ -1361,11 +1475,8 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           selected && selectedCount <= 1 ? 'ring-2 ring-accent/60 rounded-[4px]' : ''
         }`}
       >
-        {/* 4 Cardinal Handles - visible on hover */}
-        <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-        <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+        {/* Cardinal Handles: circles with arrow on hover and click-to-connect */}
+        <CanvasCardinalHandles nodeId={id} />
 
         {/* 1. Parallelogram */}
         {type === 'parallelogram' && (
@@ -1692,8 +1803,8 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             )
           )
         }}
-        handleClassName="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !rounded-full shadow-md"
-        lineClassName="!border-accent/60"
+        handleClassName="!w-3.5 !h-3.5 !bg-accent !border-2 !border-oros-950 !rounded-none shadow-md hover:scale-110 transition-transform"
+        lineClassName="!border-accent/70 !border-dashed"
       />
 
       {selected && selectedCount <= 1 && (
@@ -1853,15 +1964,12 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           e.stopPropagation()
           setIsEditing(true)
         }}
-        className={`relative w-full h-full px-3 py-1.5 rounded-[4px] select-none transition-colors duration-150 cursor-move flex items-center ${
+        className={`relative w-full h-full px-3 py-1.5 rounded-[4px] select-none transition-colors duration-150 cursor-move flex items-center group ${
           selected ? 'ring-1 ring-accent bg-oros-900/40' : 'hover:bg-oros-900/20'
         }`}
       >
-        {/* 4 Cardinal Handles */}
-        <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-accent !border !border-oros-950 !-top-1" />
-        <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-accent !border !border-oros-950 !-bottom-1" />
-        <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-accent !border !border-oros-950 !-left-1" />
-        <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-accent !border !border-oros-950 !-right-1" />
+        {/* Cardinal Handles: circles with arrow on hover and click-to-connect */}
+        <CanvasCardinalHandles nodeId={id} />
 
         {isEditing ? (
           <textarea
@@ -2015,8 +2123,8 @@ const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             )
           )
         }}
-        handleClassName="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !rounded-full shadow-md pointer-events-auto"
-        lineClassName="!border-accent/60 pointer-events-auto"
+        handleClassName="!w-3.5 !h-3.5 !bg-accent !border-2 !border-oros-950 !rounded-none shadow-md hover:scale-110 transition-transform pointer-events-auto"
+        lineClassName="!border-accent/70 !border-dashed pointer-events-auto"
       />
 
       {/* 4 Handles - keep opacity-0 and pointer-events-none */}
@@ -2175,8 +2283,8 @@ const CanvasImageNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             )
           )
         }}
-        handleClassName="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !rounded-full shadow-md"
-        lineClassName="!border-accent/60"
+        handleClassName="!w-3.5 !h-3.5 !bg-accent !border-2 !border-oros-950 !rounded-none shadow-md hover:scale-110 transition-transform"
+        lineClassName="!border-accent/70 !border-dashed"
       />
 
       {selected && (
@@ -2219,30 +2327,8 @@ const CanvasImageNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         } ${selected ? 'ring-2 ring-accent shadow-2xl' : 'hover:border-oros-700'}`}
       >
         {/* 4 Cardinal Handles - visible on hover */}
-        <Handle
-          type="source"
-          position={Position.Top}
-          id="top"
-          className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-top-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-        />
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          id="bottom"
-          className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-        />
-        <Handle
-          type="source"
-          position={Position.Left}
-          id="left"
-          className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-left-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-        />
-        <Handle
-          type="source"
-          position={Position.Right}
-          id="right"
-          className="!w-2.5 !h-2.5 !bg-accent !border-2 !border-oros-950 !-right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-        />
+        {/* Cardinal Handles: circles with arrow on hover and click-to-connect */}
+        <CanvasCardinalHandles nodeId={id} />
 
         {/* Image Display */}
         <div className={`flex-1 w-full min-h-0 relative overflow-hidden ${hasFrame ? 'rounded-[2px]' : radiusClass}`}>
@@ -2261,43 +2347,41 @@ const CanvasImageNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           )}
         </div>
 
-        {/* Optional Caption */}
-        {hasFrame && (
-          <div className="mt-1.5 shrink-0 px-1">
-            {isEditingCaption ? (
-              <input
-                type="text"
-                autoFocus
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                onBlur={() => {
+        {/* Editable Image Label / Caption */}
+        <div className={`mt-1.5 shrink-0 px-1 ${hasFrame ? '' : 'absolute bottom-1 inset-x-2 bg-oros-950/85 backdrop-blur-sm rounded-[3px] border border-oros-800/60 py-0.5'}`}>
+          {isEditingCaption ? (
+            <input
+              type="text"
+              autoFocus
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              onBlur={() => {
+                setIsEditingCaption(false)
+                reactFlow.setNodes((nds) =>
+                  nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, caption } } : n))
+                )
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
                   setIsEditingCaption(false)
                   reactFlow.setNodes((nds) =>
                     nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, caption } } : n))
                   )
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    setIsEditingCaption(false)
-                    reactFlow.setNodes((nds) =>
-                      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, caption } } : n))
-                    )
-                  }
-                }}
-                className="w-full bg-oros-900 border border-oros-700 rounded px-1.5 py-0.5 text-[11px] font-sans text-oros-200 outline-none"
-                placeholder="Caption..."
-              />
-            ) : (
-              <div
-                onClick={() => setIsEditingCaption(true)}
-                className="text-[11px] font-sans text-oros-400 hover:text-oros-200 truncate cursor-text text-center py-0.5"
-                title="Click to edit caption"
-              >
-                {caption || <span className="opacity-0 group-hover:opacity-60 italic text-[10px]">Add caption...</span>}
-              </div>
-            )}
-          </div>
-        )}
+                }
+              }}
+              className="w-full bg-oros-900 border border-oros-700 rounded px-1.5 py-0.5 text-[11px] font-sans text-oros-200 outline-none"
+              placeholder="Image label / caption..."
+            />
+          ) : (
+            <div
+              onClick={() => setIsEditingCaption(true)}
+              className="text-[11px] font-sans text-oros-400 hover:text-oros-200 truncate cursor-text text-center py-0.5 flex items-center justify-center gap-1"
+              title="Click to edit image label"
+            >
+              <span>{caption || <span className="opacity-0 group-hover:opacity-60 italic text-[10px]">Add image label...</span>}</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -2313,6 +2397,8 @@ export interface Point {
 
 export interface WhiteboardEdgeData {
   label?: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
   edgeType?: 'smoothstep' | 'bezier' | 'straight';
   strokeColor?: string;
   strokeWidth?: number;
@@ -2558,6 +2644,8 @@ const WhiteboardCustomEdge: React.FC<EdgeProps> = ({
   targetY,
   sourcePosition,
   targetPosition,
+  sourceHandleId,
+  targetHandleId,
   style = {},
   data,
   selected,
@@ -2574,6 +2662,20 @@ const WhiteboardCustomEdge: React.FC<EdgeProps> = ({
   const strokePattern = edgeData.strokePattern || 'solid'
   const isAnimated = Boolean(edgeData.isAnimated)
   const label = edgeData.label
+
+  const resolveEffectivePosition = (handleId?: string | null, fallback?: Position): Position => {
+    if (handleId) {
+      const h = handleId.toLowerCase()
+      if (h.includes('left')) return Position.Left
+      if (h.includes('right')) return Position.Right
+      if (h.includes('top')) return Position.Top
+      if (h.includes('bottom')) return Position.Bottom
+    }
+    return fallback || Position.Right
+  }
+
+  const effectiveSourcePosition = resolveEffectivePosition(sourceHandleId || edgeData.sourceHandle, sourcePosition)
+  const effectiveTargetPosition = resolveEffectivePosition(targetHandleId || edgeData.targetHandle, targetPosition)
 
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [isEditingLabel, setIsEditingLabel] = useState(false)
@@ -2607,10 +2709,10 @@ const WhiteboardCustomEdge: React.FC<EdgeProps> = ({
       return cloned
     }
     return computeOrthogonalWaypoints(
-      { x: sourceX, y: sourceY, position: sourcePosition },
-      { x: targetX, y: targetY, position: targetPosition }
+      { x: sourceX, y: sourceY, position: effectiveSourcePosition },
+      { x: targetX, y: targetY, position: effectiveTargetPosition }
     )
-  }, [edgeData.waypoints, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition])
+  }, [edgeData.waypoints, sourceX, sourceY, targetX, targetY, effectiveSourcePosition, effectiveTargetPosition])
 
   let edgePath = ''
   let labelX = (sourceX + targetX) / 2
@@ -2625,10 +2727,10 @@ const WhiteboardCustomEdge: React.FC<EdgeProps> = ({
     const [path, lx, ly] = getBezierPath({
       sourceX,
       sourceY,
-      sourcePosition,
+      sourcePosition: effectiveSourcePosition,
       targetX,
       targetY,
-      targetPosition,
+      targetPosition: effectiveTargetPosition,
       curvature: 0.35
     })
     edgePath = path
@@ -3672,6 +3774,8 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
       style: { stroke: defaultArrowSettings.strokeColor, strokeWidth: defaultArrowSettings.strokeWidth },
       data: {
         ...defaultArrowSettings,
+        sourceHandle: connection.sourceHandle,
+        targetHandle: connection.targetHandle,
         label: ''
       },
       markerEnd: markers.markerEnd,
@@ -3687,6 +3791,103 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     setSelectedEdgeId(newEdge.id)
     addToast('Connection created', 'info')
   }, [nodes, currentCanvas, saveCanvasNodesAndEdges, defaultArrowSettings, themeTokens.accent, addToast])
+
+  // Quick connect: pressing a handle circle automatically creates an adjacent corresponding element + arrow
+  const handleQuickConnect = useCallback((sourceNodeId: string, direction: 'top' | 'bottom' | 'left' | 'right') => {
+    const sourceNode = reactFlowInstance?.getNode(sourceNodeId) || nodes.find((n) => n.id === sourceNodeId)
+    if (!sourceNode) return
+
+    takeSnapshot()
+
+    const defaultDims = getDefaultDimensions(sourceNode.type, sourceNode.data)
+    const nodeWidth = Number(sourceNode.width) || Number(sourceNode.style?.width) || defaultDims.width || 220
+    const nodeHeight = Number(sourceNode.height) || Number(sourceNode.style?.height) || defaultDims.height || 180
+
+    const gap = 90
+    let newX = sourceNode.position.x
+    let newY = sourceNode.position.y
+    let targetHandle: 'top' | 'bottom' | 'left' | 'right' = 'left'
+
+    if (direction === 'right') {
+      newX = sourceNode.position.x + nodeWidth + gap
+      newY = sourceNode.position.y
+      targetHandle = 'left'
+    } else if (direction === 'left') {
+      newX = sourceNode.position.x - nodeWidth - gap
+      newY = sourceNode.position.y
+      targetHandle = 'right'
+    } else if (direction === 'bottom') {
+      newX = sourceNode.position.x
+      newY = sourceNode.position.y + nodeHeight + gap
+      targetHandle = 'top'
+    } else if (direction === 'top') {
+      newX = sourceNode.position.x
+      newY = sourceNode.position.y - nodeHeight - gap
+      targetHandle = 'bottom'
+    }
+
+    const newNodeId = `${sourceNode.type || 'node'}-${Date.now()}`
+    
+    // Clone data cleanly based on node type
+    const clonedData: Record<string, any> = { ...(sourceNode.data || {}), id: newNodeId }
+    if (sourceNode.type === 'shape') {
+      clonedData.label = ''
+    } else if (sourceNode.type === 'stickyNote') {
+      clonedData.title = 'New Note'
+      clonedData.body = ''
+    } else if (sourceNode.type === 'canvasText') {
+      clonedData.text = 'Text'
+    }
+
+    const newNode: Node = {
+      id: newNodeId,
+      type: sourceNode.type,
+      position: { x: Math.round(newX), y: Math.round(newY) },
+      style: { ...sourceNode.style, width: nodeWidth, height: nodeHeight },
+      data: clonedData,
+      selected: true
+    }
+
+    const markers = getEdgeMarkerConfig(
+      defaultArrowSettings.arrowDirection,
+      defaultArrowSettings.strokeColor || themeTokens.accent,
+      defaultArrowSettings.strokeWidth
+    )
+
+    const newEdge: Edge = {
+      id: `edge-${Date.now()}`,
+      source: sourceNode.id,
+      target: newNodeId,
+      sourceHandle: direction,
+      targetHandle: targetHandle,
+      type: 'whiteboardEdge',
+      animated: defaultArrowSettings.isAnimated,
+      style: { stroke: defaultArrowSettings.strokeColor, strokeWidth: defaultArrowSettings.strokeWidth },
+      data: {
+        ...defaultArrowSettings,
+        sourceHandle: direction,
+        targetHandle: targetHandle,
+        label: ''
+      },
+      markerEnd: markers.markerEnd,
+      markerStart: markers.markerStart
+    }
+
+    setNodes((nds) => {
+      const unselected = nds.map((n) => ({ ...n, selected: false }))
+      const updated = [...unselected, newNode]
+      setEdges((eds) => {
+        const updatedEdges = [...eds, newEdge]
+        if (currentCanvas) {
+          saveCanvasNodesAndEdges(currentCanvas.id, updated, updatedEdges)
+        }
+        return updatedEdges
+      })
+      return updated
+    })
+
+    addToast('Connected element created', 'success')
+  }, [reactFlowInstance, nodes, edges, takeSnapshot, defaultArrowSettings, themeTokens.accent, currentCanvas, saveCanvasNodesAndEdges, addToast])
 
   // Update selected edge properties live
   const handleUpdateEdge = useCallback((id: string, updates: Partial<WhiteboardEdgeData>) => {
@@ -3814,6 +4015,10 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     deleteEdge: handleDeleteEdge,
     updateWaypoints: handleUpdateWaypoints
   }), [handleUpdateEdge, handleReverseEdge, handleDeleteEdge, handleUpdateWaypoints])
+
+  const quickConnectValue = useMemo(() => ({
+    quickConnect: handleQuickConnect
+  }), [handleQuickConnect])
 
   // Window-level Del / Backspace shortcut listener for Whiteboard elements
   useEffect(() => {
@@ -4391,7 +4596,8 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     >
       {/* React Flow Infinite Canvas */}
       <EdgeActionContext.Provider value={edgeActionsValue}>
-        <ReactFlow
+        <CanvasQuickConnectContext.Provider value={quickConnectValue}>
+          <ReactFlow
           nodes={nodes}
           edges={edges}
           colorMode={isLight ? 'light' : 'dark'}
@@ -4520,7 +4726,8 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             </svg>
           )}
         </ReactFlow>
-      </EdgeActionContext.Provider>
+      </CanvasQuickConnectContext.Provider>
+    </EdgeActionContext.Provider>
 
       {/* Direct Image Drop Zone Feedback Overlay */}
       {isDraggingOver && (

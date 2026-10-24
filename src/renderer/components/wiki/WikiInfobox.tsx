@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { LoreEntity, InfoboxField } from '@shared/types'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
-import { Plus, Trash2, ExternalLink, Camera, Image as ImageIcon } from 'lucide-react'
+import { Plus, Trash2, ExternalLink, Camera, Image as ImageIcon, Edit2 } from 'lucide-react'
 
 interface WikiInfoboxProps {
   entity: LoreEntity;
@@ -15,6 +15,7 @@ export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, isEditing = fa
   const { addToast } = useToastStore()
   const [newFieldLabel, setNewFieldLabel] = useState('')
   const [newFieldValue, setNewFieldValue] = useState('')
+  const [isEditingImageLabel, setIsEditingImageLabel] = useState(false)
 
   const allEntities = activeWorldId ? entities[activeWorldId] || [] : []
 
@@ -189,9 +190,32 @@ export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, isEditing = fa
           </button>
         )}
 
-        <span className="block text-[10px] text-oros-500 font-mono mt-1.5">
-          Archival visual record: {entity.title}
-        </span>
+        {/* Editable Image Label / Caption */}
+        {isEditing || isEditingImageLabel ? (
+          <input
+            type="text"
+            autoFocus={isEditingImageLabel}
+            value={entity.infobox.imageCaption !== undefined ? entity.infobox.imageCaption : `Archival visual record: ${entity.title}`}
+            placeholder="Image caption or label..."
+            onChange={(e) => onUpdate({ infobox: { ...entity.infobox, imageCaption: e.target.value } })}
+            onBlur={() => setIsEditingImageLabel(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') setIsEditingImageLabel(false)
+            }}
+            className="text-[10px] text-center text-oros-200 bg-oros-900 border border-oros-750 focus:border-accent rounded px-2 py-0.5 font-mono mt-1.5 w-full focus:outline-none shadow-sm"
+          />
+        ) : (
+          <div
+            onClick={() => setIsEditingImageLabel(true)}
+            className="group/caption flex items-center justify-center gap-1 cursor-pointer py-0.5 px-1 rounded hover:bg-oros-900/60 transition-colors mt-1.5"
+            title="Click to edit image label"
+          >
+            <span className="text-[10px] text-oros-400 group-hover/caption:text-oros-200 font-mono truncate max-w-full">
+              {entity.infobox.imageCaption || `Archival visual record: ${entity.title}`}
+            </span>
+            <Edit2 className="w-2.5 h-2.5 text-oros-500 opacity-0 group-hover/caption:opacity-100 transition-opacity shrink-0" />
+          </div>
+        )}
       </div>
 
       {/* Sections & Key-Value Attributes */}

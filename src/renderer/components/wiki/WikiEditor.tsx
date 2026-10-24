@@ -8,7 +8,7 @@ import { useToastStore } from '../../store/useToastStore'
 import { 
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, 
   List, ListOrdered, Quote, Undo, Redo, AtSign, Image as ImageIcon,
-  EyeOff
+  EyeOff, Code, Terminal
 } from 'lucide-react'
 import { Spoiler } from './spoilerExtension'
 
@@ -143,6 +143,22 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
             title="Strikethrough"
           >
             <Strikethrough className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().toggleCode().run()}
+            className={`p-1.5 rounded-[3px] transition-colors ${editor.isActive('code') ? 'text-accent bg-accent-muted border border-accent/30 font-medium' : 'hover:bg-oros-850 hover:text-oros-100 text-oros-400 border border-transparent'}`}
+            title="Monospace / Inline Code (Ctrl+E or `code`)"
+          >
+            <Code className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            className={`p-1.5 rounded-[3px] transition-colors ${editor.isActive('codeBlock') ? 'text-accent bg-accent-muted border border-accent/30 font-medium' : 'hover:bg-oros-850 hover:text-oros-100 text-oros-400 border border-transparent'}`}
+            title="Monospace Block / Code Block (```)"
+          >
+            <Terminal className="w-3.5 h-3.5" />
           </button>
 
           <div className="w-[1px] h-4 bg-oros-750 mx-1" />

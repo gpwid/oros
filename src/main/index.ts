@@ -167,8 +167,8 @@ function createSplashWindow(): void {
   const icon = getAppIcon()
 
   splashWindow = new BrowserWindow({
-    width: 440,
-    height: 250,
+    width: 320,
+    height: 200,
     frame: false,
     resizable: false,
     show: false,
@@ -176,7 +176,7 @@ function createSplashWindow(): void {
     alwaysOnTop: true,
     transparent: true,
     backgroundColor: '#00000000',
-    title: 'Oros Launcher',
+    title: 'Oros',
     icon,
     webPreferences: {
       preload: preloadPath,

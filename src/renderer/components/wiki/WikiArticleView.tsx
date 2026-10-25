@@ -9,7 +9,7 @@ import { QuickPeekCard } from '../common/QuickPeekCard'
 import { 
   Plus, Edit, Eye, Trash2, Tag, BookOpen, Link2, List, Filter, ChevronDown, SlidersHorizontal,
   ChevronsLeft, ChevronsRight, EyeOff, Feather, MapPin, Calendar, GitFork, FileText, ExternalLink,
-  BookOpenCheck, Languages
+  BookOpenCheck, Languages, ArrowRight
 } from 'lucide-react'
 import { EntityType, LoreEntity, ConlangWord } from '@shared/types'
 import { 
@@ -18,8 +18,11 @@ import {
   getCategoryMeta 
 } from '../../utils/categoryIcons'
 import { CategoryManagerModal } from '../common/CategoryManagerModal'
-import { findBacklinksForEntity } from '../../utils/backlinksEngine'
+import { findBacklinksForEntity, findForwardLinksForEntity, ForwardLinkItem } from '../../utils/backlinksEngine'
 import { useSettingsStore } from '../../store/useSettingsStore'
+import { ExportDropdown, ExportOption, createObsidianExportOption } from '../common/ExportDropdown'
+import { exportWorldToObsidianJson, downloadFile } from '../../utils/exportUtils'
+import { exportWorldToObsidianFiles } from '../../utils/obsidianBridge'
 
 interface WikiArticleViewProps {
   entityId?: string
@@ -30,7 +33,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
     entities, categories, activeWorldId, selectedEntityId, setSelectedEntityId, openTab,
     updateEntity, createEntity, deleteEntity, searchQuery, gmMode,
     manuscripts, maps, timelines, relations, conlangs, setSelectedChapterId, setSelectedMapId,
-    openReaderMode
+    openReaderMode, worlds, folders, directoryItems
   } = useWorldStore()
 
   const { addToast } = useToastStore()
@@ -52,6 +55,7 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
   const [showCategoryManager, setShowCategoryManager] = useState(false)
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [hoveredEntity, setHoveredEntity] = useState<LoreEntity | null>(null)
+  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null)
   const [isTocCollapsed, setIsTocCollapsed] = useState(false)
   const [isDirectoryOpen, setIsDirectoryOpen] = useState(true)
   const [backlinkFilter, setBacklinkFilter] = useState<'all' | 'chapters' | 'lore' | 'maps' | 'timelines' | 'relations'>('all')
@@ -241,6 +245,147 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
     deleteEntity(currentEntity.id)
     setShowDeleteModal(false)
     addToast(`Deleted article: ${title}`, 'info')
+  }
+
+  // Outgoing forward links index
+  const forwardLinksData = useMemo(() => {
+    if (!currentEntity) return []
+    return findForwardLinksForEntity(currentEntity, worldEntities)
+  }, [currentEntity, worldEntities])
+
+  const activeWorld = useMemo(() => worlds.find(w => w.id === activeWorldId), [worlds, activeWorldId])
+  const worldFolders = useMemo(() => activeWorldId ? (folders[activeWorldId] || []) : [], [activeWorldId, folders])
+  const worldDirectoryItems = useMemo(() => activeWorldId ? (directoryItems[activeWorldId] || []) : [], [activeWorldId, directoryItems])
+
+  const handleExportObsidianVault = async () => {
+    try {
+      const worldName = activeWorld?.name || 'Oros World'
+      await exportWorldToObsidianJson(worldName, worldEntities, worldFolders, worldDirectoryItems)
+      addToast(`Exported "${worldName}" as Obsidian Markdown Vault bundle`, 'success')
+    } catch (err) {
+      console.error('Failed to export Obsidian vault:', err)
+      addToast('Failed to export Obsidian vault', 'error')
+    }
+  }
+
+  const handleExportCurrentArticleMd = async () => {
+    if (!currentEntity) return
+    try {
+      const singleExport = exportWorldToObsidianFiles(activeWorld?.name || 'World', [currentEntity])
+      const filePath = Object.keys(singleExport.files)[0]
+      const fileContent = singleExport.files[filePath]
+      const fileName = filePath.split('/').pop() || `${currentEntity.title}.md`
+      await downloadFile(fileContent, fileName, 'text/markdown')
+      addToast(`Exported "${currentEntity.title}" as Markdown`, 'success')
+    } catch (err) {
+      console.error('Failed to export article markdown:', err)
+      addToast('Failed to export article', 'error')
+    }
+  }
+
+  const articleExportOptions: ExportOption[] = useMemo(() => {
+    return [
+      createObsidianExportOption(handleExportObsidianVault, 'Export Obsidian Vault'),
+      {
+        id: 'export-article-md',
+        label: 'Current Article (Markdown)',
+        badge: 'MD' as const,
+        onClick: handleExportCurrentArticleMd
+      }
+    ]
+  }, [activeWorld?.name, worldEntities, worldFolders, worldDirectoryItems, currentEntity])
+
+
+  // Hover preview & click navigation handlers for .oros-wiki-prose
+  const handleProseMouseOver = (e: React.MouseEvent) => {
+    const linkEl = (e.target as HTMLElement).closest('.oros-wiki-link, .oros-mention') as HTMLElement | null
+    if (!linkEl) return
+
+    const dataId = linkEl.getAttribute('data-id')
+    const dataTitle = linkEl.getAttribute('data-title') || linkEl.getAttribute('data-label') || linkEl.textContent?.replace(/^\[\[/, '').replace(/\]\]$/, '').trim()
+
+    let entity: LoreEntity | undefined
+    if (dataId) {
+      entity = worldEntities.find(ent => ent.id === dataId)
+    }
+    if (!entity && dataTitle) {
+      const titleLower = dataTitle.toLowerCase()
+      entity = worldEntities.find(ent => 
+        ent.title.toLowerCase() === titleLower || 
+        ent.aliases?.some(a => a.toLowerCase() === titleLower)
+      )
+    }
+
+    if (entity) {
+      const rect = linkEl.getBoundingClientRect()
+      const x = Math.min(Math.max(16, rect.left), window.innerWidth - 340)
+      const popoverHeight = 320
+      const fitsBelow = rect.bottom + 8 + popoverHeight < window.innerHeight
+      const y = fitsBelow ? rect.bottom + 8 : Math.max(16, rect.top - popoverHeight - 8)
+      setHoverPosition({ x, y })
+      setHoveredEntity(entity)
+    }
+  }
+
+  const handleProseMouseOut = (e: React.MouseEvent) => {
+    const related = e.relatedTarget as HTMLElement | null
+    const currentLink = (e.target as HTMLElement).closest('.oros-wiki-link, .oros-mention')
+    const nextLink = related?.closest('.oros-wiki-link, .oros-mention')
+    if (currentLink && currentLink !== nextLink) {
+      setHoveredEntity(null)
+      setHoverPosition(null)
+    }
+  }
+
+  const handleProseClick = (e: React.MouseEvent) => {
+    // 1. Spoilers toggle
+    const spoiler = (e.target as HTMLElement).closest('.oros-spoiler')
+    if (spoiler) {
+      spoiler.classList.toggle('is-revealed')
+      return
+    }
+
+    // 2. Delegated link navigation for wiki links and mentions
+    const linkEl = (e.target as HTMLElement).closest('.oros-wiki-link, .oros-mention') as HTMLElement | null
+    if (linkEl) {
+      e.preventDefault()
+      e.stopPropagation()
+
+      const dataId = linkEl.getAttribute('data-id')
+      const dataTitle = linkEl.getAttribute('data-title') || linkEl.getAttribute('data-label') || linkEl.textContent?.replace(/^\[\[/, '').replace(/\]\]$/, '').trim()
+
+      let targetEntity: LoreEntity | undefined
+      if (dataId) {
+        targetEntity = worldEntities.find(ent => ent.id === dataId)
+      }
+      if (!targetEntity && dataTitle) {
+        const titleLower = dataTitle.toLowerCase()
+        targetEntity = worldEntities.find(ent => 
+          ent.title.toLowerCase() === titleLower || 
+          ent.aliases?.some(a => a.toLowerCase() === titleLower)
+        )
+      }
+
+      if (targetEntity) {
+        setHoveredEntity(null)
+        setHoverPosition(null)
+        setSelectedEntityId(targetEntity.id)
+        openTab({
+          title: targetEntity.title,
+          type: 'wiki',
+          targetId: targetEntity.id
+        })
+      } else if (dataId) {
+        setHoveredEntity(null)
+        setHoverPosition(null)
+        setSelectedEntityId(dataId)
+        openTab({
+          title: dataTitle || 'Article',
+          type: 'wiki',
+          targetId: dataId
+        })
+      }
+    }
   }
 
   return (
@@ -542,6 +687,11 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                   <BookOpenCheck className="w-3.5 h-3.5 text-accent" />
                   <span className="hidden sm:inline">Codex Reader</span>
                 </button>
+                <ExportDropdown
+                  options={articleExportOptions}
+                  align="right"
+                  buttonClassName="px-2.5 py-1.5 rounded-[3px] text-xs font-semibold bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-oros-100 border border-oros-750 transition-colors flex items-center gap-1.5"
+                />
                 <button
                   onClick={() => {
                     const { settings } = useSettingsStore.getState()
@@ -699,12 +849,9 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                     <div 
                       className={`oros-wiki-prose ${gmMode ? 'oros-gm-revealed' : ''}`}
                       style={typographyStyle}
-                      onClick={(e) => {
-                        const target = (e.target as HTMLElement).closest('.oros-spoiler')
-                        if (target) {
-                          target.classList.toggle('is-revealed')
-                        }
-                      }}
+                      onMouseOver={handleProseMouseOver}
+                      onMouseOut={handleProseMouseOut}
+                      onClick={handleProseClick}
                       dangerouslySetInnerHTML={{ __html: processedHtml }}
                     />
                   </div>
@@ -1044,7 +1191,84 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
                         No other chapters, articles, map pins, or timeline events currently cite or link to this entry.
                       </p>
                       <p className="text-[11px] text-oros-500 font-mono mt-1">
-                        Use <strong className="text-oros-300">@{currentEntity.title}</strong> while writing chapters or lore cards to create instant reciprocal links.
+                        Use <strong className="text-oros-300">[[{currentEntity.title}]]</strong> while writing chapters or lore cards to create instant reciprocal links.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Outgoing & Forward Links Panel */}
+                <div className="mt-8 pt-6 border-t border-oros-800">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="w-4 h-4 text-accent" />
+                      <h3 className="font-sans text-xs font-semibold text-oros-200 uppercase tracking-wider">
+                        Outgoing & Forward Links
+                      </h3>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-[2px] bg-oros-900 border border-oros-750 text-oros-300">
+                        {forwardLinksData.length} {forwardLinksData.length === 1 ? 'outgoing link' : 'outgoing links'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {forwardLinksData.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                      {forwardLinksData.map((fLink, idx) => {
+                        const resolved = fLink.targetId ? worldEntities.find(e => e.id === fLink.targetId) : undefined
+                        return (
+                          <div
+                            key={`fwd-${idx}-${fLink.targetTitle}`}
+                            onClick={() => {
+                              if (fLink.targetId) {
+                                setSelectedEntityId(fLink.targetId)
+                                openTab({ title: fLink.targetTitle, type: 'wiki', targetId: fLink.targetId })
+                              }
+                            }}
+                            className={`p-3 rounded-[3px] bg-oros-900/90 border border-oros-800 ${
+                              fLink.targetId 
+                                ? 'hover:border-accent/50 hover:bg-oros-850/80 cursor-pointer' 
+                                : 'opacity-70 cursor-default'
+                            } transition-all group shadow-sm flex flex-col justify-between`}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center gap-1.5 text-xs font-semibold text-oros-100 group-hover:text-accent transition-colors">
+                                  <FileText className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                                  <span className="truncate">
+                                    {fLink.targetTitle}
+                                    {fLink.section ? ` #${fLink.section}` : ''}
+                                    {fLink.label ? ` (${fLink.label})` : ''}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-mono uppercase text-oros-400 px-1.5 py-0.5 rounded-[2px] bg-oros-950 border border-oros-800 shrink-0">
+                                  {fLink.sourceField === 'infobox' ? 'Infobox' : 'Content Link'}
+                                </span>
+                              </div>
+                              {resolved?.summary && (
+                                <p className="text-xs text-oros-400 font-sans line-clamp-2 leading-relaxed bg-oros-950/40 p-2 rounded-[2px] border border-oros-850">
+                                  {resolved.summary}
+                                </p>
+                              )}
+                            </div>
+                            <div className="mt-2.5 pt-2 border-t border-oros-850 flex items-center justify-between text-[10px] font-mono text-oros-500">
+                              <span>{resolved ? (resolved.type.toUpperCase()) : 'Unlinked Stub'}</span>
+                              {fLink.targetId && (
+                                <span className="group-hover:text-accent flex items-center gap-1 transition-colors">
+                                  Open Target <ExternalLink className="w-2.5 h-2.5" />
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-[3px] bg-oros-900/50 border border-oros-800 text-center">
+                      <p className="text-xs text-oros-400 font-sans">
+                        This article has no outgoing links to other world entities.
+                      </p>
+                      <p className="text-[11px] text-oros-500 font-mono mt-1">
+                        Type <strong className="text-oros-300">[[</strong> in the editor to link other lore cards or places.
                       </p>
                     </div>
                   )}
@@ -1078,9 +1302,15 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
         )}
       </main>
 
-      {/* Floating QuickPeek Card on Backlink Hover */}
+      {/* Floating QuickPeek Card on Wiki Link or Backlink Hover */}
       {hoveredEntity && (
-        <div className="absolute bottom-12 left-80 z-50 pointer-events-none animate-dropdown-in">
+        <div 
+          className="fixed z-50 pointer-events-none animate-dropdown-in shadow-2xl"
+          style={{
+            left: hoverPosition ? `${hoverPosition.x}px` : '20rem',
+            top: hoverPosition ? `${hoverPosition.y}px` : 'calc(100vh - 20rem)'
+          }}
+        >
           <QuickPeekCard entity={hoveredEntity} />
         </div>
       )}

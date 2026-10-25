@@ -43,12 +43,15 @@ export interface LoreEntity {
   tags: string[];
   avatar?: string;
   banner?: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
   aliases: string[];
   infobox: {
     subtitle?: string;
     imageCaption?: string;
     sections: InfoboxSection[];
   };
+  customProperties?: Record<string, any>;
   isSecret?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -184,6 +187,55 @@ export interface WorldCalendarMonth {
   season?: string;
 }
 
+export interface CalendarLeapRule {
+  id: string;
+  name: string;
+  interval: number;          // e.g. every 4 years
+  offsetYear: number;        // e.g. 0
+  extraDays: number;         // e.g. 1
+  targetMonthId: string;     // Month that receives the extra days
+  excludeInterval?: number;  // e.g. skip every 100 years
+  reinstateInterval?: number;// e.g. reinstate every 400 years
+}
+
+export interface IntercalaryDay {
+  id: string;
+  name: string;
+  occursAfterMonthId: string;
+  isLeapOnly?: boolean;
+  leapRuleId?: string;
+  advancesWeekday: boolean;  // If false, outside standard weekly progression
+  description?: string;
+}
+
+export interface CelestialMoonConfig {
+  id: string;
+  name: string;
+  synodicPeriodDays: number; // Duration of lunar cycle in solar days
+  epochPhase: number;        // Phase fraction at Day 0 [0.0 - 1.0], 0.0 = New, 0.5 = Full
+  color: string;
+  radiusPixels?: number;
+  description?: string;
+}
+
+export interface CelestialPhaseResult {
+  moonId: string;
+  moonName: string;
+  color: string;
+  phaseFraction: number;     // 0.0 to 1.0
+  phaseAngleRad: number;     // 0 to 2pi
+  illuminationPercent: number; // 0% to 100%
+  phaseName: 'New Moon' | 'Waxing Crescent' | 'First Quarter' | 'Waxing Gibbous' | 'Full Moon' | 'Waning Gibbous' | 'Last Quarter' | 'Waning Crescent';
+  isMajorPhase: boolean;     // New, First Quarter, Full, Last Quarter
+}
+
+export interface ConjunctionResult {
+  type: 'grand_full_conjunction' | 'dark_solar_conjunction' | 'partial_alignment';
+  alignedMoonIds: string[];
+  severity: number;          // 0.0 - 1.0
+  description: string;
+}
+
 export interface WorldCalendarConfig {
   worldId?: string;
   firstYear: number;
@@ -196,7 +248,14 @@ export interface WorldCalendarConfig {
   eras?: WorldEraDefinition[];
   customCategories?: TimelineCategoryDefinition[];
   customPeriodTypes?: TimelinePeriodClassification[];
+  hasYearZero?: boolean;
+  weekdayEpochOffset?: number;
+  leapRules?: CalendarLeapRule[];
+  intercalaryDays?: IntercalaryDay[];
+  moons?: CelestialMoonConfig[];
 }
+
+export type WorldCalendarConfigExtended = WorldCalendarConfig;
 
 export interface ManuscriptChapter {
   id: string;
@@ -312,6 +371,8 @@ export interface DirectoryItem {
   type: DirectoryItemType;
   folderId?: string | null;
   targetId?: string; // id of specific entity, map, chapter, or canvas
+  entityId?: string; // alias for targetId for entity items
+  order?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -322,7 +383,9 @@ export interface DirectoryFolder {
   name: string;
   parentId?: string | null; // For nested subfolders
   isOpen?: boolean;
+  order?: number;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface WorkspaceTab {
@@ -423,6 +486,7 @@ export interface TTRPGBattlemap {
   snapToGrid: boolean;
   tokens: TTRPGToken[];
   effects?: TTRPGBattlemapEffect[];
+  walls?: TTRPGWall[];
   createdAt: string;
   updatedAt: string;
 }
@@ -653,4 +717,88 @@ export interface UpdateDownloadProgress {
   transferredBytes: number;
   totalBytes: number;
 }
+
+// ==========================================
+// ECOSYSTEM BRIDGES (Obsidian & Foundry VTT)
+// ==========================================
+
+export interface TTRPGWall {
+  id: string;
+  battlemapId: string;
+  p1: { x: number; y: number }; // percentage 0-100
+  p2: { x: number; y: number }; // percentage 0-100
+  wallType: 'wall' | 'window' | 'terrain' | 'ethereal';
+  blocksMovement: boolean;
+  blocksVision: boolean;
+  blocksSound?: boolean;
+  isDoor?: boolean;
+  doorType?: 'regular' | 'secret';
+  doorState?: 'closed' | 'open' | 'locked';
+}
+
+export interface FoundryWallData {
+  _id: string;
+  c: [number, number, number, number]; // [x1, y1, x2, y2] in scene pixels
+  move: number;  // 20 = blocks, 0 = passes
+  sense: number; // 20 = blocks, 10 = limited, 0 = passes
+  sound?: number;
+  dir?: number;
+  door: number;  // 0 = none, 1 = door, 2 = secret
+  ds: number;    // 0 = closed, 1 = open, 2 = locked
+}
+
+export interface FoundryTokenData {
+  _id: string;
+  name: string;
+  actorId?: string | null;
+  x: number;     // scene pixel coordinate (top-left)
+  y: number;     // scene pixel coordinate (top-left)
+  width: number; // grid cell units
+  height: number;
+  scale?: number;
+  disposition: number; // 1 = friendly, 0 = neutral, -1 = hostile
+  texture?: { src: string };
+  bar1?: { attribute?: string; value?: number; max?: number };
+  bar2?: { attribute?: string; value?: number; max?: number };
+  hidden?: boolean;
+}
+
+export interface FoundrySceneData {
+  _id: string;
+  name: string;
+  active: boolean;
+  navigation: boolean;
+  img: string;
+  width: number;
+  height: number;
+  padding: number;
+  backgroundColor: string;
+  grid: {
+    type: number; // 1 = square, 2 = hex odd, 3 = hex even
+    size: number;
+    distance: number;
+    units: string;
+    color?: string;
+    alpha?: number;
+  };
+  walls: FoundryWallData[];
+  tokens: FoundryTokenData[];
+  lights?: any[];
+}
+
+export interface ObsidianExportResult {
+  files: Record<string, string>; // filepath -> markdown content
+  manifest: {
+    totalFiles: number;
+    folders: string[];
+    exportedEntityIds: string[];
+  };
+}
+
+export interface ObsidianImportResult {
+  entities: LoreEntity[];
+  folders: DirectoryFolder[];
+  directoryItems: DirectoryItem[];
+}
+
 

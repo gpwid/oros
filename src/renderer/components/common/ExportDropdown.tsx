@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Download, ChevronDown, Image as ImageIcon, FileCode, FileText, Database, Loader2 } from 'lucide-react'
+import { Download, ChevronDown, Image as ImageIcon, FileCode, FileText, Database, Loader2, BookOpen, Layers } from 'lucide-react'
+
+export type ExportBadge = 'PNG' | 'SVG' | 'JSON' | 'CSV' | 'MD' | 'VTT'
 
 export interface ExportOption {
   id: string
   label: string
-  badge: 'PNG' | 'SVG' | 'JSON' | 'CSV'
+  badge: ExportBadge
   icon?: React.FC<{ className?: string }>
   onClick: () => Promise<void> | void
 }
@@ -61,6 +63,9 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
       case 'SVG': return FileCode
       case 'JSON': return Database
       case 'CSV': return FileText
+      case 'MD': return BookOpen
+      case 'VTT': return Layers
+      default: return FileText
     }
   }
 
@@ -113,3 +118,36 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
     </div>
   )
 }
+
+/**
+ * Factory helper for Obsidian Vault export option
+ */
+export function createObsidianExportOption(
+  onClick: () => Promise<void> | void,
+  label: string = 'Obsidian Markdown Vault'
+): ExportOption {
+  return {
+    id: 'export-obsidian-vault',
+    label,
+    badge: 'MD',
+    icon: BookOpen,
+    onClick
+  }
+}
+
+/**
+ * Factory helper for Foundry VTT Scene export option
+ */
+export function createFoundryExportOption(
+  onClick: () => Promise<void> | void,
+  label: string = 'Foundry VTT Scene'
+): ExportOption {
+  return {
+    id: 'export-foundry-scene',
+    label,
+    badge: 'VTT',
+    icon: Layers,
+    onClick
+  }
+}
+

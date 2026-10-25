@@ -5,8 +5,16 @@ import { confirmDialog } from '../../store/useConfirmStore'
 import { 
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, 
   Calendar as CalendarIcon, Clock, Plus, Edit3, Trash2, ExternalLink, 
-  Sparkles, Bookmark, Sun, Compass 
+  Sparkles, Bookmark, Sun, Compass, Moon 
 } from 'lucide-react'
+import {
+  getDaysInMonth,
+  calculateAbsoluteDay,
+  calculateDayOfWeek,
+  calculateMoonPhases,
+  detectCelestialConjunctions,
+  isLeapYear
+} from '../../utils/calendarMath'
 import { 
   formatTimelineDate, 
   formatPeriodDuration, 
@@ -45,7 +53,10 @@ export const TimelineCalendarView: React.FC<TimelineCalendarViewProps> = ({
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
 
   const activeMonth = calendarConfig.months[activeMonthIndex - 1] || calendarConfig.months[0] || { id: 'm-1', name: 'Month 1', days: 30 }
-  const daysInMonth = activeMonth.days || 30
+  const isLeap = useMemo(() => isLeapYear(activeYear, calendarConfig), [activeYear, calendarConfig])
+  const daysInMonth = useMemo(() => {
+    return getDaysInMonth(activeYear, activeMonthIndex - 1, calendarConfig)
+  }, [activeYear, activeMonthIndex, calendarConfig])
   const daysOfWeek = calendarConfig.daysOfWeek?.length > 0 
     ? calendarConfig.daysOfWeek 
     : ['Moonday', 'Trueday', 'Windsday', 'Thornsday', 'Fireday', 'Starday', 'Sundown']
@@ -69,19 +80,45 @@ export const TimelineCalendarView: React.FC<TimelineCalendarViewProps> = ({
     return map
   }, [events, activeYear, activeMonthIndex])
 
+  // Intercalary festival days occurring after activeMonth
+  const intercalaryDaysThisMonth = useMemo(() => {
+    if (!calendarConfig.intercalaryDays) return []
+    return calendarConfig.intercalaryDays.filter(ic => {
+      if (ic.occursAfterMonthId !== activeMonth.id) return false
+      if (ic.isLeapOnly && !isLeap) return false
+      return true
+    })
+  }, [calendarConfig.intercalaryDays, activeMonth.id, isLeap])
+
+  // Compute first day of week offset (deterministic cyclic calculation via calendarMath)
+  const firstDayOfWeekOffset = useMemo(() => {
+    const absDay = calculateAbsoluteDay(activeYear, activeMonthIndex, 1, 0, calendarConfig)
+    return calculateDayOfWeek(absDay, calendarConfig).index
+  }, [activeYear, activeMonthIndex, calendarConfig])
+
+  // Precompute celestial day data for the active month
+  const monthDaysData = useMemo(() => {
+    const map = new Map<number, {
+      absDay: number
+      weekday: { index: number; name: string }
+      moonPhases: ReturnType<typeof calculateMoonPhases>
+      conjunction: ReturnType<typeof detectCelestialConjunctions>
+    }>()
+    for (let d = 1; d <= daysInMonth; d++) {
+      const absDay = calculateAbsoluteDay(activeYear, activeMonthIndex, d, 0, calendarConfig)
+      const weekday = calculateDayOfWeek(absDay, calendarConfig)
+      const moonPhases = (calendarConfig.moons && calendarConfig.moons.length > 0)
+        ? calculateMoonPhases(absDay, calendarConfig.moons)
+        : []
+      const conjunction = moonPhases.length >= 2 ? detectCelestialConjunctions(moonPhases) : null
+      map.set(d, { absDay, weekday, moonPhases, conjunction })
+    }
+    return map
+  }, [activeYear, activeMonthIndex, daysInMonth, calendarConfig])
+
   // Events on the currently selected day
   const selectedDayEvents = selectedDay ? eventsByDay.get(selectedDay) || [] : []
-
-  // Compute first day of week offset (deterministic cyclic calculation)
-  const firstDayOfWeekOffset = useMemo(() => {
-    const weekLen = daysOfWeek.length
-    // Accumulate total days from year 1 to activeYear and months prior
-    let totalDaysPrior = activeYear * (calendarConfig.months.reduce((acc, m) => acc + m.days, 0) || 360)
-    for (let i = 0; i < activeMonthIndex - 1; i++) {
-      totalDaysPrior += calendarConfig.months[i]?.days || 30
-    }
-    return Math.abs(totalDaysPrior) % weekLen
-  }, [activeYear, activeMonthIndex, daysOfWeek.length, calendarConfig.months])
+  const selectedDayInfo = selectedDay ? monthDaysData.get(selectedDay) : null
 
   return (
     <div className="flex-1 flex overflow-hidden bg-oros-950 select-text">
@@ -254,6 +291,7 @@ export const TimelineCalendarView: React.FC<TimelineCalendarViewProps> = ({
               const dayNum = idx + 1
               const dayEvents = eventsByDay.get(dayNum) || []
               const isSelected = selectedDay === dayNum
+              const dayInfo = monthDaysData.get(dayNum)
 
               return (
                 <div
@@ -265,13 +303,42 @@ export const TimelineCalendarView: React.FC<TimelineCalendarViewProps> = ({
                       : 'hover:bg-oros-900/80'
                   }`}
                 >
-                  {/* Day Number & Quick Add Button */}
+                  {/* Day Number, Celestial Moons & Quick Add Button */}
                   <div className="flex items-center justify-between mb-1">
-                    <span className={`font-mono text-xs font-semibold ${
-                      dayEvents.length > 0 ? 'text-accent font-bold' : 'text-oros-300'
-                    }`}>
-                      {dayNum}
-                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className={`font-mono text-xs font-semibold ${
+                        dayEvents.length > 0 ? 'text-accent font-bold' : 'text-oros-300'
+                      }`}>
+                        {dayNum}
+                      </span>
+
+                      {/* Celestial Moons & Syzygy Indicators */}
+                      {dayInfo && dayInfo.moonPhases.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          {dayInfo.conjunction && (
+                            <span 
+                              className="p-0.5 rounded-[2px] bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center shrink-0" 
+                              title={dayInfo.conjunction.description}
+                            >
+                              <Sparkles className="w-2.5 h-2.5 animate-pulse text-amber-400" />
+                            </span>
+                          )}
+                          {dayInfo.moonPhases.map(mp => (
+                            <span
+                              key={mp.moonId}
+                              className={`inline-block w-2 h-2 rounded-full border border-black/40 shrink-0 transition-transform hover:scale-125 ${
+                                mp.isMajorPhase ? 'ring-1 ring-white/60' : ''
+                              }`}
+                              style={{
+                                backgroundColor: mp.color || '#fff',
+                                opacity: Math.max(0.25, mp.illuminationPercent / 100)
+                              }}
+                              title={`${mp.moonName}: ${mp.phaseName} (${mp.illuminationPercent}% illuminated)`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
                     {/* Quick hover add button */}
                     <button
@@ -314,6 +381,36 @@ export const TimelineCalendarView: React.FC<TimelineCalendarViewProps> = ({
             })}
           </div>
         </div>
+
+        {/* Intercalary Festival Days Section (when configured after this month) */}
+        {intercalaryDaysThisMonth.length > 0 && (
+          <div className="p-3 bg-oros-900 border border-accent/30 rounded-[4px] space-y-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-accent" />
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-accent">
+                Intercalary Festival Days Following {activeMonth.name}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              {intercalaryDaysThisMonth.map(ic => (
+                <div key={ic.id} className="p-2.5 bg-oros-850 border border-oros-750 rounded-[3px] shadow-sm flex flex-col justify-between">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-serif font-bold text-xs text-oros-100">{ic.name}</span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-[2px] bg-accent/20 text-accent font-semibold">
+                      {ic.isLeapOnly ? 'Leap Festival' : 'Annual Feast'}
+                    </span>
+                  </div>
+                  {ic.description && (
+                    <p className="text-[10px] text-oros-400 mt-1 line-clamp-2">{ic.description}</p>
+                  )}
+                  <span className="text-[9px] font-mono text-oros-500 mt-1 block">
+                    {ic.advancesWeekday ? 'Standard weekday progression' : 'Outside weekly cycle'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right Day Almanac Lore Drawer */}
@@ -323,10 +420,10 @@ export const TimelineCalendarView: React.FC<TimelineCalendarViewProps> = ({
           <div className="p-4 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
             <div>
               <span className="font-mono text-[10px] uppercase font-bold text-accent tracking-wider block">
-                World Almanac Day Inspection
+                {selectedDayInfo?.weekday.name || 'Almanac Day'} · {calendarConfig.yearPrefix} {activeYear} {calendarConfig.yearSuffix}
               </span>
               <h3 className="font-serif text-sm font-bold text-oros-100">
-                {activeMonth.name} {selectedDay}, {activeYear} {calendarConfig.yearSuffix}
+                {activeMonth.name} {selectedDay}
               </h3>
             </div>
 
@@ -338,8 +435,60 @@ export const TimelineCalendarView: React.FC<TimelineCalendarViewProps> = ({
             </button>
           </div>
 
-          {/* Drawer Body: Events on this Day */}
+          {/* Drawer Body: Events on this Day & Celestial Phases */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Celestial & Lunar Status Card */}
+            {selectedDayInfo && (selectedDayInfo.moonPhases.length > 0 || selectedDayInfo.conjunction) && (
+              <div className="p-2.5 bg-oros-850 border border-oros-750 rounded-[3px] space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Moon className="w-3.5 h-3.5 text-accent" />
+                  <span className="font-mono text-[10px] uppercase font-bold text-oros-300">
+                    Celestial Almanack
+                  </span>
+                </div>
+
+                {selectedDayInfo.conjunction && (
+                  <div className="p-2 rounded-[2px] bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
+                    <div>
+                      <span className="font-bold block text-[10px] uppercase text-amber-300">
+                        {selectedDayInfo.conjunction.type === 'grand_full_conjunction'
+                          ? 'Grand Full Conjunction'
+                          : selectedDayInfo.conjunction.type === 'dark_solar_conjunction'
+                          ? 'Dark Solar Conjunction'
+                          : 'Partial Celestial Alignment'}
+                      </span>
+                      <p className="text-[10px] leading-tight text-amber-200/90 mt-0.5">
+                        {selectedDayInfo.conjunction.description}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {selectedDayInfo.moonPhases.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    {selectedDayInfo.moonPhases.map(mp => (
+                      <div key={mp.moonId} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full border border-black/50"
+                            style={{
+                              backgroundColor: mp.color || '#fff',
+                              opacity: Math.max(0.3, mp.illuminationPercent / 100)
+                            }}
+                          />
+                          <span className="text-oros-200 font-medium">{mp.moonName}</span>
+                        </div>
+                        <span className="font-mono text-[10px] text-oros-400">
+                          {mp.phaseName} ({mp.illuminationPercent}%)
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <button
               onClick={() => onAddAtDate(activeYear, activeMonthIndex, selectedDay)}
               className="w-full btn-accent py-1.5 px-3 rounded-[3px] text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-colors"

@@ -693,15 +693,15 @@ export const ManuscriptCompilerModal: React.FC<ManuscriptCompilerModalProps> = (
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
       <div 
-        className="bg-oros-950 border border-oros-800 rounded-lg shadow-2xl w-full max-w-6xl h-[88vh] flex flex-col overflow-hidden text-oros-100"
+        className="bg-oros-950 border border-oros-750 rounded-[4px] shadow-2xl w-full max-w-6xl h-[88vh] flex flex-col overflow-hidden text-oros-100"
         role="dialog"
         aria-modal="true"
         aria-labelledby="compiler-modal-title"
       >
         {/* Header */}
-        <header className="p-4 border-b border-oros-800 flex items-center justify-between bg-oros-925/80 shrink-0">
+        <header className="p-4 border-b border-oros-750 flex items-center justify-between bg-oros-950/60 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded bg-accent-muted border border-accent/30 text-accent">
+            <div className="p-2 rounded-[2px] bg-accent-muted border border-accent/30 text-accent">
               <BookDown className="w-5 h-5" />
             </div>
             <div>
@@ -714,7 +714,7 @@ export const ManuscriptCompilerModal: React.FC<ManuscriptCompilerModalProps> = (
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="p-1.5 rounded text-oros-400 hover:text-oros-200 hover:bg-oros-900 transition-colors"
+              className="p-1.5 rounded-[2px] text-oros-400 hover:text-oros-200 hover:bg-oros-900 transition-colors"
               title="Close compiler"
             >
               <X className="w-5 h-5" />
@@ -725,7 +725,7 @@ export const ManuscriptCompilerModal: React.FC<ManuscriptCompilerModalProps> = (
         {/* Content Split: Left Controls, Right Live Preview */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left Column: Configuration Controls */}
-          <aside className="w-84 lg:w-96 border-r border-oros-800 bg-oros-950 flex flex-col shrink-0 overflow-y-auto p-4 space-y-5">
+          <aside className="w-84 lg:w-96 border-r border-oros-750 bg-oros-950 flex flex-col shrink-0 overflow-y-auto p-4 space-y-5">
             {/* Frontmatter Group */}
             <div className="space-y-3">
               <div className="text-xs font-semibold uppercase tracking-wider text-oros-400 font-mono flex items-center gap-1.5">
@@ -915,9 +915,9 @@ export const ManuscriptCompilerModal: React.FC<ManuscriptCompilerModalProps> = (
           {/* Right Column: Live Interactive Preview & Action Dock */}
           <main className="flex-1 flex flex-col overflow-hidden bg-oros-925/60">
             {/* Action Bar & Tabs */}
-            <div className="p-3 border-b border-oros-800 flex flex-wrap items-center justify-between gap-3 bg-oros-950/80 shrink-0">
+            <div className="p-3 border-b border-oros-750 flex flex-wrap items-center justify-between gap-3 bg-oros-950/60 shrink-0">
               {/* Preview Modes */}
-              <div className="flex items-center gap-1 bg-oros-900 p-0.5 rounded border border-oros-800">
+              <div className="flex items-center gap-1 bg-oros-900 p-0.5 rounded-[2px] border border-oros-750">
                 <button
                   onClick={() => setPreviewTab('print')}
                   className={`px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5 transition-colors ${
@@ -1071,15 +1071,15 @@ export const ManuscriptCompilerModal: React.FC<ManuscriptCompilerModalProps> = (
 
               {/* Tab 2: Raw Markdown Output View */}
               {previewTab === 'markdown' && (
-                <div className="w-full max-w-4xl bg-oros-950 border border-oros-800 rounded p-4 font-mono text-xs text-oros-300 overflow-x-auto whitespace-pre-wrap select-text">
+                <div className="w-full max-w-4xl bg-oros-950 border border-oros-750 rounded-[4px] p-4 font-mono text-xs text-oros-300 overflow-x-auto whitespace-pre-wrap select-text">
                   {compiledMarkdown}
                 </div>
               )}
 
               {/* Tab 3: Web E-Reader Sandbox Mock */}
               {previewTab === 'reader' && (
-                <div className="w-full max-w-2xl bg-oros-900 border border-oros-800 rounded-lg p-6 sm:p-10 shadow-xl select-text">
-                  <div className="text-center pb-6 border-b border-oros-800 mb-8">
+                <div className="w-full max-w-2xl bg-oros-900 border border-oros-750 rounded-[4px] p-6 sm:p-10 shadow-xl select-text">
+                  <div className="text-center pb-6 border-b border-oros-750 mb-8">
                     <span className="font-mono text-[10px] text-accent uppercase tracking-widest">
                       Digital E-Reader Edition
                     </span>

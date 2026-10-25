@@ -56,6 +56,24 @@ export interface EntityBacklinksResult {
   relations: RelationBacklink[];
 }
 
+export interface ForwardLinkItem {
+  targetId?: string;
+  targetTitle: string;
+  section?: string;
+  label?: string;
+  sourceField: 'content' | 'infobox';
+  rawLink: string;
+}
+
+export interface ParsedWikiLink {
+  raw: string;
+  target: string;
+  section?: string;
+  label?: string;
+  startIndex: number;
+  endIndex: number;
+}
+
 function stripHtml(html: string): string {
   if (!html) return '';
   return html
@@ -251,3 +269,116 @@ export function findBacklinksForEntity(
     relations: relationResults
   };
 }
+
+const WIKI_LINK_REGEX = /\[\[([^#\|\[\]]+)(?:#([^\|\[\]]+))?(?:\|([^\[\]]+))?\]\]/g
+
+export function parseWikiLinks(text: string): ParsedWikiLink[] {
+  if (!text) return []
+  const matches: ParsedWikiLink[] = []
+  let match: RegExpExecArray | null
+
+  WIKI_LINK_REGEX.lastIndex = 0
+
+  while ((match = WIKI_LINK_REGEX.exec(text)) !== null) {
+    const raw = match[0]
+    const target = match[1]?.trim() || ''
+    const section = match[2]?.trim() || undefined
+    const label = match[3]?.trim() || undefined
+
+    if (target.length > 0) {
+      matches.push({
+        raw,
+        target,
+        section,
+        label,
+        startIndex: match.index,
+        endIndex: match.index + raw.length
+      })
+    }
+  }
+
+  return matches
+}
+
+export function formatWikiLink(
+  target: string,
+  options?: { label?: string; section?: string }
+): string {
+  const t = target.trim()
+  const sec = options?.section ? `#${options.section.trim()}` : ''
+  const lbl = options?.label ? `|${options.label.trim()}` : ''
+  return `[[${t}${sec}${lbl}]]`
+}
+
+export function findForwardLinksForEntity(
+  sourceEntity: LoreEntity,
+  allEntities: LoreEntity[] = []
+): ForwardLinkItem[] {
+  const results: ForwardLinkItem[] = []
+  const entityTitleMap = new Map<string, LoreEntity>()
+  const entityIdMap = new Map<string, LoreEntity>()
+
+  allEntities.forEach(e => {
+    entityTitleMap.set(e.title.toLowerCase(), e)
+    entityIdMap.set(e.id, e)
+    e.aliases?.forEach(alias => {
+      if (alias.trim()) {
+        entityTitleMap.set(alias.toLowerCase().trim(), e)
+      }
+    })
+  })
+
+  // 1. Extract from content (HTML / Markdown wiki links)
+  const content = sourceEntity.content || ''
+
+  // A. Wiki-links [[Target]]
+  const parsed = parseWikiLinks(content)
+  parsed.forEach(link => {
+    const resolved = entityTitleMap.get(link.target.toLowerCase())
+    results.push({
+      targetId: resolved?.id,
+      targetTitle: link.target,
+      section: link.section,
+      label: link.label,
+      sourceField: 'content',
+      rawLink: link.raw
+    })
+  })
+
+  // B. TipTap Mention tags: <span data-type="mention" data-id="xyz" data-label="Title">
+  const mentionRegex = /<span[^>]*data-type="mention"[^>]*data-id="([^"]+)"[^>]*data-label="([^"]+)"[^>]*>/g
+  let mentionMatch: RegExpExecArray | null
+  while ((mentionMatch = mentionRegex.exec(content)) !== null) {
+    const targetId = mentionMatch[1]
+    const targetTitle = mentionMatch[2]
+    results.push({
+      targetId,
+      targetTitle,
+      sourceField: 'content',
+      rawLink: mentionMatch[0]
+    })
+  }
+
+  // 2. Extract from infobox entity links
+  if (sourceEntity.infobox?.sections) {
+    sourceEntity.infobox.sections.forEach(section => {
+      section.fields?.forEach(field => {
+        if (field.type === 'entity-link' && field.targetEntityId) {
+          const target = entityIdMap.get(field.targetEntityId)
+          results.push({
+            targetId: field.targetEntityId,
+            targetTitle: target?.title || field.value || 'Unknown Entity',
+            label: field.label,
+            sourceField: 'infobox',
+            rawLink: field.value || `id:${field.targetEntityId}`
+          })
+        }
+      })
+    })
+  }
+
+  return results
+}
+
+export const extractForwardLinks = findForwardLinksForEntity
+

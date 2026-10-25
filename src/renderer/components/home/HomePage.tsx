@@ -232,9 +232,6 @@ export const HomePage: React.FC = () => {
             >
               <Dices className="w-3.5 h-3.5" />
               <span>TTRPG Hub</span>
-              <span className="text-[9px] uppercase tracking-wider font-mono font-bold px-1.5 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-[2px] leading-tight">
-                BETA
-              </span>
             </button>
           </div>
         </div>
@@ -473,7 +470,7 @@ export const HomePage: React.FC = () => {
 
                           {/* Tagline / Premise */}
                           <p className="text-xs text-oros-400 font-sans mt-1 leading-relaxed line-clamp-2 min-h-[32px]">
-                            {w.tagline || 'A custom universe awaiting lore, characters, and manuscripts.'}
+                            {w.tagline || ''}
                           </p>
                         </div>
 
@@ -523,9 +520,6 @@ export const HomePage: React.FC = () => {
                   <h4 className="font-sans font-medium text-xs text-oros-200 group-hover:text-white transition-colors">
                     Create New Project
                   </h4>
-                  <p className="text-[11px] text-oros-500 font-sans mt-0.5">
-                    Initialize a universe with custom genre & theme
-                  </p>
                 </div>
               </div>
 
@@ -639,7 +633,7 @@ export const HomePage: React.FC = () => {
 
                         {/* Tagline / Premise */}
                         <p className="text-xs text-oros-400 font-sans mt-1 leading-relaxed line-clamp-2 min-h-[32px]">
-                          {camp.tagline || camp.description || 'A tabletop campaign with character sheets and roll integration.'}
+                          {camp.tagline || camp.description || ''}
                         </p>
 
                         {/* Linked World Badge if present */}
@@ -679,9 +673,6 @@ export const HomePage: React.FC = () => {
                   <h4 className="font-sans font-medium text-xs text-oros-200 group-hover:text-white transition-colors">
                     Create New Campaign
                   </h4>
-                  <p className="text-[11px] text-oros-500 font-sans mt-0.5">
-                    Initialize a D&D 5e game with character sheets & dice
-                  </p>
                 </div>
               </div>
 
@@ -689,7 +680,6 @@ export const HomePage: React.FC = () => {
                 <div className="p-12 text-center bg-oros-900/40 border border-oros-800 rounded-md">
                   <Dices className="w-8 h-8 text-oros-500 mx-auto mb-2" />
                   <h3 className="text-sm font-semibold text-oros-200">No campaigns found</h3>
-                  <p className="text-xs text-oros-400 mt-1">Create your first campaign to build character sheets and roll stats.</p>
                   <button
                     onClick={() => setShowNewCampaignModal(true)}
                     className="px-3.5 py-1.5 rounded-[3px] btn-accent text-xs font-semibold mt-3 cursor-pointer"

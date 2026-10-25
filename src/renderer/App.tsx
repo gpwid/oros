@@ -32,9 +32,71 @@ const ViewFallback = () => (
   </div>
 )
 
+interface TabItem {
+  id: string
+  title: string
+  type: string
+  targetId?: string
+}
+
+const TabViewContainer: React.FC<{ tab: TabItem; isActive: boolean }> = React.memo(({ tab, isActive }) => {
+  const renderContent = () => {
+    switch (tab.type) {
+      case 'canvas':
+        return <WhiteboardCanvas canvasId={tab.targetId} />
+      case 'wiki':
+        return <WikiArticleView entityId={tab.targetId} />
+      case 'card':
+      case 'cards':
+        if (tab.targetId) {
+          return <WikiArticleView entityId={tab.targetId} />
+        }
+        return <CardGallery />
+      case 'relations':
+      case 'graph':
+        return <RelationGraphCanvas />
+      case 'wiki-network':
+        return <WikiNetworkGraph />
+      case 'map':
+      case 'maps':
+        return <InteractiveMapViewer />
+      case 'timeline':
+        return <TimelineView />
+      case 'writer':
+        return <StudioWriter />
+      case 'dictionary':
+        return <ConlangDictionaryView />
+      case 'reader':
+        return <CodexReaderView />
+      default:
+        return <WikiNetworkGraph />
+    }
+  }
+
+  return (
+    <div
+      className={`flex-1 flex overflow-hidden ${isActive ? '' : '!hidden'}`}
+      style={{ display: isActive ? undefined : 'none' }}
+    >
+      {renderContent()}
+    </div>
+  )
+})
+
 export const App: React.FC = () => {
-  const { activeTab, openTabs, activeTabId, initStore, worlds, activeWorldId, appView, setAppView, isReaderMode } = useWorldStore()
-  const { isSettingsOpen, openSettings, closeSettings, settings } = useSettingsStore()
+  const openTabs = useWorldStore((s) => s.openTabs)
+  const activeTabId = useWorldStore((s) => s.activeTabId)
+  const initStore = useWorldStore((s) => s.initStore)
+  const worlds = useWorldStore((s) => s.worlds)
+  const activeWorldId = useWorldStore((s) => s.activeWorldId)
+  const appView = useWorldStore((s) => s.appView)
+  const setAppView = useWorldStore((s) => s.setAppView)
+  const isReaderMode = useWorldStore((s) => s.isReaderMode)
+
+  const isSettingsOpen = useSettingsStore((s) => s.isSettingsOpen)
+  const openSettings = useSettingsStore((s) => s.openSettings)
+  const closeSettings = useSettingsStore((s) => s.closeSettings)
+  const settings = useSettingsStore((s) => s.settings)
 
   useEffect(() => {
     initStore().then(() => {
@@ -110,48 +172,6 @@ export const App: React.FC = () => {
     settings.interface.colorMode
   ])
 
-  const activeTabObj = openTabs.find((t) => t.id === activeTabId)
-  const currentTabType = activeTabObj?.type || activeTab
-
-  const renderActiveView = () => {
-    if (openTabs.length === 0) {
-      // When there are no tabs, display our card relation nodes (not lineage)
-      return <WikiNetworkGraph />
-    }
-
-    switch (currentTabType) {
-      case 'canvas':
-        return <WhiteboardCanvas canvasId={activeTabObj?.targetId} />
-      case 'wiki':
-        return <WikiArticleView entityId={activeTabObj?.targetId} />
-      case 'card':
-      case 'cards':
-        // If a card tab has a specific targetId, render that card's wiki article directly!
-        if (activeTabObj?.targetId) {
-          return <WikiArticleView entityId={activeTabObj.targetId} />
-        }
-        return <CardGallery />
-      case 'relations':
-      case 'graph':
-        return <RelationGraphCanvas />
-      case 'wiki-network':
-        return <WikiNetworkGraph />
-      case 'map':
-      case 'maps':
-        return <InteractiveMapViewer />
-      case 'timeline':
-        return <TimelineView />
-      case 'writer':
-        return <StudioWriter />
-      case 'dictionary':
-        return <ConlangDictionaryView />
-      case 'reader':
-        return <CodexReaderView />
-      default:
-        return <WikiNetworkGraph />
-    }
-  }
-
   return (
     <div className="h-screen w-screen flex flex-col bg-oros-950 text-oros-100 overflow-hidden font-sans">
       {appView === 'home' ? (
@@ -164,14 +184,21 @@ export const App: React.FC = () => {
           {/* Main Workspace Layout */}
           <div className="flex-1 flex overflow-hidden">
             <Sidebar />
-            <main className="flex-1 flex overflow-hidden bg-oros-950">
+            <main className="flex-1 flex overflow-hidden bg-oros-950 relative">
               <Suspense fallback={<ViewFallback />}>
-                <div 
-                  key={activeTabId || currentTabType} 
-                  className="flex-1 flex overflow-hidden animate-fade-in"
-                >
-                  {renderActiveView()}
-                </div>
+                {openTabs.length === 0 ? (
+                  <div className="flex-1 flex overflow-hidden">
+                    <WikiNetworkGraph />
+                  </div>
+                ) : (
+                  openTabs.map((tab) => (
+                    <TabViewContainer
+                      key={tab.id}
+                      tab={tab}
+                      isActive={tab.id === (activeTabId || openTabs[0]?.id)}
+                    />
+                  ))
+                )}
               </Suspense>
             </main>
           </div>

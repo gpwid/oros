@@ -5,7 +5,7 @@ import { confirmDialog } from '../../store/useConfirmStore'
 import { 
   Plus, ZoomIn, ZoomOut, Maximize2, Calendar, Clock, 
   Swords, Crown, Hourglass, Flame, Shield, Sparkles, Edit3, Trash2, ExternalLink,
-  MousePointer, MoveHorizontal
+  MousePointer, MoveHorizontal, Moon
 } from 'lucide-react'
 import { 
   formatTimelineDate, 
@@ -13,6 +13,13 @@ import {
   PERIOD_TYPE_CONFIG,
   getPeriodTypeConfig
 } from '../../utils/calendarDefaults'
+import {
+  dateToFractionalYear,
+  calculateAbsoluteDay,
+  calculateMoonPhases,
+  detectCelestialConjunctions,
+  getDaysInMonth
+} from '../../utils/calendarMath'
 
 interface TimelineLineViewProps {
   events: TimelineEvent[]
@@ -87,6 +94,38 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
   const xToYear = useCallback((x: number) => {
     return Math.round(minYear + (x - 300) / pxPerYear)
   }, [minYear, pxPerYear])
+
+  // Continuous fractional year coordinate transforms: T = Y + DOY / daysInYear(Y)
+  const eventToX = useCallback((evt: TimelineEvent) => {
+    const fracYear = dateToFractionalYear(
+      evt.year,
+      evt.month ?? 1,
+      evt.day ?? 1,
+      evt.hour ?? 0,
+      calendarConfig
+    )
+    return yearToX(fracYear)
+  }, [calendarConfig, yearToX])
+
+  const periodToCoords = useCallback((period: TimelineEvent) => {
+    const startFrac = dateToFractionalYear(
+      period.year,
+      period.month ?? 1,
+      period.day ?? 1,
+      period.hour ?? 0,
+      calendarConfig
+    )
+    const endFrac = dateToFractionalYear(
+      period.endYear ?? period.year,
+      period.endMonth ?? (calendarConfig.months?.length || 12),
+      period.endDay ?? getDaysInMonth(period.endYear ?? period.year, (period.endMonth ?? 1) - 1, calendarConfig),
+      period.endHour ?? 0,
+      calendarConfig
+    )
+    const startX = yearToX(startFrac)
+    const endX = yearToX(endFrac)
+    return { startX, endX, width: Math.max(28, endX - startX) }
+  }, [calendarConfig, yearToX])
 
   // Boundary clamp function so the ruler can NEVER be scrolled into an empty black void
   const clampPan = useCallback((targetPanX: number, targetZoom: number) => {
@@ -319,6 +358,31 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
     return result
   }, [minYear, maxYear, pxPerYear])
 
+  // Celestial alignment indicators along the timeline ruler
+  const celestialIndicators = useMemo(() => {
+    if (!calendarConfig.moons || calendarConfig.moons.length === 0) return []
+    const indicators: {
+      year: number
+      x: number
+      conjunction: ReturnType<typeof detectCelestialConjunctions>
+      primaryMoonPhase: ReturnType<typeof calculateMoonPhases>[0]
+    }[] = []
+
+    for (const t of ticks) {
+      if (t.year < minYear || t.year > maxYear) continue
+      const absDay = calculateAbsoluteDay(t.year, 1, 1, 0, calendarConfig)
+      const phases = calculateMoonPhases(absDay, calendarConfig.moons)
+      const conjunction = phases.length >= 2 ? detectCelestialConjunctions(phases, 0.05) : null
+      indicators.push({
+        year: t.year,
+        x: yearToX(t.year),
+        conjunction,
+        primaryMoonPhase: phases[0]
+      })
+    }
+    return indicators
+  }, [calendarConfig, ticks, minYear, maxYear, yearToX])
+
   const selectedEvent = events.find(e => e.id === selectedEventId)
 
   // Ruler boundary coordinates
@@ -460,9 +524,7 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
         {/* ======================================================== */}
         <div className="absolute top-22 left-0 right-0 h-44 pointer-events-none">
           {periods.map((period, idx) => {
-            const startX = yearToX(period.year)
-            const endX = yearToX(period.endYear ?? period.year)
-            const width = Math.max(28, endX - startX)
+            const { startX, width } = periodToCoords(period)
             const lane = idx % 3
             const topOffset = lane * 42 + 6
             const periodCfg = getPeriodTypeConfig(period.periodType || 'custom', calendarConfig.customPeriodTypes)
@@ -603,6 +665,36 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
             )
           })}
 
+          {/* Celestial Moon & Syzygy Indicators along Ruler */}
+          {celestialIndicators.map((ci) => {
+            if (!ci.conjunction && !ci.primaryMoonPhase?.isMajorPhase && pxPerYear <= 25) return null
+            return (
+              <div
+                key={`celestial-${ci.year}`}
+                className="absolute -top-3 flex flex-col items-center pointer-events-auto cursor-pointer transition-transform hover:scale-125 z-15"
+                style={{ left: ci.x, transform: 'translateX(-50%)' }}
+                title={ci.conjunction ? ci.conjunction.description : `${ci.primaryMoonPhase?.moonName}: ${ci.primaryMoonPhase?.phaseName} at Year ${ci.year}`}
+              >
+                {ci.conjunction ? (
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] bg-amber-500/20 border border-amber-500/50 text-amber-300 shadow-md">
+                    <Sparkles className="w-2.5 h-2.5 animate-pulse text-amber-400" />
+                    <span className="font-mono text-[8px] font-bold uppercase tracking-wider">
+                      {ci.conjunction.type === 'grand_full_conjunction' ? 'Full Syzygy' : ci.conjunction.type === 'dark_solar_conjunction' ? 'Dark Conjunction' : 'Alignment'}
+                    </span>
+                  </div>
+                ) : ci.primaryMoonPhase?.isMajorPhase ? (
+                  <div 
+                    className="w-2.5 h-2.5 rounded-full border border-black/50 shadow" 
+                    style={{ 
+                      backgroundColor: ci.primaryMoonPhase.color || '#e2e8f0', 
+                      opacity: Math.max(0.3, ci.primaryMoonPhase.illuminationPercent / 100) 
+                    }} 
+                  />
+                ) : null}
+              </div>
+            )
+          })}
+
           {/* Interactive In-Situ Axis Hover & Drag Layer */}
           <div 
             onMouseDown={(e) => {
@@ -660,7 +752,7 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
         {/* ======================================================== */}
         <div className="absolute top-[340px] left-0 right-0 bottom-4 pointer-events-none">
           {singleEvents.map((evt, idx) => {
-            const x = yearToX(evt.year)
+            const x = eventToX(evt)
             // Alternate vertical height to prevent card collisions
             const lane = idx % 3
             const cardTop = lane * 76 + 28
@@ -719,8 +811,8 @@ export const TimelineLineView: React.FC<TimelineLineViewProps> = ({
                   style={{ top: cardTop }}
                 >
                   <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="font-mono text-[9px] font-bold text-accent">
-                      {calendarConfig.yearPrefix} {evt.year} {calendarConfig.yearSuffix}
+                    <span className="font-mono text-[9px] font-bold text-accent truncate">
+                      {formatTimelineDate(evt, calendarConfig)}
                     </span>
                     <span 
                       className="w-1.5 h-1.5 rounded-full shrink-0" 

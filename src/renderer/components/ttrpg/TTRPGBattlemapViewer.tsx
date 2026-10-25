@@ -14,6 +14,8 @@ import { useSettingsStore } from '../../store/useSettingsStore'
 import { confirmDialog } from '../../store/useConfirmStore'
 import { InteractiveDice3D } from '../dice/InteractiveDice3D'
 import { AnimatedMapEffect } from './AnimatedMapEffect'
+import { ExportDropdown, ExportOption, createFoundryExportOption } from '../common/ExportDropdown'
+import { exportBattlemapToFoundry, downloadJsonFile } from '../../utils/exportUtils'
 
 interface TTRPGBattlemapViewerProps {
   campaign: TTRPGCampaign
@@ -956,6 +958,42 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
     return `M 0 ${r * 0.5} L ${w * 0.5} 0 L ${w} ${r * 0.5} L ${w} ${r * 1.5} L ${w * 0.5} ${r * 2} L 0 ${r * 1.5} Z M 0 ${r * 2} L ${w * 0.5} ${r * 2.5} L ${w * 0.5} ${h} M ${w} ${r * 2} L ${w * 0.5} ${r * 2.5}`
   }
 
+  const handleExportFoundryScene = async () => {
+    if (!currentBattlemap) return
+    try {
+      await exportBattlemapToFoundry(currentBattlemap, campaign.title, currentBattlemap.walls)
+      addToast(`Exported "${currentBattlemap.name}" to Foundry VTT Scene JSON`, 'success')
+    } catch (err) {
+      console.error('Failed to export Foundry scene:', err)
+      addToast('Failed to export Foundry VTT Scene', 'error')
+    }
+  }
+
+  const handleExportMapJson = async () => {
+    if (!currentBattlemap) return
+    try {
+      await downloadJsonFile(currentBattlemap, `${currentBattlemap.name}_battlemap.json`)
+      addToast(`Exported "${currentBattlemap.name}" data as JSON`, 'success')
+    } catch (err) {
+      console.error('Failed to export map JSON:', err)
+      addToast('Failed to export battlemap JSON', 'error')
+    }
+  }
+
+  const battlemapExportOptions: ExportOption[] = useMemo(() => {
+    if (!currentBattlemap) return []
+    return [
+      createFoundryExportOption(handleExportFoundryScene),
+      {
+        id: 'export-bm-json',
+        label: 'Battlemap Data (JSON)',
+        badge: 'JSON' as const,
+        onClick: handleExportMapJson
+      }
+    ]
+  }, [currentBattlemap, campaign.title])
+
+
   return (
     <div className="flex-1 flex flex-col bg-[#080b11] text-oros-100 overflow-hidden relative select-none font-sans">
       {/* ============================================================== */}
@@ -1125,13 +1163,20 @@ export const TTRPGBattlemapViewer: React.FC<TTRPGBattlemapViewerProps> = ({
           </button>
 
           {currentBattlemap && (
-            <button
-              onClick={() => handleOpenEditMap(currentBattlemap)}
-              className="p-1 rounded-[3px] text-oros-400 hover:text-white hover:bg-oros-850 transition-colors"
-              title="Edit current map settings or change image"
-            >
-              <Settings className="w-3 h-3" />
-            </button>
+            <>
+              <button
+                onClick={() => handleOpenEditMap(currentBattlemap)}
+                className="p-1 rounded-[3px] text-oros-400 hover:text-white hover:bg-oros-850 transition-colors"
+                title="Edit current map settings or change image"
+              >
+                <Settings className="w-3 h-3" />
+              </button>
+              <ExportDropdown
+                options={battlemapExportOptions}
+                align="left"
+                buttonClassName="px-2 py-1 rounded-[3px] text-oros-300 hover:text-white hover:bg-oros-850 text-xs font-mono flex items-center gap-1 transition-colors"
+              />
+            </>
           )}
 
           {/* Quick Clear Effects Button if any effects on current map */}

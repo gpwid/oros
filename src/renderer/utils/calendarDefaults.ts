@@ -32,6 +32,15 @@ export const DEFAULT_FANTASY_CALENDAR_CONFIG: WorldCalendarConfig = {
     { id: 'era-1', name: 'Dawn Epoch', startYear: 400, endYear: 650, color: '#6366f1' },
     { id: 'era-2', name: 'Age of Concord', startYear: 651, endYear: 950, color: '#eab308' },
     { id: 'era-3', name: 'Twilight Realm', startYear: 951, endYear: 1200, color: '#f97316' }
+  ],
+  hasYearZero: false,
+  weekdayEpochOffset: 0,
+  leapRules: [
+    { id: 'fantasy-leap', name: 'Great Conjunction Leap', interval: 4, offsetYear: 0, extraDays: 1, targetMonthId: 'm-7' }
+  ],
+  moons: [
+    { id: 'moon-selune', name: 'Selûne (Silver)', synodicPeriodDays: 28.0, epochPhase: 0.0, color: '#e2e8f0', radiusPixels: 8 },
+    { id: 'moon-tear', name: 'Tear of Selûne (Azure)', synodicPeriodDays: 14.0, epochPhase: 0.5, color: '#38bdf8', radiusPixels: 6 }
   ]
 }
 
@@ -60,6 +69,23 @@ export const GREGORIAN_CALENDAR_CONFIG: WorldCalendarConfig = {
     { id: 'era-g1', name: 'Early Modern', startYear: 1500, endYear: 1788, color: '#8b5cf6' },
     { id: 'era-g2', name: 'Industrial Age', startYear: 1789, endYear: 1945, color: '#0ea5e9' },
     { id: 'era-g3', name: 'Information Age', startYear: 1946, endYear: 2050, color: '#10b981' }
+  ],
+  hasYearZero: false,
+  weekdayEpochOffset: 0,
+  leapRules: [
+    {
+      id: 'gregorian-leap',
+      name: 'Gregorian Quadrennial',
+      interval: 4,
+      offsetYear: 0,
+      extraDays: 1,
+      targetMonthId: 'g-2',
+      excludeInterval: 100,
+      reinstateInterval: 400
+    }
+  ],
+  moons: [
+    { id: 'earth-luna', name: 'Luna', synodicPeriodDays: 29.530588, epochPhase: 0.0, color: '#e2e8f0', radiusPixels: 8 }
   ]
 }
 
@@ -82,6 +108,50 @@ export const SCIFI_SOL_CALENDAR_CONFIG: WorldCalendarConfig = {
     { id: 'era-s1', name: 'First Expansion', startYear: 2100, endYear: 2450, color: '#38bdf8' },
     { id: 'era-s2', name: 'Interstellar Union', startYear: 2451, endYear: 2900, color: '#a855f7' },
     { id: 'era-s3', name: 'Dark Nebula', startYear: 2901, endYear: 3200, color: '#ef4444' }
+  ],
+  hasYearZero: true,
+  weekdayEpochOffset: 0,
+  moons: [
+    { id: 'phobos', name: 'Phobos', synodicPeriodDays: 0.3189, epochPhase: 0.0, color: '#d97706', radiusPixels: 5 },
+    { id: 'deimos', name: 'Deimos', synodicPeriodDays: 1.263, epochPhase: 0.25, color: '#64748b', radiusPixels: 4 }
+  ]
+}
+
+export const HARPTOS_CALENDAR_CONFIG: WorldCalendarConfig = {
+  firstYear: 1,
+  lastYear: 2000,
+  yearPrefix: 'DR',
+  yearSuffix: '',
+  hoursInDay: 24,
+  daysOfWeek: ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'],
+  months: [
+    { id: 'h1', name: 'Hammer', days: 30, season: 'Winter' },
+    { id: 'h2', name: 'Alturiak', days: 30, season: 'Winter' },
+    { id: 'h3', name: 'Ches', days: 30, season: 'Spring' },
+    { id: 'h4', name: 'Tarsakh', days: 30, season: 'Spring' },
+    { id: 'h5', name: 'Mirtul', days: 30, season: 'Spring' },
+    { id: 'h6', name: 'Kythorn', days: 30, season: 'Summer' },
+    { id: 'h7', name: 'Flamerule', days: 30, season: 'Summer' },
+    { id: 'h8', name: 'Eleasis', days: 30, season: 'Summer' },
+    { id: 'h9', name: 'Eleint', days: 30, season: 'Autumn' },
+    { id: 'h10', name: 'Marpenoth', days: 30, season: 'Autumn' },
+    { id: 'h11', name: 'Uktar', days: 30, season: 'Autumn' },
+    { id: 'h12', name: 'Nightal', days: 30, season: 'Winter' }
+  ],
+  intercalaryDays: [
+    { id: 'f1', name: 'Midwinter', occursAfterMonthId: 'h1', advancesWeekday: false, description: 'Festival of the dead and renewal' },
+    { id: 'f2', name: 'Greengrass', occursAfterMonthId: 'h4', advancesWeekday: false, description: 'Feast of the first flowers' },
+    { id: 'f3', name: 'Midsummer', occursAfterMonthId: 'h7', advancesWeekday: false, description: 'Feast of love and music' },
+    { id: 'f4', name: 'Highharvestide', occursAfterMonthId: 'h9', advancesWeekday: false, description: 'Autumn harvest celebration' },
+    { id: 'f5', name: 'The Feast of the Moon', occursAfterMonthId: 'h11', advancesWeekday: false, description: 'Honoring ancestors' },
+    { id: 'f6', name: 'Shieldmeet', occursAfterMonthId: 'h7', isLeapOnly: true, advancesWeekday: false, description: 'Leap festival of open council' }
+  ],
+  leapRules: [
+    { id: 'shieldmeet-rule', name: 'Shieldmeet Quadrennial', interval: 4, offsetYear: 0, extraDays: 0, targetMonthId: 'h7' }
+  ],
+  moons: [
+    { id: 'selune', name: 'Selûne', synodicPeriodDays: 28.0, epochPhase: 0.0, color: '#e2e8f0', radiusPixels: 8 },
+    { id: 'tears', name: 'Tears of Selûne', synodicPeriodDays: 14.0, epochPhase: 0.5, color: '#38bdf8', radiusPixels: 6 }
   ]
 }
 
@@ -131,6 +201,13 @@ export const BUILT_IN_PRESETS: CalendarPreset[] = [
     description: '6 orbital periods x 36 days, 28h day, Sol Epoch notation',
     isBuiltIn: true,
     config: SCIFI_SOL_CALENDAR_CONFIG
+  },
+  {
+    id: 'preset-harptos',
+    name: 'Calendar of Harptos (Faerûn)',
+    description: '12x30 tenday months, 5 festival intercalary days, Shieldmeet leap rule',
+    isBuiltIn: true,
+    config: HARPTOS_CALENDAR_CONFIG
   }
 ]
 

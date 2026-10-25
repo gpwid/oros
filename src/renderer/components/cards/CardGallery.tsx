@@ -164,12 +164,17 @@ export const CardGallery: React.FC = () => {
             return (
               <div
                 key={ent.id}
+                draggable={true}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', ent.id)
+                  e.dataTransfer.setData('application/oros-entity-id', ent.id)
+                }}
                 onClick={() => navigateToWiki(ent)}
-                className="card-interactive bg-oros-900 border border-oros-800 hover:border-oros-600 rounded-[4px] overflow-hidden shadow-sm group flex flex-col justify-between cursor-pointer"
+                className="card-interactive bg-oros-900 border border-oros-750 hover:border-oros-600 rounded-[4px] overflow-hidden shadow-sm group flex flex-col justify-between cursor-pointer"
               >
                 <div>
                   {/* Card Banner / Portrait */}
-                  <div className="h-28 bg-oros-950 relative overflow-hidden border-b border-oros-800">
+                  <div className="h-28 bg-oros-950 relative overflow-hidden">
                     {ent.avatar ? (
                       <img
                         src={ent.avatar}
@@ -219,7 +224,7 @@ export const CardGallery: React.FC = () => {
 
                     {/* Highlights from Infobox */}
                     {ent.infobox.sections[0]?.fields.slice(0, 2).map((f) => (
-                      <div key={f.id} className="text-[11px] font-mono flex justify-between text-oros-400 border-t border-oros-800/60 pt-1 mt-1">
+                      <div key={f.id} className="text-[11px] font-mono flex justify-between text-oros-400 py-0.5">
                         <span>{f.label}:</span>
                         <span className="text-oros-200 truncate max-w-[120px]">{f.value}</span>
                       </div>
@@ -228,7 +233,7 @@ export const CardGallery: React.FC = () => {
                 </div>
 
                 {/* Card Footer Actions */}
-                <div className="p-2.5 bg-oros-950 border-t border-oros-800 flex items-center justify-between">
+                <div className="p-2.5 bg-oros-950/70 flex items-center justify-between">
                   <button
                     onClick={(e) => {
                       e.stopPropagation()

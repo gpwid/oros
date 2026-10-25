@@ -40,7 +40,7 @@ import {
   Magnet, GitBranch, ArrowRightLeft, Spline, Activity, Frame, Link2, Edit3,
   Bold, Italic, Minus, CornerDownRight, AlignLeft, AlignCenter, AlignRight,
   Triangle, Star, Hexagon, Octagon, Cylinder, Cloud, MessageSquare,
-  Copy, Eye, ExternalLink
+  Copy, Eye, ExternalLink, Lock
 } from 'lucide-react'
 import { LoreEntity, CanvasStroke } from '@shared/types'
 import { OrosLogoMark } from '../common/OrosLogo'
@@ -48,6 +48,8 @@ import { getCategoryMeta, getCategoryIconComponent } from '../../utils/categoryI
 import { QuickPeekCard } from '../common/QuickPeekCard'
 import { ExportDropdown, ExportOption } from '../common/ExportDropdown'
 import { exportReactFlowToImage, exportCanvasToJson } from '../../utils/exportUtils'
+import { calculateObstacleAvoidanceRoute, Box, HandleSpec } from './orthogonalRouting'
+import { autoLayoutWhiteboardNodes } from '../../utils/canvasAutoLayout'
 
 import { calculateSmartSnap, type SnapGuideLine, type SnapNodeBox } from '../../utils/snapEngine'
 export { calculateSmartSnap, type SnapGuideLine, type SnapNodeBox }
@@ -300,12 +302,19 @@ const BASE_CARD_HEIGHT = 250
 const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const [imgError, setImgError] = useState(false)
   const cardData = data as { 
-    entityId?: string; 
-    title?: string; 
-    subtitle?: string; 
-    avatar?: string;
-    width?: number;
-    height?: number;
+    entityId?: string
+    title?: string
+    subtitle?: string
+    avatar?: string
+    avatarUrl?: string
+    entityType?: string
+    summary?: string
+    isSecret?: boolean
+    expanded?: boolean
+    prevHeight?: number
+    tags?: string[]
+    width?: number
+    height?: number
   }
   const reactFlow = useReactFlow()
   const { openPeek } = useContext(CanvasPeekContext)
@@ -315,14 +324,41 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const worldEntities = (activeWorldId && entities[activeWorldId]) || []
   const entity = cardData.entityId ? worldEntities.find((e) => e.id === cardData.entityId) : undefined
   const worldCats = (activeWorldId && categories[activeWorldId]) ? categories[activeWorldId] : undefined
-  const catMeta = getCategoryMeta(entity?.type || cardData.subtitle || 'character', worldCats)
+  const cardType = entity?.type || cardData.entityType || cardData.subtitle || 'character'
+  const catMeta = getCategoryMeta(cardType, worldCats)
   const CategoryIcon = getCategoryIconComponent(catMeta.icon)
   const cardTitle = entity?.title || cardData.title || 'Untitled Card'
-  const cardAvatar = entity?.avatar || cardData.avatar
+  const cardAvatar = entity?.avatar || cardData.avatar || cardData.avatarUrl
+  const cardSummary = entity?.summary || cardData.summary || ''
+  const cardIsSecret = Boolean((entity as any)?.isSecret ?? cardData.isSecret ?? false)
+  const cardTags = (entity?.tags && entity.tags.length > 0) ? entity.tags : (cardData.tags || [])
+  const isExpanded = Boolean(cardData.expanded)
 
   const currentW = Math.round(Number(cardData.width) || BASE_CARD_WIDTH)
   const currentH = Math.round(Number(cardData.height) || BASE_CARD_HEIGHT)
   const scalePercent = Math.round((currentW / BASE_CARD_WIDTH) * 100)
+
+  const handleToggleExpand = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const nextExpanded = !isExpanded
+    const nextHeight = nextExpanded ? Math.max(currentH, 220) : (cardData.prevHeight || BASE_CARD_HEIGHT)
+    reactFlow.setNodes((nds) =>
+      nds.map((n) =>
+        n.id === id
+          ? {
+              ...n,
+              style: { ...n.style, height: nextHeight },
+              data: {
+                ...n.data,
+                expanded: nextExpanded,
+                height: nextHeight,
+                prevHeight: isExpanded ? cardData.prevHeight : currentH
+              }
+            }
+          : n
+      )
+    )
+  }
 
   const handleScale = (factor: number, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -458,21 +494,96 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
               <span className="text-[9px] font-mono uppercase tracking-widest text-oros-500 mt-2 font-medium">No Portrait</span>
             </div>
           )}
+
+          {/* Quick-Status Badges Overlay */}
+          <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
+            <span
+              className="px-1.5 py-0.5 rounded-[2px] text-[9px] uppercase font-mono tracking-wider backdrop-blur-md border font-semibold flex items-center gap-1 shadow-sm"
+              style={{
+                backgroundColor: 'rgba(9, 10, 13, 0.88)',
+                borderColor: `${catMeta.color || '#94a3b8'}50`,
+                color: catMeta.color || '#cbd5e1'
+              }}
+            >
+              <CategoryIcon className="w-3 h-3" />
+              <span>{catMeta.name}</span>
+            </span>
+
+            {cardIsSecret && (
+              <span className="px-1.5 py-0.5 rounded-[2px] bg-rose-950/90 border border-rose-700/70 text-rose-300 text-[9px] font-mono font-semibold uppercase flex items-center gap-1 shadow-sm">
+                <Lock className="w-2.5 h-2.5" />
+                <span>Secret</span>
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Card Info Footer */}
-        <div className="p-3 bg-oros-950/95 shrink-0">
-          <div 
-            className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider mb-0.5 truncate"
-            style={{ color: catMeta.color }}
-          >
-            <CategoryIcon className="w-3 h-3 shrink-0" style={{ color: catMeta.color }} />
-            <span className="truncate">{catMeta.name}</span>
+        <div className="p-2.5 bg-oros-950/95 shrink-0 flex flex-col gap-1 border-t border-oros-850/60">
+          <div className="flex items-center justify-between gap-1.5">
+            <div className="font-serif font-bold text-sm text-slate-100 truncate flex-1" title={cardTitle}>
+              {cardTitle}
+            </div>
+            {/* Inline Summary Toggle */}
+            <button
+              type="button"
+              onClick={handleToggleExpand}
+              className={`px-1.5 py-0.5 rounded-[2px] text-[10px] font-mono border transition-colors flex items-center gap-0.5 cursor-pointer shrink-0 ${
+                isExpanded
+                  ? 'bg-accent/20 border-accent/50 text-accent font-semibold'
+                  : 'bg-oros-900 border-oros-750 text-oros-400 hover:text-oros-200'
+              }`}
+              title={isExpanded ? 'Collapse Summary' : 'Expand Summary'}
+            >
+              <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+              <span>{isExpanded ? 'Hide' : 'Info'}</span>
+            </button>
           </div>
-          <div className="font-serif font-bold text-sm text-slate-100 truncate" title={cardTitle}>
-            {cardTitle}
+
+          {/* Quick Status Tags */}
+          {cardTags.length > 0 && (
+            <div className="flex flex-wrap gap-1 max-h-8 overflow-hidden">
+              {cardTags.slice(0, 3).map((tag, idx) => (
+                <span
+                  key={idx}
+                  className="text-[9px] font-mono px-1 py-0.2 rounded-[2px] bg-oros-900 text-oros-400 border border-oros-800"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Direct Button to Open Entity in Codex / Wiki Tab */}
+          <div className="flex items-center justify-between pt-1 border-t border-oros-850/60">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                const targetId = entity?.id || cardData.entityId
+                if (targetId) {
+                  openTab({
+                    title: cardTitle,
+                    type: 'wiki',
+                    targetId
+                  })
+                }
+              }}
+              className="text-[10px] font-mono text-oros-400 hover:text-accent flex items-center gap-1 transition-colors cursor-pointer"
+              title="Open in Codex"
+            >
+              <ExternalLink className="w-3 h-3 text-accent" />
+              <span>Open Codex</span>
+            </button>
           </div>
         </div>
+
+        {/* Expandable Inline Summary Panel */}
+        {isExpanded && (
+          <div className="p-2.5 bg-oros-900/95 border-t border-oros-800 text-xs text-oros-300 font-sans leading-relaxed overflow-y-auto max-h-32 nodrag nowheel select-text cursor-text">
+            {cardSummary || 'No summary excerpt available.'}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -2690,6 +2801,8 @@ export function pointsToSmoothPath(points: Point[], cornerRadius: number = 8): s
 
 const WhiteboardCustomEdge: React.FC<EdgeProps> = ({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -2752,7 +2865,7 @@ const WhiteboardCustomEdge: React.FC<EdgeProps> = ({
     }
   }, [selected])
 
-  // Dynamic orthogonal waypoints anchored to latest node positions
+  // Dynamic orthogonal waypoints with obstacle avoidance
   const waypoints = useMemo(() => {
     if (edgeData.waypoints && edgeData.waypoints.length >= 2) {
       const cloned = edgeData.waypoints.map((p) => ({ ...p }))
@@ -2760,11 +2873,47 @@ const WhiteboardCustomEdge: React.FC<EdgeProps> = ({
       cloned[cloned.length - 1] = { x: targetX, y: targetY }
       return cloned
     }
-    return computeOrthogonalWaypoints(
-      { x: sourceX, y: sourceY, position: effectiveSourcePosition },
-      { x: targetX, y: targetY, position: effectiveTargetPosition }
+
+    const allNodes = reactFlow.getNodes()
+    const pad = 20
+    const minBoundX = Math.min(sourceX, targetX) - 300
+    const maxBoundX = Math.max(sourceX, targetX) + 300
+    const minBoundY = Math.min(sourceY, targetY) - 300
+    const maxBoundY = Math.max(sourceY, targetY) + 300
+
+    const obstacles: Box[] = []
+    for (const n of allNodes) {
+      if (n.id === source || n.id === target) continue
+      const nw = Number(n.width || n.data?.width || n.style?.width || (n.type === 'canvasCard' ? 240 : 200))
+      const nh = Number(n.height || n.data?.height || n.style?.height || (n.type === 'canvasCard' ? 180 : 140))
+      const nx = n.position.x
+      const ny = n.position.y
+      if (nx + nw >= minBoundX && nx <= maxBoundX && ny + nh >= minBoundY && ny <= maxBoundY) {
+        obstacles.push({ x: nx, y: ny, width: nw, height: nh })
+      }
+    }
+
+    const sPos = (effectiveSourcePosition?.toLowerCase() || 'right') as 'top' | 'bottom' | 'left' | 'right'
+    const tPos = (effectiveTargetPosition?.toLowerCase() || 'left') as 'top' | 'bottom' | 'left' | 'right'
+
+    return calculateObstacleAvoidanceRoute(
+      { x: sourceX, y: sourceY, position: sPos },
+      { x: targetX, y: targetY, position: tPos },
+      obstacles,
+      pad
     )
-  }, [edgeData.waypoints, sourceX, sourceY, targetX, targetY, effectiveSourcePosition, effectiveTargetPosition])
+  }, [
+    edgeData.waypoints,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    effectiveSourcePosition,
+    effectiveTargetPosition,
+    reactFlow,
+    source,
+    target
+  ])
 
   let edgePath = ''
   let labelX = (sourceX + targetX) / 2
@@ -4274,6 +4423,46 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
       y: e.clientY
     })
 
+    // 0. Check for dropped entity from Directory Sidebar or Card Gallery
+    const entityId = e.dataTransfer.getData('application/oros-entity-id') || e.dataTransfer.getData('text/plain')
+    if (entityId) {
+      const activeEntities = entities[worldId] || []
+      const ent = activeEntities.find((item) => item.id === entityId)
+      if (ent) {
+        takeSnapshot()
+        const newNode: Node = {
+          id: `card-${ent.id}-${Date.now()}`,
+          type: 'canvasCard',
+          position: {
+            x: Math.round(dropPos.x - 120),
+            y: Math.round(dropPos.y - 90)
+          },
+          style: { width: 240, height: 180 },
+          data: {
+            entityId: ent.id,
+            title: ent.title,
+            entityType: ent.type,
+            subtitle: ent.type.toUpperCase(),
+            avatar: ent.avatar,
+            avatarUrl: ent.avatar,
+            summary: ent.summary || '',
+            isSecret: (ent as any).isSecret || false,
+            expanded: false,
+            tags: ent.tags || [],
+            width: 240,
+            height: 180
+          }
+        }
+        setNodes((nds) => {
+          const updated = [...nds, newNode]
+          if (currentCanvas) saveCanvasNodesAndEdges(currentCanvas.id, updated, edges)
+          return updated
+        })
+        addToast(`Placed card: ${ent.title}`, 'success')
+        return
+      }
+    }
+
     // 1. Check for files (local drag from Windows Explorer, Finder, desktop)
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       for (let i = 0; i < e.dataTransfer.files.length; i++) {
@@ -4320,7 +4509,22 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
       insertImageNode(plainText, dropPos)
       return
     }
-  }, [reactFlowInstance, insertImageNode])
+  }, [reactFlowInstance, insertImageNode, entities, worldId, currentCanvas, edges, saveCanvasNodesAndEdges, addToast, takeSnapshot])
+
+  // Auto-Layout Whiteboard Nodes (Physics Relaxation)
+  const handleAutoLayout = useCallback(() => {
+    if (nodes.length <= 1) {
+      addToast('No layout needed for single node', 'info')
+      return
+    }
+    takeSnapshot()
+    const relaxed = autoLayoutWhiteboardNodes(nodes as any, edges as any, 60)
+    setNodes(relaxed as Node[])
+    if (currentCanvas) {
+      saveCanvasNodesAndEdges(currentCanvas.id, relaxed as Node[], edges)
+    }
+    addToast('Organized canvas with Auto-Layout', 'success')
+  }, [nodes, edges, currentCanvas, saveCanvasNodesAndEdges, addToast, takeSnapshot])
 
   // Global paste handler for image and text data
   useEffect(() => {
@@ -4883,8 +5087,17 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
         </div>
       </div>
 
-      {/* Top-Right Canvas Actions (Export Dropdown) */}
+      {/* Top-Right Canvas Actions */}
       <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={handleAutoLayout}
+          title="Auto-Layout Whiteboard (Relaxation)"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-750 hover:border-accent/60 text-xs font-medium text-oros-200 hover:text-accent shadow-md transition-all cursor-pointer"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-accent" />
+          <span>Auto-Layout</span>
+        </button>
         <ExportDropdown options={canvasExportOptions} align="right" />
       </div>
 

@@ -645,6 +645,7 @@ export const Sidebar: React.FC = () => {
                   draggable={true}
                   onDragStart={(e) => {
                     e.dataTransfer.setData('text/plain', item.id)
+                    e.dataTransfer.setData('application/oros-entity-id', item.id)
                     setDraggedItemId(item.id)
                   }}
                   onDragEnd={() => setDraggedItemId(null)}
@@ -887,6 +888,7 @@ export const Sidebar: React.FC = () => {
               draggable={true}
               onDragStart={(e) => {
                 e.dataTransfer.setData('text/plain', item.id)
+                e.dataTransfer.setData('application/oros-entity-id', item.id)
                 setDraggedItemId(item.id)
               }}
               onDragEnd={() => setDraggedItemId(null)}

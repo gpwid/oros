@@ -8,9 +8,10 @@ import { useToastStore } from '../../store/useToastStore'
 import { 
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, 
   List, ListOrdered, Quote, Undo, Redo, AtSign, Image as ImageIcon,
-  EyeOff, Code, Terminal
+  EyeOff, Code, Terminal, Link2
 } from 'lucide-react'
 import { Spoiler } from './spoilerExtension'
+import { WikiLink } from './wikiLinkExtension'
 
 import { useSettingsStore } from '../../store/useSettingsStore'
 
@@ -44,6 +45,7 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
         },
         suggestion: createMentionSuggestion()
       }),
+      WikiLink,
       Spoiler
     ],
     content,
@@ -226,6 +228,17 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
           >
             <AtSign className="w-3.5 h-3.5" />
             <span className="text-[11px]">Mention</span>
+          </button>
+
+          {/* Wiki-Link Shortcut */}
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().insertContent(' [[').run()}
+            className="px-2 py-1 rounded-[3px] bg-accent-muted hover:bg-accent text-accent hover:text-accent-contrast border border-accent/40 text-xs font-semibold flex items-center gap-1 transition-colors shadow-sm"
+            title="Wiki-Link Entity ([[])"
+          >
+            <Link2 className="w-3.5 h-3.5" />
+            <span className="text-[11px]">Wiki-Link</span>
           </button>
 
           {/* Local Image Importer */}

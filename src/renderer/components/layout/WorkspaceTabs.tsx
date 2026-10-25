@@ -171,17 +171,17 @@ export const WorkspaceTabs: React.FC = () => {
     const matchedCanvases = worldCanvases.filter(c => c.name.toLowerCase().includes(q))
 
     const features = [
-      { id: 'canvas', title: 'Canvas', type: 'canvas' as DirectoryItemType, desc: 'Whiteboard with cards, notes, and shapes' },
-      { id: 'wiki-network', title: 'Network Graph', type: 'wiki-network' as any, desc: 'Card connections graph' },
-      { id: 'relations', title: 'Relations', type: 'relations' as DirectoryItemType, desc: 'Entity relationship tree' },
-      { id: 'wiki', title: 'Wiki', type: 'wiki' as DirectoryItemType, desc: 'Articles and infoboxes' },
-      { id: 'card', title: 'Cards', type: 'card' as DirectoryItemType, desc: 'Entity card gallery' },
-      { id: 'timeline', title: 'Timeline', type: 'timeline' as DirectoryItemType, desc: 'Chronological events and eras' },
-      { id: 'map', title: 'Map', type: 'map' as DirectoryItemType, desc: 'Interactive map with pins' },
-      { id: 'writer', title: 'Writer', type: 'writer' as DirectoryItemType, desc: 'Chapter editor and references' },
-      { id: 'dictionary', title: 'Conlang Dictionary', type: 'dictionary' as DirectoryItemType, desc: 'Constructed languages and setting vocabulary' },
-      { id: 'reader', title: 'Codex Reader', type: 'reader' as DirectoryItemType, desc: 'Distraction-free compendium book reader' }
-    ].filter(f => f.title.toLowerCase().includes(q) || f.desc.toLowerCase().includes(q))
+      { id: 'canvas', title: 'Canvas', type: 'canvas' as DirectoryItemType },
+      { id: 'wiki-network', title: 'Network Graph', type: 'wiki-network' as any },
+      { id: 'relations', title: 'Relations', type: 'relations' as DirectoryItemType },
+      { id: 'wiki', title: 'Wiki', type: 'wiki' as DirectoryItemType },
+      { id: 'card', title: 'Cards', type: 'card' as DirectoryItemType },
+      { id: 'timeline', title: 'Timeline', type: 'timeline' as DirectoryItemType },
+      { id: 'map', title: 'Map', type: 'map' as DirectoryItemType },
+      { id: 'writer', title: 'Writer', type: 'writer' as DirectoryItemType },
+      { id: 'dictionary', title: 'Conlang Dictionary', type: 'dictionary' as DirectoryItemType },
+      { id: 'reader', title: 'Codex Reader', type: 'reader' as DirectoryItemType }
+    ].filter(f => f.title.toLowerCase().includes(q))
 
     return {
       entities: matchedEntities,
@@ -887,10 +887,7 @@ export const WorkspaceTabs: React.FC = () => {
                           >
                             <div className="flex items-center gap-2.5">
                               {getTabIcon(f.type, false)}
-                              <div>
-                                <div className="font-medium text-xs text-oros-200 group-hover:text-white">{f.title}</div>
-                                <div className="text-[10px] text-oros-500 font-sans">{f.desc}</div>
-                              </div>
+                              <div className="font-medium text-xs text-oros-200 group-hover:text-white">{f.title}</div>
                             </div>
                             <ArrowRight className="w-3.5 h-3.5 text-oros-600 group-hover:text-oros-300" />
                           </button>
@@ -949,7 +946,6 @@ export const WorkspaceTabs: React.FC = () => {
                       >
                         <LayoutGrid className="w-4 h-4 text-oros-400 mb-1 group-hover:text-oros-200 transition-colors" />
                         <span className="text-xs font-medium text-oros-200 group-hover:text-white">Whiteboard</span>
-                        <span className="text-[10px] text-oros-500 font-mono mt-0.5">Cards & sketch</span>
                       </button>
 
                       <button
@@ -958,7 +954,6 @@ export const WorkspaceTabs: React.FC = () => {
                       >
                         <Network className="w-4 h-4 text-oros-400 mb-1 group-hover:text-oros-200 transition-colors" />
                         <span className="text-xs font-medium text-oros-200 group-hover:text-white">Card Relations</span>
-                        <span className="text-[10px] text-oros-500 font-mono mt-0.5">Dynamic web</span>
                       </button>
 
                       <button
@@ -967,7 +962,6 @@ export const WorkspaceTabs: React.FC = () => {
                       >
                         <Users className="w-4 h-4 text-oros-400 mb-1 group-hover:text-oros-200 transition-colors" />
                         <span className="text-xs font-medium text-oros-200 group-hover:text-white">Lineage Tree</span>
-                        <span className="text-[10px] text-oros-500 font-mono mt-0.5">Dynasty ties</span>
                       </button>
 
                       <button
@@ -976,7 +970,6 @@ export const WorkspaceTabs: React.FC = () => {
                       >
                         <BookOpen className="w-4 h-4 text-oros-400 mb-1 group-hover:text-oros-200 transition-colors" />
                         <span className="text-xs font-medium text-oros-200 group-hover:text-white">Codex (Wiki)</span>
-                        <span className="text-[10px] text-oros-500 font-mono mt-0.5">Encyclopedia</span>
                       </button>
 
                       <button
@@ -985,7 +978,6 @@ export const WorkspaceTabs: React.FC = () => {
                       >
                         <Layers className="w-4 h-4 text-oros-400 mb-1 group-hover:text-oros-200 transition-colors" />
                         <span className="text-xs font-medium text-oros-200 group-hover:text-white">Lore Cards</span>
-                        <span className="text-[10px] text-oros-500 font-mono mt-0.5">Entity gallery</span>
                       </button>
 
                       <button
@@ -994,7 +986,6 @@ export const WorkspaceTabs: React.FC = () => {
                       >
                         <Clock className="w-4 h-4 text-oros-400 mb-1 group-hover:text-oros-200 transition-colors" />
                         <span className="text-xs font-medium text-oros-200 group-hover:text-white">Timeline</span>
-                        <span className="text-[10px] text-oros-500 font-mono mt-0.5">Chronology eras</span>
                       </button>
 
                       <button
@@ -1003,7 +994,6 @@ export const WorkspaceTabs: React.FC = () => {
                       >
                         <MapIcon className="w-4 h-4 text-oros-400 mb-1 group-hover:text-oros-200 transition-colors" />
                         <span className="text-xs font-medium text-oros-200 group-hover:text-white">Cartography</span>
-                        <span className="text-[10px] text-oros-500 font-mono mt-0.5">Territory maps</span>
                       </button>
 
                       <button
@@ -1012,7 +1002,6 @@ export const WorkspaceTabs: React.FC = () => {
                       >
                         <Feather className="w-4 h-4 text-oros-400 mb-1 group-hover:text-oros-200 transition-colors" />
                         <span className="text-xs font-medium text-oros-200 group-hover:text-white">Studio Writer</span>
-                        <span className="text-[10px] text-oros-500 font-mono mt-0.5">Manuscript draft</span>
                       </button>
                     </div>
                   </div>

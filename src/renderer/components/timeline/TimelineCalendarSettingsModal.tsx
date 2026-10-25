@@ -5,12 +5,15 @@ import {
   WorldEraDefinition, 
   TimelineCategoryDefinition, 
   TimelinePeriodClassification,
-  CalendarPreset 
+  CalendarPreset,
+  CalendarLeapRule,
+  IntercalaryDay,
+  CelestialMoonConfig
 } from '@shared/types'
 import { useWorldStore } from '../../store/useWorldStore'
 import { 
   X, Sliders, Plus, Trash2, ArrowUp, ArrowDown, 
-  Sparkles, Clock, Calendar, Bookmark, Save, Check, RefreshCw
+  Sparkles, Clock, Calendar, Bookmark, Save, Check, RefreshCw, Moon
 } from 'lucide-react'
 import { 
   DEFAULT_FANTASY_CALENDAR_CONFIG, 
@@ -26,7 +29,7 @@ interface TimelineCalendarSettingsModalProps {
   onClose: () => void
 }
 
-type SettingsTab = 'horizons' | 'months' | 'eras' | 'categories' | 'presets'
+type SettingsTab = 'horizons' | 'months' | 'leapRules' | 'intercalary' | 'moons' | 'eras' | 'categories' | 'presets'
 
 export const TimelineCalendarSettingsModal: React.FC<TimelineCalendarSettingsModalProps> = ({
   isOpen,
@@ -50,8 +53,36 @@ export const TimelineCalendarSettingsModal: React.FC<TimelineCalendarSettingsMod
   const [eras, setEras] = useState<WorldEraDefinition[]>([])
   const [customCategories, setCustomCategories] = useState<TimelineCategoryDefinition[]>([])
   const [customPeriodTypes, setCustomPeriodTypes] = useState<TimelinePeriodClassification[]>([])
+  const [hasYearZero, setHasYearZero] = useState<boolean>(false)
+  const [weekdayEpochOffset, setWeekdayEpochOffset] = useState<number>(0)
+  const [leapRules, setLeapRules] = useState<CalendarLeapRule[]>([])
+  const [intercalaryDays, setIntercalaryDays] = useState<IntercalaryDay[]>([])
+  const [moons, setMoons] = useState<CelestialMoonConfig[]>([])
   
   const [newWeekday, setNewWeekday] = useState('')
+
+  // Leap rule creation state
+  const [newLeapName, setNewLeapName] = useState('')
+  const [newLeapInterval, setNewLeapInterval] = useState<number>(4)
+  const [newLeapOffset, setNewLeapOffset] = useState<number>(0)
+  const [newLeapExtraDays, setNewLeapExtraDays] = useState<number>(1)
+  const [newLeapTargetMonthId, setNewLeapTargetMonthId] = useState<string>('')
+  const [newLeapExcludeInterval, setNewLeapExcludeInterval] = useState<number | ''>('')
+  const [newLeapReinstateInterval, setNewLeapReinstateInterval] = useState<number | ''>('')
+
+  // Intercalary day creation state
+  const [newIntercalaryName, setNewIntercalaryName] = useState('')
+  const [newIntercalaryAfterMonthId, setNewIntercalaryAfterMonthId] = useState<string>('')
+  const [newIntercalaryIsLeapOnly, setNewIntercalaryIsLeapOnly] = useState<boolean>(false)
+  const [newIntercalaryAdvancesWeekday, setNewIntercalaryAdvancesWeekday] = useState<boolean>(false)
+  const [newIntercalaryDescription, setNewIntercalaryDescription] = useState('')
+
+  // Celestial moon creation state
+  const [newMoonName, setNewMoonName] = useState('')
+  const [newMoonPeriod, setNewMoonPeriod] = useState<number>(28.0)
+  const [newMoonEpochPhase, setNewMoonEpochPhase] = useState<number>(0.0)
+  const [newMoonColor, setNewMoonColor] = useState('#e2e8f0')
+  const [newMoonDescription, setNewMoonDescription] = useState('')
 
   // Presets state
   const [presetsList, setPresetsList] = useState<CalendarPreset[]>([])
@@ -83,6 +114,11 @@ export const TimelineCalendarSettingsModal: React.FC<TimelineCalendarSettingsMod
       setEras(currentConfig.eras ? currentConfig.eras.map(e => ({ ...e })) : (DEFAULT_FANTASY_CALENDAR_CONFIG.eras || []))
       setCustomCategories(currentConfig.customCategories ? [...currentConfig.customCategories] : [...DEFAULT_TIMELINE_CATEGORIES])
       setCustomPeriodTypes(currentConfig.customPeriodTypes ? [...currentConfig.customPeriodTypes] : [...DEFAULT_PERIOD_CLASSIFICATIONS])
+      setHasYearZero(currentConfig.hasYearZero ?? false)
+      setWeekdayEpochOffset(currentConfig.weekdayEpochOffset ?? 0)
+      setLeapRules(currentConfig.leapRules ? currentConfig.leapRules.map(r => ({ ...r })) : (DEFAULT_FANTASY_CALENDAR_CONFIG.leapRules ? DEFAULT_FANTASY_CALENDAR_CONFIG.leapRules.map(r => ({ ...r })) : []))
+      setIntercalaryDays(currentConfig.intercalaryDays ? currentConfig.intercalaryDays.map(i => ({ ...i })) : (DEFAULT_FANTASY_CALENDAR_CONFIG.intercalaryDays ? DEFAULT_FANTASY_CALENDAR_CONFIG.intercalaryDays.map(i => ({ ...i })) : []))
+      setMoons(currentConfig.moons ? currentConfig.moons.map(m => ({ ...m })) : (DEFAULT_FANTASY_CALENDAR_CONFIG.moons ? DEFAULT_FANTASY_CALENDAR_CONFIG.moons.map(m => ({ ...m })) : []))
       setPresetsList(getAllCalendarPresets())
       setPresetFeedback(null)
     }
@@ -178,6 +214,79 @@ export const TimelineCalendarSettingsModal: React.FC<TimelineCalendarSettingsMod
     setCustomPeriodTypes(customPeriodTypes.filter(p => p.id !== id))
   }
 
+  // Leap Rules management
+  const addLeapRule = () => {
+    if (!newLeapName.trim() || newLeapInterval <= 0) return
+    const targetMonth = newLeapTargetMonthId || (months[0]?.id ?? 'm-1')
+    const rule: CalendarLeapRule = {
+      id: `lr-${Date.now()}`,
+      name: newLeapName.trim(),
+      interval: Number(newLeapInterval),
+      offsetYear: Number(newLeapOffset) || 0,
+      extraDays: Number(newLeapExtraDays) || 1,
+      targetMonthId: targetMonth,
+      excludeInterval: newLeapExcludeInterval ? Number(newLeapExcludeInterval) : undefined,
+      reinstateInterval: newLeapReinstateInterval ? Number(newLeapReinstateInterval) : undefined
+    }
+    setLeapRules([...leapRules, rule])
+    setNewLeapName('')
+    setNewLeapInterval(4)
+    setNewLeapOffset(0)
+    setNewLeapExtraDays(1)
+    setNewLeapExcludeInterval('')
+    setNewLeapReinstateInterval('')
+  }
+
+  const removeLeapRule = (id: string) => {
+    setLeapRules(leapRules.filter(r => r.id !== id))
+  }
+
+  // Intercalary Days management
+  const addIntercalaryDay = () => {
+    if (!newIntercalaryName.trim()) return
+    const targetMonth = newIntercalaryAfterMonthId || (months[0]?.id ?? 'm-1')
+    const item: IntercalaryDay = {
+      id: `ic-${Date.now()}`,
+      name: newIntercalaryName.trim(),
+      occursAfterMonthId: targetMonth,
+      isLeapOnly: newIntercalaryIsLeapOnly,
+      advancesWeekday: newIntercalaryAdvancesWeekday,
+      description: newIntercalaryDescription.trim() || undefined
+    }
+    setIntercalaryDays([...intercalaryDays, item])
+    setNewIntercalaryName('')
+    setNewIntercalaryDescription('')
+    setNewIntercalaryIsLeapOnly(false)
+    setNewIntercalaryAdvancesWeekday(false)
+  }
+
+  const removeIntercalaryDay = (id: string) => {
+    setIntercalaryDays(intercalaryDays.filter(i => i.id !== id))
+  }
+
+  // Celestial Moons management
+  const addMoon = () => {
+    if (!newMoonName.trim() || newMoonPeriod <= 0) return
+    const moon: CelestialMoonConfig = {
+      id: `moon-${Date.now()}`,
+      name: newMoonName.trim(),
+      synodicPeriodDays: Number(newMoonPeriod),
+      epochPhase: Math.max(0, Math.min(1, Number(newMoonEpochPhase))),
+      color: newMoonColor || '#e2e8f0',
+      radiusPixels: 8,
+      description: newMoonDescription.trim() || undefined
+    }
+    setMoons([...moons, moon])
+    setNewMoonName('')
+    setNewMoonPeriod(28.0)
+    setNewMoonEpochPhase(0.0)
+    setNewMoonDescription('')
+  }
+
+  const removeMoon = (id: string) => {
+    setMoons(moons.filter(m => m.id !== id))
+  }
+
   // Current config as preset object
   const getCurrentDraftConfig = (): Omit<WorldCalendarConfig, 'worldId'> => ({
     firstYear: Number(firstYear),
@@ -189,7 +298,12 @@ export const TimelineCalendarSettingsModal: React.FC<TimelineCalendarSettingsMod
     months: months.length > 0 ? months : DEFAULT_FANTASY_CALENDAR_CONFIG.months,
     eras: eras.length > 0 ? eras : (DEFAULT_FANTASY_CALENDAR_CONFIG.eras || []),
     customCategories,
-    customPeriodTypes
+    customPeriodTypes,
+    hasYearZero,
+    weekdayEpochOffset: Number(weekdayEpochOffset) || 0,
+    leapRules,
+    intercalaryDays,
+    moons
   })
 
   // Presets actions
@@ -205,6 +319,11 @@ export const TimelineCalendarSettingsModal: React.FC<TimelineCalendarSettingsMod
     if (cfg.eras) setEras(cfg.eras.map(e => ({ ...e })))
     if (cfg.customCategories) setCustomCategories([...cfg.customCategories])
     if (cfg.customPeriodTypes) setCustomPeriodTypes([...cfg.customPeriodTypes])
+    setHasYearZero(cfg.hasYearZero ?? false)
+    setWeekdayEpochOffset(cfg.weekdayEpochOffset ?? 0)
+    setLeapRules(cfg.leapRules ? cfg.leapRules.map(r => ({ ...r })) : [])
+    setIntercalaryDays(cfg.intercalaryDays ? cfg.intercalaryDays.map(i => ({ ...i })) : [])
+    setMoons(cfg.moons ? cfg.moons.map(m => ({ ...m })) : [])
     setPresetFeedback(`Applied preset: ${preset.name}`)
     setTimeout(() => setPresetFeedback(null), 3000)
   }
@@ -297,6 +416,39 @@ export const TimelineCalendarSettingsModal: React.FC<TimelineCalendarSettingsMod
             }`}
           >
             Months ({months.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('leapRules')}
+            className={`px-2.5 py-1 rounded-[2px] text-[11px] font-sans font-medium whitespace-nowrap transition-colors ${
+              activeTab === 'leapRules' 
+                ? 'bg-oros-800 text-oros-50 border border-oros-700 shadow-sm' 
+                : 'text-oros-400 hover:text-oros-200'
+            }`}
+          >
+            Leap Rules ({leapRules.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('intercalary')}
+            className={`px-2.5 py-1 rounded-[2px] text-[11px] font-sans font-medium whitespace-nowrap transition-colors ${
+              activeTab === 'intercalary' 
+                ? 'bg-oros-800 text-oros-50 border border-oros-700 shadow-sm' 
+                : 'text-oros-400 hover:text-oros-200'
+            }`}
+          >
+            Festival Days ({intercalaryDays.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('moons')}
+            className={`px-2.5 py-1 rounded-[2px] text-[11px] font-sans font-medium whitespace-nowrap transition-colors ${
+              activeTab === 'moons' 
+                ? 'bg-oros-800 text-oros-50 border border-oros-700 shadow-sm' 
+                : 'text-oros-400 hover:text-oros-200'
+            }`}
+          >
+            Celestial Moons ({moons.length})
           </button>
           <button
             type="button"
@@ -442,6 +594,41 @@ export const TimelineCalendarSettingsModal: React.FC<TimelineCalendarSettingsMod
                   </button>
                 </div>
               </div>
+
+              <div className="pt-2 border-t border-oros-800 space-y-2">
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400">
+                  Astronomical & Epoch Reckoning
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex items-start gap-2 cursor-pointer bg-oros-850 p-2 rounded-[3px] border border-oros-750 hover:border-oros-700">
+                    <input
+                      type="checkbox"
+                      checked={hasYearZero}
+                      onChange={(e) => setHasYearZero(e.target.checked)}
+                      className="mt-0.5 rounded text-accent focus:ring-0 bg-oros-900 border-oros-700"
+                    />
+                    <div>
+                      <span className="text-xs font-semibold text-oros-100 block">Astronomical Year Zero</span>
+                      <span className="text-[10px] text-oros-400 block leading-tight">
+                        If enabled, Year 0 exists (-1, 0, 1). If disabled, historical (1 BCE → 1 CE).
+                      </span>
+                    </div>
+                  </label>
+
+                  <div className="bg-oros-850 p-2 rounded-[3px] border border-oros-750">
+                    <span className="text-xs font-semibold text-oros-100 block mb-0.5">Weekday Epoch Offset</span>
+                    <input
+                      type="number"
+                      value={weekdayEpochOffset}
+                      onChange={(e) => setWeekdayEpochOffset(Number(e.target.value))}
+                      className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-0.5 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
+                    />
+                    <span className="text-[10px] text-oros-400 block mt-0.5 leading-tight">
+                      Weekday index shift at epoch anchor Day 0
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -519,6 +706,414 @@ export const TimelineCalendarSettingsModal: React.FC<TimelineCalendarSettingsMod
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: LEAP RULES */}
+          {activeTab === 'leapRules' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase font-semibold text-oros-400">
+                  Configured Leap Year Rules ({leapRules.length})
+                </span>
+                <span className="text-[10px] text-oros-400">
+                  Multi-tier calendar exceptions & intercalary extensions
+                </span>
+              </div>
+
+              {/* Add Leap Rule Card */}
+              <div className="p-3 bg-oros-850 border border-oros-750 rounded-[3px] space-y-2.5">
+                <span className="text-xs font-semibold text-oros-100 block">Create New Leap Year Rule</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Rule Name</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. Quadrennial Leap"
+                      value={newLeapName}
+                      onChange={(e) => setNewLeapName(e.target.value)}
+                      className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:border-accent focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Target Month</span>
+                    <select
+                      value={newLeapTargetMonthId || (months[0]?.id ?? '')}
+                      onChange={(e) => setNewLeapTargetMonthId(e.target.value)}
+                      className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:border-accent focus:outline-none"
+                    >
+                      {months.map(m => (
+                        <option key={m.id} value={m.id}>{m.name} ({m.days}d)</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2">
+                  <div>
+                    <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Every N Years</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={newLeapInterval}
+                      onChange={(e) => setNewLeapInterval(Number(e.target.value))}
+                      className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Offset Year</span>
+                    <input
+                      type="number"
+                      value={newLeapOffset}
+                      onChange={(e) => setNewLeapOffset(Number(e.target.value))}
+                      className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Extra Days</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={newLeapExtraDays}
+                      onChange={(e) => setNewLeapExtraDays(Number(e.target.value))}
+                      className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Skip Every N (Opt)</span>
+                    <input
+                      type="number"
+                      placeholder="e.g. 100"
+                      value={newLeapExcludeInterval}
+                      onChange={(e) => setNewLeapExcludeInterval(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <div className="w-48">
+                    <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Reinstate Every N (Opt)</span>
+                    <input
+                      type="number"
+                      placeholder="e.g. 400"
+                      value={newLeapReinstateInterval}
+                      onChange={(e) => setNewLeapReinstateInterval(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addLeapRule}
+                    className="btn-accent px-3 py-1 rounded-[3px] text-xs font-bold flex items-center gap-1 shadow-sm mt-3"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Add Leap Rule</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Leap Rules List */}
+              <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
+                {leapRules.length === 0 ? (
+                  <p className="text-center py-6 text-oros-500 text-xs">No leap year rules configured. Years will have fixed day lengths.</p>
+                ) : (
+                  leapRules.map(r => {
+                    const targetMonth = months.find(m => m.id === r.targetMonthId)
+                    return (
+                      <div key={r.id} className="p-2.5 bg-oros-850 border border-oros-750 rounded-[3px] flex items-center justify-between gap-2 shadow-sm">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-sans font-semibold text-xs text-oros-100">{r.name}</span>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-[2px] bg-accent/20 text-accent font-bold">
+                              Every {r.interval} yrs ({r.extraDays >= 0 ? `+${r.extraDays}` : r.extraDays}d)
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-mono text-oros-400 block mt-0.5">
+                            Targets: {targetMonth ? targetMonth.name : r.targetMonthId}
+                            {r.offsetYear ? ` · Offset: Yr ${r.offsetYear}` : ''}
+                            {r.excludeInterval ? ` · Skip every ${r.excludeInterval}y` : ''}
+                            {r.reinstateInterval ? ` · Reinstate every ${r.reinstateInterval}y` : ''}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeLeapRule(r.id)}
+                          className="p-1 text-oros-400 hover:text-rose-400 transition-colors"
+                          title="Delete rule"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: INTERCALARY FESTIVAL DAYS */}
+          {activeTab === 'intercalary' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase font-semibold text-oros-400">
+                  Intercalary & Festival Days ({intercalaryDays.length})
+                </span>
+                <span className="text-[10px] text-oros-400">
+                  Special celebration days occurring between standard months
+                </span>
+              </div>
+
+              {/* Add Intercalary Day Card */}
+              <div className="p-3 bg-oros-850 border border-oros-750 rounded-[3px] space-y-2.5">
+                <span className="text-xs font-semibold text-oros-100 block">Add Intercalary Festival Day</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Festival Name</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. Midsummer Feast, Shieldmeet"
+                      value={newIntercalaryName}
+                      onChange={(e) => setNewIntercalaryName(e.target.value)}
+                      className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:border-accent focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Occurs After Month</span>
+                    <select
+                      value={newIntercalaryAfterMonthId || (months[0]?.id ?? '')}
+                      onChange={(e) => setNewIntercalaryAfterMonthId(e.target.value)}
+                      className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:border-accent focus:outline-none"
+                    >
+                      {months.map(m => (
+                        <option key={m.id} value={m.id}>After {m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Description (Optional)</span>
+                  <input
+                    type="text"
+                    placeholder="e.g. Traditional Solstice celebration of love and music"
+                    value={newIntercalaryDescription}
+                    onChange={(e) => setNewIntercalaryDescription(e.target.value)}
+                    className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:border-accent focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs text-oros-300">
+                      <input
+                        type="checkbox"
+                        checked={newIntercalaryIsLeapOnly}
+                        onChange={(e) => setNewIntercalaryIsLeapOnly(e.target.checked)}
+                        className="rounded text-accent focus:ring-0 bg-oros-900 border-oros-700"
+                      />
+                      <span>Leap Years Only</span>
+                    </label>
+
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs text-oros-300">
+                      <input
+                        type="checkbox"
+                        checked={newIntercalaryAdvancesWeekday}
+                        onChange={(e) => setNewIntercalaryAdvancesWeekday(e.target.checked)}
+                        className="rounded text-accent focus:ring-0 bg-oros-900 border-oros-700"
+                      />
+                      <span>Advances Weekday Progression</span>
+                    </label>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={addIntercalaryDay}
+                    className="btn-accent px-3 py-1 rounded-[3px] text-xs font-bold flex items-center gap-1 shadow-sm"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Add Festival Day</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Intercalary Days List */}
+              <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
+                {intercalaryDays.length === 0 ? (
+                  <p className="text-center py-6 text-oros-500 text-xs">No intercalary festival days configured.</p>
+                ) : (
+                  intercalaryDays.map(ic => {
+                    const afterMonth = months.find(m => m.id === ic.occursAfterMonthId)
+                    return (
+                      <div key={ic.id} className="p-2.5 bg-oros-850 border border-oros-750 rounded-[3px] flex items-center justify-between gap-2 shadow-sm">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-sans font-semibold text-xs text-oros-100">{ic.name}</span>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-[2px] bg-accent/20 text-accent font-bold">
+                              After {afterMonth ? afterMonth.name : ic.occursAfterMonthId}
+                            </span>
+                            {ic.isLeapOnly && (
+                              <span className="text-[9px] font-mono px-1 py-0.5 rounded-[2px] bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                Leap Only
+                              </span>
+                            )}
+                          </div>
+                          {ic.description && (
+                            <p className="text-[10px] text-oros-400 mt-0.5">{ic.description}</p>
+                          )}
+                          <span className="text-[9px] font-mono text-oros-500 block mt-0.5">
+                            {ic.advancesWeekday ? 'Advances standard weekly calendar' : 'Outside weekly progression (uncounted weekday)'}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeIntercalaryDay(ic.id)}
+                          className="p-1 text-oros-400 hover:text-rose-400 transition-colors"
+                          title="Delete festival day"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: CELESTIAL MOONS */}
+          {activeTab === 'moons' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase font-semibold text-oros-400">
+                  Celestial Moons & Orbits ({moons.length})
+                </span>
+                <span className="text-[10px] text-oros-400">
+                  Multi-moon synodic cycles & syzygy alignment calculations
+                </span>
+              </div>
+
+              {/* Add Moon Card */}
+              <div className="p-3 bg-oros-850 border border-oros-750 rounded-[3px] space-y-2.5">
+                <span className="text-xs font-semibold text-oros-100 block">Add Celestial Body</span>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Moon Name</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. Selûne, Luna"
+                      value={newMoonName}
+                      onChange={(e) => setNewMoonName(e.target.value)}
+                      className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:border-accent focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Synodic Cycle (Days)</span>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0.1"
+                      placeholder="e.g. 28.0 or 29.53"
+                      value={newMoonPeriod}
+                      onChange={(e) => setNewMoonPeriod(Number(e.target.value))}
+                      className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Epoch Phase (0=New, 0.5=Full)</span>
+                    <input
+                      type="number"
+                      step="0.05"
+                      min="0"
+                      max="1"
+                      value={newMoonEpochPhase}
+                      onChange={(e) => setNewMoonEpochPhase(Number(e.target.value))}
+                      className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Display Color</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={newMoonColor}
+                        onChange={(e) => setNewMoonColor(e.target.value)}
+                        className="w-8 h-7 bg-transparent border-0 cursor-pointer rounded"
+                      />
+                      <input
+                        type="text"
+                        value={newMoonColor}
+                        onChange={(e) => setNewMoonColor(e.target.value)}
+                        className="flex-1 bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs font-mono text-oros-100 focus:border-accent focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-oros-400 block mb-0.5">Description (Optional)</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. The Silver Maiden of the night"
+                      value={newMoonDescription}
+                      onChange={(e) => setNewMoonDescription(e.target.value)}
+                      className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:border-accent focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={addMoon}
+                    className="btn-accent px-3 py-1 rounded-[3px] text-xs font-bold flex items-center gap-1 shadow-sm"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Add Celestial Body</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Moons List */}
+              <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
+                {moons.length === 0 ? (
+                  <p className="text-center py-6 text-oros-500 text-xs">No celestial bodies configured for this world.</p>
+                ) : (
+                  moons.map(m => (
+                    <div key={m.id} className="p-2.5 bg-oros-850 border border-oros-750 rounded-[3px] flex items-center justify-between gap-2 shadow-sm">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className="w-4 h-4 rounded-full border border-black/50 shrink-0 shadow-sm"
+                          style={{ backgroundColor: m.color || '#e2e8f0' }}
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-sans font-semibold text-xs text-oros-100">{m.name}</span>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-[2px] bg-accent/20 text-accent font-bold">
+                              Period: {m.synodicPeriodDays}d
+                            </span>
+                            <span className="text-[9px] font-mono text-oros-400">
+                              Epoch: {m.epochPhase === 0 ? 'New' : m.epochPhase === 0.5 ? 'Full' : `${Math.round(m.epochPhase * 100)}%`}
+                            </span>
+                          </div>
+                          {m.description && (
+                            <p className="text-[10px] text-oros-400 mt-0.5">{m.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeMoon(m.id)}
+                        className="p-1 text-oros-400 hover:text-rose-400 transition-colors"
+                        title="Delete moon"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -788,7 +1383,7 @@ export const TimelineCalendarSettingsModal: React.FC<TimelineCalendarSettingsMod
         {/* Guaranteed Visible Pinned Footer */}
         <div className="px-4 py-2.5 border-t border-oros-750/80 bg-oros-900 flex items-center justify-between shrink-0">
           <span className="font-mono text-[10px] text-oros-400">
-            {months.length} months · {eras.length} eras · {firstYear}–{lastYear} {yearSuffix}
+            {months.length} months · {leapRules.length} leap rules · {moons.length} moons · {firstYear}–{lastYear} {yearSuffix}
           </span>
 
           <div className="flex items-center gap-2">

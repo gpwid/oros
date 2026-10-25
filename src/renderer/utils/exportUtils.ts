@@ -1,6 +1,8 @@
 import { toPng, toSvg } from 'html-to-image'
 import { getNodesBounds, getViewportForBounds, Node } from '@xyflow/react'
-import { WorldMap, RelationEdge, LoreEntity, WhiteboardCanvasData, TimelineEvent } from '@shared/types'
+import { WorldMap, RelationEdge, LoreEntity, WhiteboardCanvasData, TimelineEvent, TTRPGBattlemap, TTRPGWall, DirectoryFolder, DirectoryItem } from '@shared/types'
+import { exportBattlemapToFoundryScene } from './foundryBridge'
+import { exportWorldToObsidianFiles } from './obsidianBridge'
 
 /**
  * Converts a Blob to a Base64 data URL
@@ -471,3 +473,29 @@ export async function exportTimelineToCsv(
   const safeName = worldName.toLowerCase().replace(/[^a-z0-9_-]/g, '_')
   return downloadFile(header + rows, `${safeName}_chronology.csv`, 'text/csv')
 }
+
+// ==========================================
+// ECOSYSTEM BRIDGES (Obsidian & Foundry VTT)
+// ==========================================
+
+export async function exportBattlemapToFoundry(
+  battlemap: TTRPGBattlemap,
+  campaignName: string = 'Oros Campaign',
+  walls?: TTRPGWall[]
+): Promise<boolean> {
+  const sceneData = exportBattlemapToFoundryScene(battlemap, campaignName, walls)
+  const safeName = (battlemap.name || 'battlemap').toLowerCase().replace(/[^a-z0-9_-]/g, '_')
+  return downloadJsonFile(sceneData, `${safeName}_foundry_scene.json`)
+}
+
+export async function exportWorldToObsidianJson(
+  worldName: string,
+  entities: LoreEntity[],
+  folders: DirectoryFolder[] = [],
+  directoryItems: DirectoryItem[] = []
+): Promise<boolean> {
+  const vaultResult = exportWorldToObsidianFiles(worldName, entities, folders, directoryItems)
+  const safeName = worldName.toLowerCase().replace(/[^a-z0-9_-]/g, '_')
+  return downloadJsonFile(vaultResult, `${safeName}_obsidian_vault.json`)
+}
+

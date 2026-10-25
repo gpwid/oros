@@ -4,10 +4,11 @@ import { useToastStore } from '../../store/useToastStore'
 import { 
   Search, BookOpen, Map, Feather, Shield, Plus, FolderOpen, 
   Download, ArrowRight, Calendar, FileText, Sparkles, X,
-  Layers, Users, Network, Languages, Settings
+  Layers, Users, Network, Languages, Settings, Swords
 } from 'lucide-react'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { searchDeepVault, SearchDomain, DeepSearchResult } from '../../utils/deepSearchEngine'
+import { useTtrpgStore } from '../../store/useTtrpgStore'
 
 interface PaletteActionItem {
   id: string;
@@ -24,6 +25,18 @@ export const CommandPalette: React.FC = () => {
   const [selectedDomain, setSelectedDomain] = useState<SearchDomain>('all')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  const battlemaps = useTtrpgStore((s) => s.battlemaps)
+  const setActiveCampaignId = useTtrpgStore((s) => s.setActiveCampaignId)
+  const setActiveBattlemapId = useTtrpgStore((s) => s.setActiveBattlemapId)
+
+  // Scroll active item into view on keyboard arrow navigation
+  useEffect(() => {
+    if (itemRefs.current[selectedIndex]) {
+      itemRefs.current[selectedIndex]?.scrollIntoView({ block: 'nearest' })
+    }
+  }, [selectedIndex])
 
   const { 
     entities, maps, manuscripts, timelines, conlangs, activeWorldId, 
@@ -71,7 +84,6 @@ export const CommandPalette: React.FC = () => {
         id: 'act-new-char',
         category: 'Actions',
         title: 'New Character Article',
-        subtitle: 'Create a pre-structured character sheet',
         icon: Plus,
         onSelect: () => {
           const ent = createEntity('character', 'Untitled Character')
@@ -84,7 +96,6 @@ export const CommandPalette: React.FC = () => {
         id: 'act-new-loc',
         category: 'Actions',
         title: 'New Settlement / Location',
-        subtitle: 'Create a realm or landmark card',
         icon: Plus,
         onSelect: () => {
           const ent = createEntity('location', 'Untitled Location')
@@ -97,7 +108,6 @@ export const CommandPalette: React.FC = () => {
         id: 'act-new-conlang',
         category: 'Actions',
         title: 'New Conlang / Constructed Language',
-        subtitle: 'Create a constructed fantasy tongue, dialect, or dictionary',
         icon: Languages,
         onSelect: () => {
           openTab({ title: 'Conlang Lexicon', type: 'dictionary' })
@@ -108,7 +118,6 @@ export const CommandPalette: React.FC = () => {
         id: 'act-nav-writer',
         category: 'Actions',
         title: 'Open Studio Writer',
-        subtitle: 'Continue writing chapter prose',
         icon: Feather,
         onSelect: () => {
           openTab({ title: 'Studio Writer', type: 'writer' })
@@ -118,7 +127,6 @@ export const CommandPalette: React.FC = () => {
         id: 'act-nav-timeline',
         category: 'Actions',
         title: 'Open Timeline & Chronicles',
-        subtitle: 'Inspect fantasy epochs and events',
         icon: Calendar,
         onSelect: () => {
           openTab({ title: 'Timeline & Chronicles', type: 'timeline' })
@@ -128,7 +136,6 @@ export const CommandPalette: React.FC = () => {
         id: 'act-nav-relations',
         category: 'Actions',
         title: 'Open Relationship Graph',
-        subtitle: 'View factions, allegiances, and lineage trees',
         icon: Users,
         onSelect: () => {
           openTab({ title: 'Relation Network', type: 'relations' })
@@ -138,7 +145,6 @@ export const CommandPalette: React.FC = () => {
         id: 'act-toggle-gm',
         category: 'Actions',
         title: gmMode ? 'Switch to Reader / Player Mode' : 'Enable Director / GM Mode',
-        subtitle: 'Toggle confidential DM lore and spoiler tags',
         icon: Shield,
         onSelect: () => {
           toggleGmMode()
@@ -149,7 +155,6 @@ export const CommandPalette: React.FC = () => {
         id: 'act-open-folder',
         category: 'Actions',
         title: 'Open Local Vault Directory',
-        subtitle: 'Reveal storage in Windows File Explorer',
         icon: FolderOpen,
         onSelect: async () => {
           if (window.oros) {
@@ -164,7 +169,6 @@ export const CommandPalette: React.FC = () => {
         id: 'act-export',
         category: 'Actions',
         title: 'Export World Archive',
-        subtitle: 'Save complete .oros.json bundle',
         icon: Download,
         onSelect: async () => {
           await exportWorld()
@@ -175,7 +179,6 @@ export const CommandPalette: React.FC = () => {
         id: 'act-open-settings',
         category: 'Actions',
         title: 'Open App Settings',
-        subtitle: 'Configure general, interface, editor, files & vault, and hotkeys (Ctrl+,)',
         icon: Settings,
         onSelect: () => {
           setIsOpen(false)
@@ -196,9 +199,10 @@ export const CommandPalette: React.FC = () => {
       worldChapters,
       worldTimelines,
       worldMaps,
-      worldConlangs
+      worldConlangs,
+      battlemaps
     )
-  }, [search, selectedDomain, worldEntities, worldChapters, worldTimelines, worldMaps, worldConlangs])
+  }, [search, selectedDomain, worldEntities, worldChapters, worldTimelines, worldMaps, worldConlangs, battlemaps])
 
   // Filter actions if searching
   const matchingActions = useMemo(() => {
@@ -249,6 +253,17 @@ export const CommandPalette: React.FC = () => {
         case 'conlang':
           openTab({ title: 'Conlang Lexicon', type: 'dictionary' })
           break
+        case 'battlemap': {
+          for (const [cId, bmaps] of Object.entries(battlemaps)) {
+            if (bmaps?.some(bm => bm.id === res.targetId)) {
+              setActiveCampaignId(cId)
+              break
+            }
+          }
+          setActiveBattlemapId(res.targetId)
+          openTab({ title: res.title, type: 'map', targetId: res.targetId })
+          break
+        }
       }
     }
     setIsOpen(false)
@@ -315,7 +330,7 @@ export const CommandPalette: React.FC = () => {
         {search.trim() && (
           <div className="px-3 py-1.5 border-b border-oros-850 bg-oros-950/60 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider">
             <span className="text-oros-500 mr-1">Filter:</span>
-            {(['all', 'lore', 'manuscript', 'timeline', 'map', 'conlang'] as SearchDomain[]).map((dom) => (
+            {(['all', 'lore', 'manuscript', 'timeline', 'map', 'battlemap', 'conlang'] as SearchDomain[]).map((dom) => (
               <button
                 key={dom}
                 onClick={() => {
@@ -328,7 +343,7 @@ export const CommandPalette: React.FC = () => {
                     : 'text-oros-400 hover:text-oros-200 hover:bg-oros-850'
                 }`}
               >
-                {dom === 'all' ? 'All Domains' : dom === 'lore' ? 'Cards' : dom === 'manuscript' ? 'Prose' : dom === 'timeline' ? 'Timeline' : dom === 'map' ? 'Maps' : 'Conlang'}
+                {dom === 'all' ? 'All Domains' : dom === 'lore' ? 'Cards' : dom === 'manuscript' ? 'Prose' : dom === 'timeline' ? 'Timeline' : dom === 'map' ? 'Maps' : dom === 'battlemap' ? 'Battlemaps' : 'Conlang'}
               </button>
             ))}
             <span className="ml-auto text-oros-500 font-mono">
@@ -353,6 +368,7 @@ export const CommandPalette: React.FC = () => {
                 return (
                   <div
                     key={act.id}
+                    ref={(el) => { itemRefs.current[idx] = el }}
                     onClick={() => handleSelectResult(item)}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`p-2.5 rounded-[3px] flex items-center justify-between text-xs cursor-pointer transition-colors border ${
@@ -394,6 +410,9 @@ export const CommandPalette: React.FC = () => {
               } else if (res.domain === 'map') {
                 Icon = Map
                 iconColor = 'text-emerald-400'
+              } else if (res.domain === 'battlemap') {
+                Icon = Swords
+                iconColor = 'text-rose-400'
               } else if (res.domain === 'conlang') {
                 Icon = Languages
                 iconColor = 'text-cyan-400'
@@ -402,6 +421,7 @@ export const CommandPalette: React.FC = () => {
               return (
                 <div
                   key={res.id}
+                  ref={(el) => { itemRefs.current[idx] = el }}
                   onClick={() => handleSelectResult(item)}
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`p-2.5 rounded-[3px] text-xs cursor-pointer transition-colors border flex flex-col justify-between ${

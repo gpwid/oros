@@ -4,7 +4,7 @@ import {
   FolderOpen, RotateCcw, Check, Copy, ExternalLink, HardDrive, 
   ShieldCheck, AlertCircle, FileText, Search, Sparkles,
   Sun, Moon, Monitor, Upload, Download, Trash2, 
-  Layers, Globe, Terminal, Store, CheckSquare, Paintbrush
+  Layers, Globe, Terminal, CheckSquare, Paintbrush
 } from 'lucide-react'
 import { 
   useSettingsStore, 
@@ -164,18 +164,11 @@ export const SettingsModal: React.FC = () => {
               className="bg-transparent font-bold text-base text-oros-100 tracking-tight outline-none focus:text-accent transition-colors flex-1"
               style={{ fontFamily: SERIF_FONT_MAP[settings.interface.headingFont] || SERIF_FONT_MAP.playfair }}
             />
-            <span 
-              className="text-[10px] px-1.5 py-0.5 rounded-[2px] bg-accent-muted text-accent border border-accent/30 font-medium font-mono shrink-0"
-              style={{ fontFamily: MONO_FONT_MAP[settings.interface.monoFont] || MONO_FONT_MAP.jetbrains }}
-            >
-              Try editing the text!
-            </span>
           </div>
 
           <textarea
             value={editorDraftContent}
             onChange={(e) => setEditorDraftContent(e.target.value)}
-            placeholder="Click here and start typing to test your font size, line spacing, and typeface live..."
             rows={3}
             className="w-full bg-transparent text-oros-200 leading-relaxed outline-none resize-none selection:bg-accent/30 placeholder-oros-500 font-sans"
             style={{ 
@@ -792,62 +785,7 @@ export const SettingsModal: React.FC = () => {
                   </label>
                 </div>
 
-                {/* 4. Theme Marketplace Preview */}
-                <div className="p-4 rounded-[4px] bg-gradient-to-br from-oros-950 via-oros-950 to-oros-900 border border-oros-800 space-y-3 relative overflow-hidden">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-[3px] bg-accent/15 flex items-center justify-center text-accent">
-                        <Store className="w-3.5 h-3.5" />
-                      </div>
-                      <div>
-                        <span className="font-semibold text-xs text-oros-100 block">Theme Marketplace</span>
-                        <span className="text-[10.5px] text-oros-400 block">Coming soon in v0.2.0</span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-[2px] bg-accent-muted text-accent border border-accent/30 uppercase font-bold">
-                      Roadmap Feature
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-oros-300 leading-relaxed">
-                    Browse and install verified themes, layout styles, and visual plugins directly within Oros, or package your own theme configurations.
-                  </p>
-
-                  {/* Mock Marketplace Teaser Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                    {[
-                      { name: 'Catppuccin Macchiato', accent: '#f5bde6', author: 'Catppuccin' },
-                      { name: 'Tokyo Night', accent: '#7aa2f7', author: 'Enkai' },
-                      { name: 'Dracula Atelier', accent: '#bd93f9', author: 'Vlad' },
-                      { name: 'Solarized Dark', accent: '#268bd2', author: 'Ethan S.' }
-                    ].map((item) => (
-                      <div
-                        key={item.name}
-                        className="p-2.5 rounded-[3px] bg-oros-900/60 border border-oros-800/80 flex flex-col justify-between opacity-80 hover:opacity-100 transition-opacity"
-                      >
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.accent }} />
-                          <span className="text-[9.5px] font-mono text-oros-500 uppercase truncate">{item.author}</span>
-                        </div>
-                        <span className="text-[11px] font-medium text-oros-200 block truncate">{item.name}</span>
-                        <span className="text-[9.5px] font-mono text-accent mt-1">Available Soon</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="pt-2 border-t border-oros-800/80 flex items-center justify-between text-[11px]">
-                    <span className="text-oros-400">Want to develop a theme? Read guidelines in DESIGN.md</span>
-                    <button
-                      type="button"
-                      onClick={() => addToast('Theme Marketplace launches in v0.2.0! Use JSON Import for custom themes.', 'info')}
-                      className="px-2.5 py-1 rounded-[3px] bg-oros-900 hover:bg-oros-850 border border-oros-750 text-oros-200 text-xs font-semibold transition-colors"
-                    >
-                      Explore Themes
-                    </button>
-                  </div>
-                </div>
-
-                {/* 6. Typography Fonts */}
+                {/* 5. Typography Fonts */}
                 <div className="space-y-3 pt-2 border-t border-oros-800/80">
                   <label className="block text-[10px] font-mono uppercase text-oros-300 font-bold tracking-wider">
                     Typography Families

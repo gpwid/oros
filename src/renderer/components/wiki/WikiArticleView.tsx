@@ -26,9 +26,10 @@ import { exportWorldToObsidianFiles } from '../../utils/obsidianBridge'
 
 interface WikiArticleViewProps {
   entityId?: string
+  isActive?: boolean
 }
 
-export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) => {
+export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId, isActive = true }) => {
   const { 
     entities, categories, activeWorldId, selectedEntityId, setSelectedEntityId, openTab,
     updateEntity, createEntity, deleteEntity, searchQuery, gmMode,
@@ -67,12 +68,12 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId }) =>
   // Prioritize entityId prop if passed from active workspace tab
   const effectiveId = entityId || selectedEntityId
 
-  // Synchronize store selectedEntityId when entityId prop changes
+  // Synchronize store selectedEntityId when this article is active and entityId changes
   useEffect(() => {
-    if (entityId && entityId !== selectedEntityId) {
+    if (isActive && entityId && useWorldStore.getState().selectedEntityId !== entityId) {
       setSelectedEntityId(entityId)
     }
-  }, [entityId, selectedEntityId, setSelectedEntityId])
+  }, [isActive, entityId, setSelectedEntityId])
 
   // Filter entities by search and type
   const filteredEntities = worldEntities.filter((e) => {

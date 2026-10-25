@@ -8,6 +8,7 @@ import { ToastContainer } from './components/common/ToastContainer'
 import { ConfirmModal } from './components/common/ConfirmModal'
 import { CustomTooltipProvider } from './components/common/CustomTooltipProvider'
 import { SettingsModal } from './components/settings/SettingsModal'
+import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { useSettingsStore } from './store/useSettingsStore'
 import { applyTheme } from './utils/themeEngine'
 
@@ -45,11 +46,11 @@ const TabViewContainer: React.FC<{ tab: TabItem; isActive: boolean }> = React.me
       case 'canvas':
         return <WhiteboardCanvas canvasId={tab.targetId} />
       case 'wiki':
-        return <WikiArticleView entityId={tab.targetId} />
+        return <WikiArticleView entityId={tab.targetId} isActive={isActive} />
       case 'card':
       case 'cards':
         if (tab.targetId) {
-          return <WikiArticleView entityId={tab.targetId} />
+          return <WikiArticleView entityId={tab.targetId} isActive={isActive} />
         }
         return <CardGallery />
       case 'relations':
@@ -78,7 +79,9 @@ const TabViewContainer: React.FC<{ tab: TabItem; isActive: boolean }> = React.me
       className={`flex-1 flex overflow-hidden ${isActive ? '' : '!hidden'}`}
       style={{ display: isActive ? undefined : 'none' }}
     >
-      {renderContent()}
+      <ErrorBoundary viewName={tab.title || tab.type}>
+        {renderContent()}
+      </ErrorBoundary>
     </div>
   )
 })
@@ -185,21 +188,23 @@ export const App: React.FC = () => {
           <div className="flex-1 flex overflow-hidden">
             <Sidebar />
             <main className="flex-1 flex overflow-hidden bg-oros-950 relative">
-              <Suspense fallback={<ViewFallback />}>
-                {openTabs.length === 0 ? (
-                  <div className="flex-1 flex overflow-hidden">
-                    <WikiNetworkGraph />
-                  </div>
-                ) : (
-                  openTabs.map((tab) => (
-                    <TabViewContainer
-                      key={tab.id}
-                      tab={tab}
-                      isActive={tab.id === (activeTabId || openTabs[0]?.id)}
-                    />
-                  ))
-                )}
-              </Suspense>
+              <ErrorBoundary viewName="Main Workspace">
+                <Suspense fallback={<ViewFallback />}>
+                  {openTabs.length === 0 ? (
+                    <div className="flex-1 flex overflow-hidden">
+                      <WikiNetworkGraph />
+                    </div>
+                  ) : (
+                    openTabs.map((tab) => (
+                      <TabViewContainer
+                        key={tab.id}
+                        tab={tab}
+                        isActive={tab.id === (activeTabId || openTabs[0]?.id)}
+                      />
+                    ))
+                  )}
+                </Suspense>
+              </ErrorBoundary>
             </main>
           </div>
         </>

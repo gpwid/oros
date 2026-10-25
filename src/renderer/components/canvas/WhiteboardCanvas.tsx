@@ -5165,19 +5165,6 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
 
             <div className="w-[1px] h-3.5 bg-oros-800 mx-0.5" />
 
-            {/* Batch Duplicate */}
-            <button
-              type="button"
-              onClick={handleDuplicateSelected}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full hover:bg-oros-800 text-oros-300 hover:text-white text-xs transition-colors cursor-pointer"
-              title="Duplicate selected items (Ctrl+D)"
-            >
-              <Copy className="w-3.5 h-3.5 text-accent" />
-              <span className="text-[11px] font-medium">Duplicate</span>
-            </button>
-
-            <div className="w-[1px] h-3.5 bg-oros-800 mx-0.5" />
-
             {/* Batch Delete */}
             <button
               onClick={handleBatchDeleteSelected}

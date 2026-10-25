@@ -1,7 +1,7 @@
 # OROS DESIGN SYSTEM SPECIFICATION (DESIGN.md)
 *The Architectural & Tactile Design Guidelines for the Oros Codex Application*
 
-> **Version:** 1.0.0  
+> **Version:** 1.2.0  
 > **Status:** Production Standard  
 > **Target Aesthetic:** Tactile Archival Craft (Linear, Obsidian, Raycast, Zed)  
 > **Strict Anti-Pattern:** Zero "AI Vibecoded" Tropes (No bubbly pills, no gratuitous glow gradients, no washed-out low contrast text).
@@ -116,7 +116,7 @@ Oros pairs classical literary serifs with sharp, modern sans-serifs and a monosp
 All elements strictly adhere to the **Oros Geometric Grid**:
 
 ```
-[2px] Micro-Radius    → Badges, keyboard keycaps, color swatches, tag chips
+[2px] Micro-Radius    → Badges, keyboard keycaps, color swatches, tag chips, icon containers
 [3px] Standard-Radius → Buttons, text inputs, selects, dropdown menus, table rows
 [4px] Surface-Radius  → Cards, modals, floating panels, toolbars
 [0px] Sharp-Radius    → Tab bars, canvas viewports, docked panels
@@ -299,3 +299,140 @@ Before committing any UI change, verify:
 - [ ] **Are all controls, toggles, toolbars, and settings free of redundant AI-like explanatory subtitles?**
 - [ ] **Do visualizer toolbars prefer clean icons with native browser tooltips (`title="..."`) over explanatory subtitles?**
 - [ ] **Are labels direct and functional without patronizing tutorial copy?**
+- [ ] **Are all workspace tab views wrapped in an `ErrorBoundary` with graceful recovery?**
+- [ ] **Do background tabs isolate their effects (`isActive === false`) to prevent update depth overflow loops?**
+- [ ] **Are canvas scaling handles (squares) clearly differentiated from connection handles (circles with directional arrows)?**
+
+---
+
+## 8. Workspace Tab System & View Retention Architecture
+
+Oros implements a browser-grade workspace tab system designed for zero-latency multi-tasking across heavy codex views (TipTap prose editors, ReactFlow canvases, Leaflet cartography maps, and relation graphs).
+
+### 8.1 Tab Architecture Invariants
+
+1. **Non-Destructive View Retention**:
+   - Rather than destroying and re-instantiating component subtrees on every tab switch (`key={activeTabId}`), views are preserved in the DOM using CSS visibility control (`style={{ display: isActive ? undefined : 'none' }}`).
+   - Scroll offsets, draft text, canvas zooms, and viewport viewports are preserved during context switches.
+
+2. **Isolated Background Effects (`isActive` Protocol)**:
+   - Any component that synchronizes global state (e.g. `selectedEntityId`, active chapters) **must** accept an `isActive?: boolean` prop.
+   - Background tabs (`isActive === false`) must **never** trigger synchronous global store updates inside `useEffect` or state subscriptions. Failure to isolate background effects results in mutual ping-pong loops (`Maximum update depth exceeded`).
+
+3. **Dual-Layer Error Boundary Protection**:
+   - Every individual `TabViewContainer` is wrapped in an `ErrorBoundary`.
+   - The master workspace layout container is also wrapped in an `ErrorBoundary`.
+   - If an unhandled render error occurs in one view, only that specific view renders an in-app recovery screen with a **Reload View** button. The rest of the workspace and application state remain intact.
+
+---
+
+## 9. Whiteboard Canvas & Spatial Interaction System
+
+The Whiteboard Canvas provides infinite-plane spatial worldbuilding with strict geometric clarity.
+
+### 9.1 Affordance Differentiation: Scaling vs. Connection Handles
+
+To eliminate user confusion when selecting and transforming elements on the canvas, handles use distinct geometric primitives:
+
+| Affordance | Shape | Dimensions | Visual Indicators & States |
+| :--- | :--- | :--- | :--- |
+| **Scaling & Resize** | **Square** | `12px × 12px` (`w-3 h-3`) | Positioned at corners and mid-points. Solid fill with contrasting border. Cursor: `nwse-resize`, `nesw-resize`, etc. |
+| **Connection & Linking** | **Circle** | `16px × 16px` (`w-4 h-4`) | Positioned on cardinal edges (Top, Right, Bottom, Left). Displays an **embedded directional arrow icon** indicating outgoing flow direction. |
+
+#### Connection Handle Interactions:
+- **Hover State**: Expands to `20px` with an illuminated accent ring and displays a **faint trajectory preview overlay** projecting from the handle.
+- **Click Affordance**: Single-clicking the circle handle automatically creates an orthogonal connection arrow to adjacent cards without requiring a drag motion.
+- **Drag Affordance**: Dragging from the circle initiates manual arrow drafting.
+
+### 9.2 Floating Multi-Selection Action Toolbar
+
+When multiple elements (cards, notes, shapes) are marquee-selected or Shift-selected, a floating action pill renders above the bounding box:
+
+```
+┌────────────────────────────────────────────────────────┐
+│  [8 items]  │  ✢ Move  │  ⧉ Duplicate  │  🗑 Delete  │  ✕  │
+└────────────────────────────────────────────────────────┘
+```
+
+- **Pill Geometry**: `bg-oros-900 border border-oros-750 rounded-full px-3 py-1 shadow-2xl backdrop-blur-md`.
+- **Clean Action Roster**: Exactly one Move handle, one Duplicate button (`Ctrl+D`), one Delete button, and one Deselect button (`✕`). Never duplicate action controls.
+
+### 9.3 Orthogonal Routing & Obstacle Avoidance
+
+Connection edges between cards on the canvas employ an intelligent grid-based routing engine:
+- **A* Pathfinding**: Calculates orthogonal 90-degree paths with Manhattan distance heuristics around intermediate card nodes.
+- **24px Boundary Padding**: Prevents wires from cutting through card titles, avatars, or handles.
+- **Collinear Simplification**: Merges consecutive linear segments to eliminate redundant waypoints.
+
+### 9.4 Physics-Based Auto-Layout Relaxation
+
+The Auto-Layout engine organizes dense canvas graphs into readable hierarchies:
+- **Spring-Electrical Force Model**: Connected nodes experience Hooke's spring attraction, while all node pairs experience Coulomb-like electrostatic repulsion.
+- **Collision Push**: Bounding-box intersection resolution guarantees zero overlapping cards upon equilibrium.
+
+---
+
+## 10. Wiki-Style Card Linking & Bidirectional Transclusion (`[[query]]`)
+
+Knowledge within Oros is linked via native Wiki-Link syntax.
+
+### 10.1 Bracket Syntax Standards
+
+- **Standard Internal Link**: `[[Article Title]]`
+- **Piped Alias Link**: `[[Article Title|Custom Display Label]]`
+- **Strict Deprecation**: Legacy `@mention` syntax has been completely removed in favor of `[[...]]`.
+
+### 10.2 Autocompletion & Interactive Popover
+
+1. **Typing Trigger**: Entering `[[` in any rich text block (articles, chapters, canvas cards) opens a floating search palette.
+2. **Search Matching**: Searches across entity titles, aliases, and tags with instant `<mark>` highlighting.
+3. **Hover Preview Card**: Hovering any `[[wiki-link]]` renders a floating micro-infobox displaying the entity's avatar, category tag, summary, and primary metadata without navigating away.
+4. **Navigation**: Clicking an internal link opens the target article in a new workspace tab or focuses an existing tab.
+
+### 10.3 Bidirectional Backlinks Matrix
+
+Every article analyzes vault topology in real-time, categorizing inbound references:
+- **Lore Backlinks**: Direct wiki links from other articles.
+- **Chapter Mentions**: Occurrences within manuscript chapters.
+- **Cartographic Pins**: Map locations linked to this lore entry.
+- **Chronicle Events**: Timelines and historical eras mentioning this entity.
+- **Relationship Edges**: Explicit relation network connections.
+
+---
+
+## 11. Tactical TTRPG & Campaign System Aesthetics
+
+The TTRPG Campaign Hub provides a focused workspace for game masters without generic video-game tropes or fake beta labels.
+
+### 11.1 De-Vibecoded Breadcrumbs & Segmented Controls
+
+- **Top Navigation Bar**: Minimalist segmented controls with high-contrast text and crisp `1px` dividers.
+- **Zero Fake Badges**: No promotional "BETA", "SOON", or marketing ribbons.
+- **Multi-Map Level Loading**: Instant level switching between world maps, regional maps, and tactical encounter grids.
+- **Clean Token Overlays**: Battlemap tokens feature legible status badges, elevation indicators, and high-visibility measurement rulers.
+
+---
+
+## 12. External Ecosystem Bridges (Obsidian & Foundry VTT)
+
+Oros provides bidirectional interoperability with established tabletop and knowledge management tools.
+
+### 12.1 Obsidian Vault Bridge
+- **Standard Markdown**: Full export of lore articles and chapters into clean `.md` files.
+- **YAML Frontmatter**: Injects structured infobox attributes, tags, aliases, and IDs as standard YAML frontmatter blocks.
+- **Wiki-Link Compatibility**: Exports internal links as standard `[[Title]]` links recognized natively by Obsidian.
+
+### 12.2 Foundry VTT Scene Bridge
+- **Scene Geometry**: Exports canvas and cartography battlemaps into native Foundry VTT scene JSON (`walls`, `lights`, `tokens`, `grid`).
+- **Wall Invariants**: Line segments map directly to regular, ethereal, and one-way wall definitions.
+
+---
+
+## 13. Fantasy Calendar Mathematics System
+
+Oros includes an exact astronomical calendar engine supporting custom fictional chronologies.
+
+### 13.1 Non-Standard Leap & Festival Day Support
+- **Tendays & Arbitrary Week Lengths**: Weeks can span from 1 to 30 days without breaking weekday names or alignment.
+- **Intercalary Festival Days**: Solstices, equinoxes, and feast days can exist outside standard month structures without advancing the regular weekly progression (e.g. Harptos calendar in the Forgotten Realms).
+- **Historical Reckoning**: Full support for negative years (BCE / Before Era) with astronomical (year 0) and historical (1 BCE immediately preceding 1 CE) transitions.

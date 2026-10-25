@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { LoreEntity } from '@shared/types'
 import { useWorldStore } from '../../store/useWorldStore'
 import { ExternalLink, Tag, Shield, Compass } from 'lucide-react'
+import { OrosLogoMark } from './OrosLogo'
 import { 
   DEFAULT_PRESET_CATEGORIES, 
   getCategoryIconComponent, 
@@ -16,6 +17,11 @@ interface QuickPeekCardProps {
 
 export const QuickPeekCard: React.FC<QuickPeekCardProps> = ({ entity, onClose, onOpenWiki }) => {
   const { setSelectedEntityId, openTab, categories, activeWorldId } = useWorldStore()
+
+  const [imgError, setImgError] = useState(false)
+  useEffect(() => {
+    setImgError(false)
+  }, [entity.avatar])
 
   const worldCategories = (activeWorldId && categories[activeWorldId]) ? categories[activeWorldId] : DEFAULT_PRESET_CATEGORIES
   const catMeta = getCategoryMeta(entity.type, worldCategories)
@@ -39,15 +45,16 @@ export const QuickPeekCard: React.FC<QuickPeekCardProps> = ({ entity, onClose, o
     <div className="w-80 bg-oros-900 border border-oros-750 rounded-[4px] shadow-2xl overflow-hidden select-text animate-dropdown-in z-50 text-xs">
       {/* Top Banner / Avatar */}
       <div className="relative h-28 bg-oros-950 overflow-hidden">
-        {entity.avatar ? (
+        {Boolean(entity.avatar && typeof entity.avatar === 'string' && entity.avatar.trim() !== '') && !imgError ? (
           <img
             src={entity.avatar}
             alt={entity.title}
+            onError={() => setImgError(true)}
             className="w-full h-full object-cover"
           />
         ) : (
           <div className="w-full h-full bg-oros-900 flex items-center justify-center text-oros-600">
-            <Compass className="w-8 h-8 opacity-40 text-oros-500" />
+            <OrosLogoMark className="w-8 h-8 text-oros-700/60" aria-label="Oros Brand Sigil" />
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-oros-900 via-transparent to-transparent"></div>

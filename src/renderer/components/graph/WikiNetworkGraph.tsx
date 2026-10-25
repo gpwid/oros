@@ -81,6 +81,10 @@ const WikiArticleNode = ({ data }: { data: {
   const Icon = getCategoryIconComponent(catMeta.icon)
   const [imgError, setImgError] = useState(false)
 
+  useEffect(() => {
+    setImgError(false)
+  }, [entity.avatar])
+
   // Deterministic staggered timing for each card
   const animStyle = useMemo(() => {
     if (!hoverMotion) return undefined

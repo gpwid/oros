@@ -322,17 +322,24 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const selectedCount = reactFlow.getNodes().filter((n) => n.selected).length
   
   const worldEntities = (activeWorldId && entities[activeWorldId]) || []
-  const entity = cardData.entityId ? worldEntities.find((e) => e.id === cardData.entityId) : undefined
+  const entity = cardData.entityId 
+    ? worldEntities.find((e) => e.id === cardData.entityId) 
+    : (cardData.title ? worldEntities.find((e) => e.title.trim().toLowerCase() === cardData.title?.trim().toLowerCase()) : undefined)
   const worldCats = (activeWorldId && categories[activeWorldId]) ? categories[activeWorldId] : undefined
   const cardType = entity?.type || cardData.entityType || cardData.subtitle || 'character'
   const catMeta = getCategoryMeta(cardType, worldCats)
   const CategoryIcon = getCategoryIconComponent(catMeta.icon)
   const cardTitle = entity?.title || cardData.title || 'Untitled Card'
-  const cardAvatar = entity?.avatar || cardData.avatar || cardData.avatarUrl
+  const cardAvatar = (entity?.avatar !== undefined && entity?.avatar !== '') ? entity.avatar : (cardData.avatar || cardData.avatarUrl)
   const cardSummary = entity?.summary || cardData.summary || ''
   const cardIsSecret = Boolean((entity as any)?.isSecret ?? cardData.isSecret ?? false)
   const cardTags = (entity?.tags && entity.tags.length > 0) ? entity.tags : (cardData.tags || [])
   const isExpanded = Boolean(cardData.expanded)
+  const cardAttribution = (cardData as any).attribution || (cardData as any).artAttribution || entity?.attribution || entity?.artAttribution
+
+  useEffect(() => {
+    setImgError(false)
+  }, [cardAvatar, entity?.avatar])
 
   const currentW = Math.round(Number(cardData.width) || BASE_CARD_WIDTH)
   const currentH = Math.round(Number(cardData.height) || BASE_CARD_HEIGHT)
@@ -397,7 +404,7 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     reactFlow.setNodes((nds) => nds.filter((n) => n.id !== id))
   }
 
-  const hasAvatar = !!cardAvatar && !imgError
+  const hasAvatar = Boolean(cardAvatar && typeof cardAvatar === 'string' && cardAvatar.trim() !== '') && !imgError
 
   return (
     <div className="relative select-none w-full h-full">
@@ -489,7 +496,7 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           ) : (
             <div className="w-full h-full bg-gradient-to-b from-oros-900/90 via-oros-950 to-oros-900/40 flex flex-col items-center justify-center p-3 text-center border-b border-oros-800/40 relative group/empty">
               <div className="w-14 h-14 rounded-2xl bg-oros-850/60 border border-oros-750/70 flex items-center justify-center shadow-inner group-hover/empty:scale-105 group-hover/empty:border-accent/60 transition-all duration-200">
-                <OrosLogoMark className="w-9 h-9 text-oros-600/70 group-hover/empty:text-accent/80 transition-colors" />
+                <OrosLogoMark className="w-9 h-9 text-oros-600/70 group-hover/empty:text-accent/80 transition-colors" aria-label="Oros Brand Sigil" />
               </div>
               <span className="text-[9px] font-mono uppercase tracking-widest text-oros-500 mt-2 font-medium">No Portrait</span>
             </div>
@@ -2356,6 +2363,10 @@ const CanvasImageNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const reactFlow = useReactFlow()
   const [caption, setCaption] = useState(imgData.caption || '')
   const [isEditingCaption, setIsEditingCaption] = useState(false)
+
+  useEffect(() => {
+    setImgError(false)
+  }, [imgData.src])
   const hasFrame = imgData.hasFrame !== false
   const radius = imgData.borderRadius || 'sm'
 
@@ -3598,6 +3609,57 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
       setEdges(currentCanvas.edges || [])
     }
   }, [currentCanvas?.id])
+
+  // Real-time synchronization: when entities update in store, update canvas card nodes in active flow
+  useEffect(() => {
+    if (!currentCanvas) return
+    const worldEnts = (activeWorldId && entities[activeWorldId]) || []
+    if (worldEnts.length === 0) return
+
+    const entMap = new Map(worldEnts.map((e) => [e.id, e]))
+    const titleMap = new Map(worldEnts.map((e) => [e.title.trim().toLowerCase(), e]))
+
+    setNodes((currentNodes) => {
+      let hasChanges = false
+      const updatedNodes = currentNodes.map((n) => {
+        if (n.type === 'canvasCard' && n.data) {
+          const nodeData = n.data as Record<string, any>
+          const ent = (typeof nodeData.entityId === 'string' && entMap.get(nodeData.entityId)) ||
+                      (typeof nodeData.title === 'string' && titleMap.get(nodeData.title.trim().toLowerCase()))
+          if (ent) {
+            const nextAvatar = (ent.avatar !== undefined && ent.avatar !== '') ? ent.avatar : nodeData.avatar
+            const nextTitle = ent.title || nodeData.title
+            const nextSubtitle = ent.summary || nodeData.subtitle
+            const nextType = ent.type || nodeData.entityType
+            const nextTags = (ent.tags && ent.tags.length > 0) ? ent.tags : nodeData.tags
+            if (
+              nodeData.avatar !== nextAvatar ||
+              nodeData.title !== nextTitle ||
+              nodeData.subtitle !== nextSubtitle ||
+              nodeData.entityType !== nextType ||
+              nodeData.entityId !== ent.id
+            ) {
+              hasChanges = true
+              return {
+                ...n,
+                data: {
+                  ...nodeData,
+                  entityId: ent.id,
+                  avatar: nextAvatar,
+                  title: nextTitle,
+                  subtitle: nextSubtitle,
+                  entityType: nextType,
+                  tags: nextTags
+                }
+              }
+            }
+          }
+        }
+        return n
+      })
+      return hasChanges ? updatedNodes : currentNodes
+    })
+  }, [entities, activeWorldId, currentCanvas?.id, setNodes])
 
   // Viewport tracking for screen overlays & coordinates
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 })
@@ -5357,7 +5419,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
                     onClick={() => handleDropCard(ent)}
                     className="w-full text-left p-1.5 rounded-[2px] hover:bg-oros-850 flex items-center gap-2 text-xs text-oros-200 transition-colors"
                   >
-                    {ent.avatar ? (
+                    {Boolean(ent.avatar && typeof ent.avatar === 'string' && ent.avatar.trim() !== '') ? (
                       <img
                         src={ent.avatar}
                         alt={ent.title}
@@ -5365,7 +5427,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
                       />
                     ) : (
                       <div className="w-5 h-5 rounded-[2px] bg-oros-800 border border-oros-750 flex items-center justify-center shrink-0">
-                        <OrosLogoMark className="w-3.5 h-3.5 text-oros-500" />
+                        <OrosLogoMark className="w-3.5 h-3.5 text-oros-500" aria-label="Oros Brand Sigil" />
                       </div>
                     )}
                     <div className="truncate flex-1">

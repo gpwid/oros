@@ -4,7 +4,7 @@ import { useToastStore } from '../../store/useToastStore'
 import { 
   Search, BookOpen, Map, Feather, Shield, Plus, FolderOpen, 
   Download, ArrowRight, Calendar, FileText, Sparkles, X,
-  Layers, Users, Network, Languages, Settings, Swords
+  Layers, Users, Network, Languages, Settings, Swords, Landmark
 } from 'lucide-react'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { searchDeepVault, SearchDomain, DeepSearchResult } from '../../utils/deepSearchEngine'

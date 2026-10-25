@@ -373,10 +373,10 @@ export const StudioWriter: React.FC = () => {
       <main 
         className="flex-1 overflow-y-auto p-8 select-text"
         onClick={(e) => {
-          // Click-to-peek on any mention in the prose
-          const mention = (e.target as HTMLElement).closest('.oros-mention')
+          // Click-to-peek on any mention or wiki-link in the prose
+          const mention = (e.target as HTMLElement).closest('.oros-mention, .oros-wiki-link')
           if (mention) {
-            const entityId = mention.getAttribute('data-id')
+            const entityId = mention.getAttribute('data-id') || mention.getAttribute('data-entity-id')
             if (entityId) {
               setSelectedReferenceEntityId(entityId)
               setIsReferenceDrawerOpen(true)

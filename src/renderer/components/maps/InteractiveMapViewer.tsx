@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
-import { MapPin, MapRegion, LoreEntity } from '@shared/types'
+import { MapPin, MapRegion, LoreEntity, WorldMap } from '@shared/types'
 import { 
   Map as MapIcon, Plus, ZoomIn, ZoomOut, RotateCcw, Castle, 
   Trees, Skull, Compass, Shield, ExternalLink, Trash2, Eye, 
   Layers, Upload, ChevronRight, CornerDownRight, Hand,
   Hexagon, Magnet, Crown, Building2, Landmark,
-  Sword, Tent, Anchor, Flame, Gem, Key, X, Check, Edit3,
+  Sword, Tent, Anchor, Flame, Gem, Key, X, Check, Edit3, ImageOff,
   MapPin as PinIcon, Sparkles, Ruler, Grid as GridIcon, Hash, Sliders, LayoutGrid
 } from 'lucide-react'
 import { ExportDropdown, ExportOption } from '../common/ExportDropdown'
@@ -55,7 +55,7 @@ export const InteractiveMapViewer: React.FC = () => {
     addPinToMap, updatePinOnMap, removePinFromMap,
     addRegionToMap, updateRegionOnMap, removeRegionFromMap,
     createEntity, setSelectedEntityId, setActiveTab, openTab,
-    createMap, updateMap 
+    createMap, updateMap, deleteMap 
   } = useWorldStore()
 
   const { addToast } = useToastStore()
@@ -141,6 +141,18 @@ export const InteractiveMapViewer: React.FC = () => {
   const [showNewMapModal, setShowNewMapModal] = useState(false)
   const [newMapName, setNewMapName] = useState('')
   const [newMapUrl, setNewMapUrl] = useState('')
+  const [newMapPreviewError, setNewMapPreviewError] = useState(false)
+
+  // Edit map modal
+  const [showEditMapModal, setShowEditMapModal] = useState(false)
+  const [editMapId, setEditMapId] = useState<string | null>(null)
+  const [editMapName, setEditMapName] = useState('')
+  const [editMapDescription, setEditMapDescription] = useState('')
+  const [editMapUrl, setEditMapUrl] = useState('')
+  const [editMapScaleDistance, setEditMapScaleDistance] = useState(50)
+  const [editMapScaleUnit, setEditMapScaleUnit] = useState('Leagues')
+  const [editMapPreviewError, setEditMapPreviewError] = useState(false)
+  const [mapImgError, setMapImgError] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const mapElementRef = useRef<HTMLDivElement>(null)
@@ -149,6 +161,10 @@ export const InteractiveMapViewer: React.FC = () => {
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
   const currentMap = worldMaps.find((m) => m.id === selectedMapId) || worldMaps[0]
   const activeWorld = (worlds || []).find((w) => w.id === activeWorldId)
+
+  useEffect(() => {
+    setMapImgError(false)
+  }, [currentMap?.id, currentMap?.imageUrl])
 
   const handleExportMapImage = async (format: 'png' | 'svg') => {
     if (!mapElementRef.current || !currentMap) return
@@ -786,30 +802,108 @@ export const InteractiveMapViewer: React.FC = () => {
     return <Compass className={className} />
   }
 
-  // Map Artwork Importer
-  const handleImportMapArtwork = async () => {
+  // Map Artwork Importer with Universal Desktop + Web Support
+  const handleImportFileToTarget = (onDone: (url: string) => void) => {
     if (window.oros) {
-      const assetUrl = await window.oros.importAsset()
-      if (assetUrl) {
-        setNewMapUrl(assetUrl)
-        addToast('Map artwork imported into vault', 'success')
-      }
-    } else {
-      addToast('Local asset importer requires desktop app', 'warning')
+      window.oros.importAsset().then((assetUrl) => {
+        if (assetUrl) {
+          onDone(assetUrl)
+          addToast('Map artwork imported into vault', 'success')
+        }
+      })
+      return
     }
+    // Browser fallback
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (file) {
+        const reader = new FileReader()
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            onDone(reader.result)
+            addToast(`Imported ${file.name}`, 'success')
+          }
+        }
+        reader.readAsDataURL(file)
+      }
+    }
+    input.click()
+  }
+
+  const handleImportMapArtwork = () => {
+    handleImportFileToTarget((url) => {
+      setNewMapUrl(url)
+      setNewMapPreviewError(false)
+    })
   }
 
   // Create Map
   const handleCreateMap = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMapName.trim()) return
-    const url = newMapUrl.trim() || 'https://images.unsplash.com/photo-1524654458049-e36be0721fa2?auto=format&fit=crop&w=1920&q=80'
+    const url = newMapUrl.trim() || 'https://images.metmuseum.org/CRDImages/dp/original/DP802619.jpg'
     const created = createMap(newMapName.trim(), url)
     setSelectedMapId(created.id)
     setShowNewMapModal(false)
     setNewMapName('')
     setNewMapUrl('')
+    setNewMapPreviewError(false)
     addToast(`Created map: ${newMapName}`, 'success')
+  }
+
+  // Edit Map Handlers
+  const handleOpenEditMap = (mapItem?: WorldMap) => {
+    const target = mapItem || currentMap
+    if (!target) return
+    setEditMapId(target.id)
+    setEditMapName(target.name || '')
+    setEditMapDescription(target.description || '')
+    setEditMapUrl(target.imageUrl || '')
+    setEditMapScaleDistance(target.scaleDistance ?? 50)
+    setEditMapScaleUnit(target.scaleUnit || 'Leagues')
+    setEditMapPreviewError(false)
+    setShowEditMapModal(true)
+  }
+
+  const handleSaveEditMap = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editMapId || !editMapName.trim()) return
+    updateMap(editMapId, {
+      name: editMapName.trim(),
+      description: editMapDescription.trim(),
+      imageUrl: editMapUrl.trim(),
+      scaleDistance: editMapScaleDistance,
+      scaleUnit: editMapScaleUnit
+    })
+    setMapImgError(false)
+    setShowEditMapModal(false)
+    addToast(`Updated map: ${editMapName}`, 'success')
+  }
+
+  const handleDeleteMap = (mapId: string) => {
+    if (worldMaps.length <= 1) {
+      addToast('Cannot delete the only map in this project', 'warning')
+      return
+    }
+    const mapToDelete = worldMaps.find((m) => m.id === mapId)
+    deleteMap(mapId)
+    if (selectedMapId === mapId) {
+      const nextMap = worldMaps.find((m) => m.id !== mapId)
+      if (nextMap) setSelectedMapId(nextMap.id)
+    }
+    setShowEditMapModal(false)
+    addToast(`Deleted map: ${mapToDelete?.name || ''}`, 'info')
+  }
+
+  const handleRestoreDefaultMapImage = () => {
+    if (!currentMap) return
+    const defaultUrl = 'https://images.metmuseum.org/CRDImages/dp/original/DP802619.jpg'
+    updateMap(currentMap.id, { imageUrl: defaultUrl })
+    setMapImgError(false)
+    addToast('Restored standard historical nautical chart', 'success')
   }
 
   // Linked Entity for selected pin or region
@@ -845,6 +939,17 @@ export const InteractiveMapViewer: React.FC = () => {
               ))}
             </select>
           </div>
+
+          {currentMap && (
+            <button
+              onClick={() => handleOpenEditMap(currentMap)}
+              className="p-1 px-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-oros-100 border border-oros-750 text-xs font-medium flex items-center gap-1 transition-colors"
+              title="Edit map name, image artwork, description or scale"
+            >
+              <Edit3 className="w-3 h-3 text-oros-400" />
+              <span>Edit Map</span>
+            </button>
+          )}
 
           <button
             onClick={() => setShowNewMapModal(true)}
@@ -935,12 +1040,44 @@ export const InteractiveMapViewer: React.FC = () => {
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.85)'
             }}
           >
-            {/* Base Map Image */}
-            <img
-              src={currentMap.imageUrl}
-              alt={currentMap.name}
-              className="w-full h-full object-cover rounded-[3px] border border-oros-750 pointer-events-none select-none"
-            />
+            {/* Base Map Image or Missing Artwork Fallback */}
+            {mapImgError || !currentMap.imageUrl ? (
+              <div className="w-full h-full rounded-[3px] border-2 border-dashed border-oros-750/80 bg-oros-950/95 flex flex-col items-center justify-center p-8 text-center relative select-none">
+                <div className="w-16 h-16 rounded-2xl bg-oros-900 border border-oros-750 flex items-center justify-center text-oros-400 mb-4 shadow-xl">
+                  <ImageOff className="w-8 h-8 text-amber-400/80" />
+                </div>
+                <h3 className="font-serif text-lg font-semibold text-oros-100 mb-1">
+                  Map Image Missing or Deleted
+                </h3>
+                <p className="text-xs text-oros-400 max-w-md font-sans mb-5 leading-relaxed">
+                  The image file or URL for <strong className="text-oros-200">{currentMap.name}</strong> could not be loaded. You can select a new image file from your computer or restore the default chart.
+                </p>
+                <div className="flex items-center gap-3 pointer-events-auto">
+                  <button
+                    onClick={() => handleOpenEditMap(currentMap)}
+                    className="px-4 py-2 rounded-[3px] bg-accent hover:bg-accent-hover text-white text-xs font-semibold flex items-center gap-2 shadow-lg transition-colors"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Choose New Map Image</span>
+                  </button>
+                  <button
+                    onClick={handleRestoreDefaultMapImage}
+                    className="px-3.5 py-2 rounded-[3px] bg-oros-900 hover:bg-oros-850 text-oros-300 hover:text-oros-100 border border-oros-750 text-xs font-medium transition-colors"
+                  >
+                    <span>Restore Default Chart</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <img
+                key={currentMap.id + '-' + (currentMap.imageUrl || '').slice(0, 60)}
+                src={currentMap.imageUrl}
+                alt={currentMap.name}
+                onLoad={() => setMapImgError(false)}
+                onError={() => setMapImgError(true)}
+                className="w-full h-full object-cover rounded-[3px] border border-oros-750 pointer-events-none select-none"
+              />
+            )}
 
             {/* SVG OVERLAY: Territories & In-Progress Polygon */}
             <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
@@ -2621,13 +2758,60 @@ export const InteractiveMapViewer: React.FC = () => {
                     <span>Choose File from Computer</span>
                   </button>
                 </div>
-                <input
-                  type="text"
-                  value={newMapUrl}
-                  onChange={(e) => setNewMapUrl(e.target.value)}
-                  placeholder="oros-asset://... or https://..."
-                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
-                />
+                {newMapUrl.startsWith('data:') ? (
+                  <div className="flex items-center justify-between p-2 rounded-[3px] bg-oros-850 border border-oros-750 text-xs">
+                    <div className="flex items-center gap-2 truncate">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                      <span className="text-oros-200 font-mono text-[11px] truncate">Local File Asset Loaded (Embedded Image)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewMapUrl('')
+                        setNewMapPreviewError(false)
+                      }}
+                      className="text-oros-400 hover:text-rose-300 text-[11px] font-mono hover:underline shrink-0 ml-2"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    value={newMapUrl}
+                    onChange={(e) => {
+                      setNewMapUrl(e.target.value)
+                      setNewMapPreviewError(false)
+                    }}
+                    placeholder="oros-asset://... or https://..."
+                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
+                  />
+                )}
+
+                {/* Create Map Image Live Preview Box */}
+                {newMapUrl && (
+                  <div className="h-28 w-full rounded-[3px] border border-oros-750 overflow-hidden bg-oros-950/80 relative flex items-center justify-center mt-2">
+                    {!newMapPreviewError ? (
+                      <img
+                        key={newMapUrl.slice(0, 60)}
+                        src={newMapUrl}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        onLoad={() => setNewMapPreviewError(false)}
+                        onError={() => setNewMapPreviewError(true)}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-oros-500 text-xs font-mono p-4 text-center">
+                        <ImageOff className="w-5 h-5 mb-1 text-rose-400/80" />
+                        <span className="text-oros-300 font-medium">Unable to preview image</span>
+                        <span className="text-[10px] text-oros-500 mt-0.5">Please check URL or choose a valid file</span>
+                      </div>
+                    )}
+                    <div className="absolute bottom-1 right-1.5 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-mono text-oros-400 pointer-events-none">
+                      Live Preview
+                    </div>
+                  </div>
+                )}
               </div>
             </form>
 
@@ -2647,6 +2831,192 @@ export const InteractiveMapViewer: React.FC = () => {
               >
                 Create Map
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MAP MODAL */}
+      {showEditMapModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-oros-900 border border-oros-750 w-full max-w-md rounded-[4px] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden select-text text-oros-100 animate-modal-in">
+            {/* Header */}
+            <div className="px-4 py-2.5 border-b border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-3.5 h-3.5 text-accent" />
+                <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-oros-100">
+                  Edit Map & Artwork
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowEditMapModal(false)}
+                className="p-1 rounded-[2px] text-oros-400 hover:text-oros-100 hover:bg-oros-850 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Form Body */}
+            <form id="edit-map-form" onSubmit={handleSaveEditMap} className="p-4 space-y-3.5 overflow-y-auto flex-1">
+              <div>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Map Title *</label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  value={editMapName}
+                  onChange={(e) => setEditMapName(e.target.value)}
+                  placeholder="Map name..."
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-accent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Description</label>
+                <input
+                  type="text"
+                  value={editMapDescription}
+                  onChange={(e) => setEditMapDescription(e.target.value)}
+                  placeholder="Brief description of this region or chart..."
+                  className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-accent"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400">Artwork Image Source</label>
+                  <span className="text-[10px] font-mono text-oros-500">File or Web URL</span>
+                </div>
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => handleImportFileToTarget((url) => {
+                      setEditMapUrl(url)
+                      setEditMapPreviewError(false)
+                    })}
+                    className="flex-1 py-1.5 px-2.5 rounded-[3px] bg-oros-850 hover:bg-oros-800 text-oros-200 text-xs font-medium flex items-center justify-center gap-1.5 border border-oros-750 transition-colors"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-accent" />
+                    <span>Choose File from Computer</span>
+                  </button>
+                </div>
+                {editMapUrl.startsWith('data:') ? (
+                  <div className="flex items-center justify-between p-2 rounded-[3px] bg-oros-850 border border-oros-750 text-xs">
+                    <div className="flex items-center gap-2 truncate">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                      <span className="text-oros-200 font-mono text-[11px] truncate">Local File Asset Loaded (Embedded Image)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditMapUrl('')
+                        setEditMapPreviewError(false)
+                      }}
+                      className="text-oros-400 hover:text-rose-300 text-[11px] font-mono hover:underline shrink-0 ml-2"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    value={editMapUrl}
+                    onChange={(e) => {
+                      setEditMapUrl(e.target.value)
+                      setEditMapPreviewError(false)
+                    }}
+                    placeholder="Paste image link: https://... or oros-asset://..."
+                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2.5 py-1.5 text-xs text-oros-100 focus:outline-none focus:border-accent font-mono"
+                  />
+                )}
+              </div>
+
+              {/* Image Preview Box */}
+              {editMapUrl && (
+                <div className="h-32 w-full rounded-[3px] border border-oros-750 overflow-hidden bg-oros-950/80 relative flex items-center justify-center">
+                  {!editMapPreviewError ? (
+                    <img
+                      key={editMapUrl.slice(0, 60)}
+                      src={editMapUrl}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                      onLoad={() => setEditMapPreviewError(false)}
+                      onError={() => setEditMapPreviewError(true)}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-oros-500 text-xs font-mono p-4 text-center">
+                      <ImageOff className="w-5 h-5 mb-1.5 text-rose-400/80" />
+                      <span className="text-oros-300 font-medium">Unable to preview image</span>
+                      <span className="text-[10px] text-oros-500 mt-0.5">Please check URL or choose a valid file</span>
+                    </div>
+                  )}
+                  <div className="absolute bottom-1 right-1.5 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-mono text-oros-400 pointer-events-none">
+                    Live Preview
+                  </div>
+                </div>
+              )}
+
+              {/* Scale Settings */}
+              <div className="pt-2 border-t border-oros-800 grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Scale Distance</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100000"
+                    value={editMapScaleDistance}
+                    onChange={(e) => setEditMapScaleDistance(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono uppercase font-semibold text-oros-400 mb-0.5">Scale Unit</label>
+                  <select
+                    value={editMapScaleUnit}
+                    onChange={(e) => setEditMapScaleUnit(e.target.value)}
+                    className="w-full bg-oros-850 border border-oros-750 rounded-[3px] px-2 py-1 text-xs text-oros-100 focus:outline-none focus:border-accent"
+                  >
+                    <option value="Leagues">Leagues</option>
+                    <option value="Miles">Miles</option>
+                    <option value="Kilometers">Kilometers</option>
+                    <option value="Meters">Meters</option>
+                    <option value="Hexes">Hexes</option>
+                    <option value="Tiles">Tiles</option>
+                  </select>
+                </div>
+              </div>
+            </form>
+
+            {/* Pinned Visible Footer */}
+            <div className="px-4 py-2.5 border-t border-oros-750 bg-oros-900 flex items-center justify-between shrink-0">
+              {worldMaps.length > 1 && editMapId ? (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteMap(editMapId)}
+                  className="px-2.5 py-1 rounded-[3px] text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-950/40 border border-red-900/50 flex items-center gap-1 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Delete Map</span>
+                </button>
+              ) : (
+                <div />
+              )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditMapModal(false)}
+                  className="px-3 py-1 rounded-[3px] text-xs font-semibold text-oros-400 hover:text-oros-100 hover:bg-oros-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="edit-map-form"
+                  className="btn-accent px-3.5 py-1 rounded-[3px] text-xs font-semibold shadow-sm transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2729,9 +3099,23 @@ export const InteractiveMapViewer: React.FC = () => {
                     {/* Info */}
                     <div className="p-3 flex-1 flex flex-col justify-between">
                       <div>
-                        <h4 className="font-sans font-semibold text-sm text-oros-100 group-hover:text-accent transition-colors">
-                          {mapItem.name}
-                        </h4>
+                        <div className="flex items-start justify-between gap-1">
+                          <h4 className="font-sans font-semibold text-sm text-oros-100 group-hover:text-accent transition-colors">
+                            {mapItem.name}
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setShowMapGalleryModal(false)
+                              handleOpenEditMap(mapItem)
+                            }}
+                            className="p-1 rounded hover:bg-oros-800 text-oros-400 hover:text-oros-100 transition-colors"
+                            title="Edit map details and artwork"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                         <div className="flex items-center gap-2 mt-1.5 text-[11px] font-mono text-oros-400">
                           <span>{mapItem.regions?.length || 0} Territories</span>
                           <span>•</span>

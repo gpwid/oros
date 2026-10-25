@@ -11,6 +11,7 @@ import {
 } from '../../utils/categoryIcons'
 import { CategoryManagerModal } from '../common/CategoryManagerModal'
 import { NewEntityModal } from '../common/NewEntityModal'
+import { OrosLogoMark } from '../common/OrosLogo'
 
 export const CardGallery: React.FC = () => {
   const { 
@@ -175,7 +176,7 @@ export const CardGallery: React.FC = () => {
                 <div>
                   {/* Card Banner / Portrait */}
                   <div className="h-28 bg-oros-950 relative overflow-hidden">
-                    {ent.avatar ? (
+                    {Boolean(ent.avatar && typeof ent.avatar === 'string' && ent.avatar.trim() !== '') ? (
                       <img
                         src={ent.avatar}
                         alt={ent.title}
@@ -183,7 +184,7 @@ export const CardGallery: React.FC = () => {
                       />
                     ) : (
                       <div className="w-full h-full bg-oros-950 flex items-center justify-center text-oros-700">
-                        <Layers className="w-7 h-7 opacity-30" />
+                        <OrosLogoMark className="w-8 h-8 text-oros-700/60" aria-label="Oros Brand Sigil" />
                       </div>
                     )}
                     <span 

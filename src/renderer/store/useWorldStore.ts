@@ -16,7 +16,7 @@ import {
   sampleWorld, sampleEntities, sampleMap, sampleRelations, 
   sampleTimelines, sampleManuscript,
   sampleFolders, sampleDirectoryItems, sampleCanvases, sampleWorkspaceTabs,
-  sampleConlangs
+  sampleConlangs, sampleRelationNodePositions
 } from '../sample/sampleWorld'
 import { getTemplateById, getTemplateForType } from '../utils/entityTemplates'
 
@@ -249,7 +249,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   canvases: { [sampleWorld.id]: sampleCanvases },
   categories: { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES },
   calendars: { [sampleWorld.id]: sampleWorld.calendarConfig || DEFAULT_FANTASY_CALENDAR_CONFIG },
-  relationNodePositions: {},
+  relationNodePositions: { [sampleWorld.id]: sampleRelationNodePositions },
   conlangs: { [sampleWorld.id]: sampleConlangs },
 
   initStore: async () => {
@@ -281,29 +281,165 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           parsed.conlangs = { [sampleWorld.id]: sampleConlangs };
         }
 
+        const sampleEntityMap = new Map(sampleEntities.map((e) => [e.id, e]));
+
         const healedWorlds = (parsed.worlds || [sampleWorld]).map((w: World) => {
-          let b = w.bannerUrl
-          let t = w.thumbnailUrl
-          if (b && b.includes('artstation.com')) {
-            b = sampleWorld.bannerUrl
+          let b = w.bannerUrl;
+          let t = w.thumbnailUrl;
+          let attr = w.attribution || w.artAttribution;
+          if (b && b.toLowerCase().includes('artstation.com')) {
+            b = sampleWorld.bannerUrl;
           }
-          if (t && t.includes('artstation.com')) {
-            t = sampleWorld.thumbnailUrl
+          if (t && t.toLowerCase().includes('artstation.com')) {
+            t = sampleWorld.thumbnailUrl;
           }
-          return { ...w, bannerUrl: b, thumbnailUrl: t || b }
-        })
+          if (w.id === sampleWorld.id || !attr) {
+            attr = sampleWorld.attribution;
+            if (!b) b = sampleWorld.bannerUrl;
+            if (!t) t = sampleWorld.thumbnailUrl;
+          }
+          return {
+            ...w,
+            bannerUrl: b,
+            thumbnailUrl: t || b,
+            attribution: attr,
+            artAttribution: attr
+          };
+        });
+
+        const rawEntities = parsed.entities || { [sampleWorld.id]: sampleEntities };
+        const healedEntities: Record<string, LoreEntity[]> = {};
+        for (const [wId, list] of Object.entries(rawEntities)) {
+          healedEntities[wId] = (list || []).map((ent: LoreEntity) => {
+            const sampleMatch = sampleEntityMap.get(ent.id);
+            const avatarHasArtstation = (ent.avatar && ent.avatar.toLowerCase().includes('artstation.com')) || 
+                                       (ent.avatarUrl && ent.avatarUrl.toLowerCase().includes('artstation.com'));
+            const bannerHasArtstation = (ent.banner && ent.banner.toLowerCase().includes('artstation.com')) ||
+                                       (ent.bannerUrl && ent.bannerUrl.toLowerCase().includes('artstation.com'));
+
+            let avatar = ent.avatar;
+            let avatarUrl = ent.avatarUrl || ent.avatar;
+            let banner = ent.banner;
+            let bannerUrl = ent.bannerUrl || ent.banner;
+            let attribution = ent.attribution;
+            let artAttribution = ent.artAttribution || ent.attribution;
+
+            if (sampleMatch) {
+              // Only heal if avatar is missing or broken artstation domain; DO NOT wipe user-uploaded custom images!
+              if (!avatar || avatarHasArtstation) {
+                avatar = sampleMatch.avatar;
+                avatarUrl = sampleMatch.avatarUrl || sampleMatch.avatar;
+              }
+              if (bannerHasArtstation) {
+                banner = sampleMatch.banner;
+                bannerUrl = sampleMatch.bannerUrl || sampleMatch.banner;
+              }
+              if (!attribution && !artAttribution) {
+                attribution = sampleMatch.attribution;
+                artAttribution = sampleMatch.artAttribution || sampleMatch.attribution;
+              }
+            } else {
+              if (avatarHasArtstation) {
+                avatar = undefined;
+                avatarUrl = undefined;
+              }
+              if (bannerHasArtstation) {
+                banner = undefined;
+                bannerUrl = undefined;
+              }
+            }
+
+            return {
+              ...ent,
+              avatar,
+              avatarUrl,
+              banner,
+              bannerUrl,
+              attribution,
+              artAttribution
+            };
+          });
+        }
+
+        const rawMaps = parsed.maps || { [sampleWorld.id]: [sampleMap] };
+        const healedMaps: Record<string, WorldMap[]> = {};
+        for (const [wId, list] of Object.entries(rawMaps)) {
+          healedMaps[wId] = (list || []).map((m: WorldMap) => {
+            const hasArtstation = m.imageUrl && m.imageUrl.toLowerCase().includes('artstation.com');
+            const hasBrokenWikimedia = m.imageUrl && m.imageUrl.includes('upload.wikimedia.org') && m.imageUrl.includes('Waghenaer');
+            let imageUrl = m.imageUrl;
+            let attribution = m.attribution;
+            let artAttribution = m.artAttribution || m.attribution;
+
+            if (m.id === sampleMap.id) {
+              // Only fallback to sampleMap if the image is missing, has an old broken artstation link, or has the legacy broken wikimedia URL
+              if (!imageUrl || hasArtstation || hasBrokenWikimedia) {
+                imageUrl = sampleMap.imageUrl;
+                attribution = sampleMap.attribution;
+                artAttribution = sampleMap.artAttribution || sampleMap.attribution;
+              }
+            } else if (hasArtstation) {
+              imageUrl = sampleMap.imageUrl;
+              attribution = sampleMap.attribution;
+              artAttribution = sampleMap.artAttribution || sampleMap.attribution;
+            }
+
+            return {
+              ...m,
+              imageUrl,
+              attribution,
+              artAttribution
+            };
+          });
+        }
+
+        const rawCanvases = parsed.canvases || { [sampleWorld.id]: sampleCanvases };
+        const healedCanvases: Record<string, WhiteboardCanvasData[]> = {};
+        for (const [wId, list] of Object.entries(rawCanvases)) {
+          const worldEnts = healedEntities[wId] || [];
+          const entityMap = new Map(worldEnts.map((e) => [e.id, e]));
+          const titleMap = new Map(worldEnts.map((e) => [e.title.trim().toLowerCase(), e]));
+
+          healedCanvases[wId] = (list || []).map((c: WhiteboardCanvasData) => ({
+            ...c,
+            nodes: (c.nodes || []).map((node: any) => {
+              if (node.type === 'canvasCard' && node.data) {
+                const entMatch = (node.data.entityId && entityMap.get(node.data.entityId)) ||
+                                 (node.data.title && titleMap.get(node.data.title.trim().toLowerCase())) ||
+                                 (node.data.entityId ? sampleEntityMap.get(node.data.entityId) : undefined);
+                if (entMatch) {
+                  return {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      entityId: entMatch.id,
+                      title: entMatch.title || node.data.title,
+                      subtitle: entMatch.summary || node.data.subtitle,
+                      entityType: entMatch.type || node.data.entityType,
+                      avatar: (entMatch.avatar !== undefined && entMatch.avatar !== '') ? entMatch.avatar : node.data.avatar,
+                      tags: (entMatch.tags && entMatch.tags.length > 0) ? entMatch.tags : node.data.tags,
+                      attribution: (entMatch as any).attribution || (sampleEntityMap.get(entMatch.id) as any)?.attribution || node.data.attribution,
+                      artAttribution: (entMatch as any).artAttribution || (sampleEntityMap.get(entMatch.id) as any)?.artAttribution || node.data.artAttribution || (entMatch as any).attribution
+                    }
+                  };
+                }
+              }
+              return node;
+            })
+          }));
+        }
 
         set({
           worlds: healedWorlds,
           activeWorldId: parsed.activeWorldId || sampleWorld.id,
-          entities: parsed.entities || { [sampleWorld.id]: sampleEntities },
-          maps: parsed.maps || { [sampleWorld.id]: [sampleMap] },
+          entities: healedEntities,
+          maps: healedMaps,
           relations: parsed.relations || { [sampleWorld.id]: sampleRelations },
           timelines: parsed.timelines || { [sampleWorld.id]: sampleTimelines },
           manuscripts: parsed.manuscripts || { [sampleWorld.id]: sampleManuscript },
           folders: parsed.folders || { [sampleWorld.id]: sampleFolders },
           directoryItems: parsed.directoryItems || { [sampleWorld.id]: sampleDirectoryItems },
-          canvases: parsed.canvases || { [sampleWorld.id]: sampleCanvases },
+          canvases: healedCanvases,
           categories: parsed.categories || { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES },
           calendars: parsed.calendars || { [sampleWorld.id]: sampleWorld.calendarConfig || DEFAULT_FANTASY_CALENDAR_CONFIG },
           relationNodePositions: parsed.relationNodePositions || {},
@@ -1559,33 +1695,92 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const worldId = get().activeWorldId;
     if (!worldId) return;
     set((state) => {
+      const existingEntity = (state.entities[worldId] || []).find((e) => e.id === entityId);
+      const oldTitle = existingEntity?.title?.trim().toLowerCase();
+
       const list = (state.entities[worldId] || []).map((ent) => 
         ent.id === entityId 
           ? { ...ent, ...updates, updatedAt: new Date().toISOString() } 
           : ent
       );
+
+      // Also update cross-entity references (e.g. infobox entity-links) if title changed
+      const listWithUpdatedLinks = updates.title !== undefined
+        ? list.map((ent) => {
+            if (!ent.infobox?.sections) return ent;
+            let fieldChanged = false;
+            const updatedSections = ent.infobox.sections.map((sec) => {
+              const updatedFields = (sec.fields || []).map((field: any) => {
+                if (field.targetEntityId === entityId) {
+                  fieldChanged = true;
+                  return { ...field, value: updates.title! };
+                }
+                return field;
+              });
+              return { ...sec, fields: updatedFields };
+            });
+            return fieldChanged ? { ...ent, infobox: { ...ent.infobox, sections: updatedSections } } : ent;
+          })
+        : list;
+
       const dirList = (state.directoryItems[worldId] || []).map((item) =>
         (item.targetId === entityId || item.id === entityId) && updates.title !== undefined
           ? { ...item, name: updates.title, updatedAt: new Date().toISOString() }
           : item
       );
+
       const openTabs = state.openTabs.map((tab) =>
         (tab.targetId === entityId || tab.id === entityId) && updates.title !== undefined
           ? { ...tab, title: updates.title }
           : tab
       );
+
       const mapList = (state.maps[worldId] || []).map((map) => ({
         ...map,
         pins: map.pins.map((pin) =>
           pin.entityId === entityId && updates.title !== undefined
             ? { ...pin, title: updates.title }
             : pin
+        ),
+        regions: (map.regions || []).map((region) =>
+          region.entityId === entityId && updates.title !== undefined
+            ? { ...region, name: updates.title }
+            : region
         )
       }));
+
+      // Synchronize all Whiteboard Canvas cards referencing this entity
+      const canvasList = (state.canvases[worldId] || []).map((c) => ({
+        ...c,
+        nodes: (c.nodes || []).map((node) => {
+          if (node.type === 'canvasCard' && node.data) {
+            const isMatch = node.data.entityId === entityId || 
+                            (!node.data.entityId && oldTitle && node.data.title?.trim().toLowerCase() === oldTitle);
+            if (isMatch) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  entityId,
+                  title: updates.title !== undefined ? updates.title : node.data.title,
+                  avatar: updates.avatar !== undefined ? updates.avatar : node.data.avatar,
+                  subtitle: updates.summary !== undefined ? updates.summary : node.data.subtitle,
+                  summary: updates.summary !== undefined ? updates.summary : node.data.summary,
+                  entityType: updates.type !== undefined ? updates.type : node.data.entityType,
+                  tags: updates.tags !== undefined ? updates.tags : node.data.tags
+                }
+              };
+            }
+          }
+          return node;
+        })
+      }));
+
       return {
-        entities: { ...state.entities, [worldId]: list },
+        entities: { ...state.entities, [worldId]: listWithUpdatedLinks },
         directoryItems: { ...state.directoryItems, [worldId]: dirList },
         maps: { ...state.maps, [worldId]: mapList },
+        canvases: { ...state.canvases, [worldId]: canvasList },
         openTabs
       };
     });
@@ -1609,11 +1804,35 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       const nextPositions = { ...(state.relationNodePositions[worldId] || {}) };
       delete nextPositions[entityId];
 
+      const canvasList = (state.canvases[worldId] || []).map((c) => ({
+        ...c,
+        nodes: (c.nodes || []).map((node) => {
+          if (node.type === 'canvasCard' && node.data?.entityId === entityId) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                entityId: undefined
+              }
+            };
+          }
+          return node;
+        })
+      }));
+
+      const mapList = (state.maps[worldId] || []).map((m) => ({
+        ...m,
+        pins: m.pins.map((p) => p.entityId === entityId ? { ...p, entityId: undefined } : p),
+        regions: (m.regions || []).map((r) => r.entityId === entityId ? { ...r, entityId: undefined } : r)
+      }));
+
       return {
         entities: { ...state.entities, [worldId]: list },
         directoryItems: { ...state.directoryItems, [worldId]: dirList },
         relations: { ...state.relations, [worldId]: relList },
         relationNodePositions: { ...state.relationNodePositions, [worldId]: nextPositions },
+        canvases: { ...state.canvases, [worldId]: canvasList },
+        maps: { ...state.maps, [worldId]: mapList },
         openTabs,
         activeTabId: nextActiveTabId,
         selectedEntityId: state.selectedEntityId === entityId ? (list[0]?.id || null) : state.selectedEntityId

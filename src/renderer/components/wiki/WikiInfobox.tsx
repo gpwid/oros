@@ -3,6 +3,7 @@ import { LoreEntity, InfoboxField } from '@shared/types'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useToastStore } from '../../store/useToastStore'
 import { Plus, Trash2, ExternalLink, Camera, Image as ImageIcon, Edit2 } from 'lucide-react'
+import { OrosLogoMark } from '../common/OrosLogo'
 
 interface WikiInfoboxProps {
   entity: LoreEntity;
@@ -165,30 +166,32 @@ export const WikiInfobox: React.FC<WikiInfoboxProps> = ({ entity, isEditing = fa
       </div>
 
       {/* Main Portrait / Image */}
-      <div className="p-3 text-center border-b border-oros-800 bg-oros-950 relative group">
-        {entity.avatar ? (
-          <img
-            src={entity.avatar}
-            alt={entity.title}
-            className="w-full h-44 object-cover rounded-[3px] border border-oros-800"
-          />
-        ) : (
-          <div className="w-full h-44 bg-oros-900/60 rounded-[3px] border border-dashed border-oros-800 flex flex-col items-center justify-center text-oros-600">
-            <ImageIcon className="w-7 h-7 mb-1 opacity-40" />
-            <span className="text-[11px] font-mono">No portrait set</span>
-          </div>
-        )}
+      <div className="p-3 text-center border-b border-oros-800 bg-oros-950 flex flex-col items-center">
+        <div className="relative w-full h-44 rounded-[3px] overflow-hidden border border-oros-800 bg-oros-900/60 group/image">
+          {Boolean(entity.avatar && typeof entity.avatar === 'string' && entity.avatar.trim() !== '') ? (
+            <img
+              src={entity.avatar}
+              alt={entity.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full border border-dashed border-oros-800/80 flex flex-col items-center justify-center text-oros-600">
+              <OrosLogoMark className="w-8 h-8 mb-1 text-oros-700/60" aria-label="Oros Brand Sigil" />
+              <span className="text-[11px] font-mono text-oros-500">No portrait set</span>
+            </div>
+          )}
 
-        {/* Change portrait overlay button */}
-        {isEditing && (
-          <button
-            onClick={handleImportAvatar}
-            className="absolute inset-x-6 bottom-6 py-1.5 rounded-[3px] bg-oros-950/95 hover:bg-black text-oros-200 font-medium text-[11px] backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 shadow-lg border border-oros-750"
-          >
-            <Camera className="w-3.5 h-3.5 text-oros-400" />
-            <span>Import Local Portrait</span>
-          </button>
-        )}
+          {/* Change portrait overlay button - strictly inside the image container */}
+          {isEditing && (
+            <button
+              onClick={handleImportAvatar}
+              className="absolute inset-x-3 bottom-2 py-1.5 rounded-[3px] bg-oros-950/90 hover:bg-black/95 text-oros-200 hover:text-white font-medium text-[11px] backdrop-blur-md opacity-0 group-hover/image:opacity-100 transition-opacity flex items-center justify-center gap-1.5 shadow-md border border-oros-750 z-10"
+            >
+              <Camera className="w-3.5 h-3.5 text-oros-400" />
+              <span>Import Local Portrait</span>
+            </button>
+          )}
+        </div>
 
         {/* Editable Image Label / Caption */}
         {isEditing || isEditingImageLabel ? (

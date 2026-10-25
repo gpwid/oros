@@ -27,6 +27,8 @@ import { QuickPeekCard } from '../common/QuickPeekCard'
 import { ExportDropdown, ExportOption } from '../common/ExportDropdown'
 import { exportReactFlowToImage, exportRelationsToJson } from '../../utils/exportUtils'
 import { calculateSmartSnap, SnapGuideLine } from '../../utils/snapEngine'
+import { OrosLogoMark } from '../common/OrosLogo'
+import { getCategoryMeta } from '../../utils/categoryIcons'
 
 // ==========================================
 // GEOMETRY & WAYPOINT ENGINE
@@ -930,9 +932,23 @@ const GenealogyCardNode = ({ id, data, selected }: {
   };
   selected?: boolean;
 }) => {
-  const { entity, isUnassigned, onSelect, onQuickAdd, onAssign, onDelete, isSelected } = data
+  const { entity: initialEntity, isUnassigned, onSelect, onQuickAdd, onAssign, onDelete, isSelected } = data
   const isCardSelected = selected || isSelected
   const [imgError, setImgError] = useState(false)
+
+  const activeWorldId = useWorldStore((s) => s.activeWorldId)
+  const storeEntity = useWorldStore((s) => {
+    if (!activeWorldId) return undefined
+    const list = s.entities[activeWorldId] || []
+    return list.find((e) => e.id === id || e.id === initialEntity?.id)
+  })
+  const entity = storeEntity || initialEntity
+
+  useEffect(() => {
+    setImgError(false)
+  }, [entity?.avatar])
+
+  const catMeta = entity ? getCategoryMeta(entity.type) : null
 
   if (isUnassigned || !entity) {
     return (
@@ -1039,20 +1055,32 @@ const GenealogyCardNode = ({ id, data, selected }: {
 
       {/* Portrait Artwork Frame */}
       <div className="w-full h-full rounded-[2px] overflow-hidden bg-oros-950 relative">
-        {entity.avatar && !imgError ? (
-          <img
-            src={entity.avatar}
-            alt={entity.title}
-            onError={() => setImgError(true)}
-            className="w-full h-full object-cover pointer-events-none select-none"
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-oros-900 text-oros-400 font-serif text-3xl font-semibold">
-            <span>{entity.title.charAt(0)}</span>
-          </div>
+        {catMeta && (
+          <span 
+            className="absolute top-2 left-2 z-20 px-1.5 py-0.5 rounded-[2px] text-[9px] uppercase font-mono tracking-wider backdrop-blur-sm border font-medium shadow-sm pointer-events-none"
+            style={{
+              backgroundColor: 'rgba(9, 10, 13, 0.92)',
+              borderColor: `${catMeta.color || '#94a3b8'}50`,
+              color: catMeta.color || '#94a3b8'
+            }}
+          >
+            {catMeta.name || entity.type}
+          </span>
         )}
-        {entity.avatar && !imgError && (
-          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-oros-950 via-oros-950/70 to-transparent pointer-events-none rounded-b-[2px]" />
+        {Boolean(entity.avatar && typeof entity.avatar === 'string' && entity.avatar.trim() !== '') && !imgError ? (
+          <>
+            <img
+              src={entity.avatar}
+              alt={entity.title}
+              onError={() => setImgError(true)}
+              className="w-full h-full object-cover pointer-events-none select-none"
+            />
+            <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-oros-950 via-oros-950/70 to-transparent pointer-events-none rounded-b-[2px]" />
+          </>
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-oros-900 text-oros-600">
+            <OrosLogoMark className="w-10 h-10 text-oros-700/60" aria-label="Oros Brand Sigil" />
+          </div>
         )}
       </div>
 
@@ -1241,6 +1269,11 @@ const RelationGraphCanvasContent: React.FC = () => {
   const worldEntities = activeWorldId ? entities[activeWorldId] || [] : []
   const worldRelations = activeWorldId ? relations[activeWorldId] || [] : []
 
+  const liveActiveEntityForPeek = useMemo(() => {
+    if (!activeEntityForPeek) return null
+    return worldEntities.find((e) => e.id === activeEntityForPeek.id) || activeEntityForPeek
+  }, [activeEntityForPeek, worldEntities])
+
   const handleDeleteEntity = useCallback(async (entityId: string) => {
     const ent = worldEntities.find((e) => e.id === entityId)
     const title = ent ? ent.title : 'this entry'
@@ -1261,14 +1294,21 @@ const RelationGraphCanvasContent: React.FC = () => {
   // Clean initial coordinates for genealogy layout, with persistence support
   const initialNodes: Node[] = useMemo(() => {
     const defaultPositions: Record<string, { x: number; y: number }> = {
-      'char-katherine': { x: 180, y: 100 },
-      'char-ronald': { x: 480, y: 100 },
-      'char-vespera': { x: 760, y: 100 },
-      'char-marcus': { x: 1040, y: 100 },
-      'char-aurelius': { x: 620, y: 360 },
-      'char-lyra': { x: 900, y: 360 },
-      'fac-solar': { x: 180, y: 360 },
-      'item-astral-crown': { x: 480, y: -140 }
+      'char-corvus': { x: 480, y: 160 },
+      'char-vane': { x: 480, y: -80 },
+      'char-julian': { x: 780, y: 160 },
+      'char-lysandra': { x: 180, y: 160 },
+      'char-torvald': { x: 180, y: 440 },
+      'char-morwenna': { x: 780, y: 440 },
+      'loc-dun-carrow': { x: 480, y: 440 },
+      'fac-house-ostergard': { x: 780, y: -80 },
+      'fac-salt-covenant': { x: -100, y: 160 },
+      'fac-ashen-liturgy': { x: 1060, y: 440 },
+      'item-black-sigil': { x: 480, y: 700 },
+      'item-widows-weight': { x: 220, y: 700 },
+      'loc-skell-isles': { x: -100, y: 440 },
+      'loc-mor-marshes': { x: -100, y: 700 },
+      'doc-decree-grain': { x: 780, y: 700 }
     }
 
     const savedPositions = (activeWorldId && relationNodePositions[activeWorldId]) || {}
@@ -1385,7 +1425,20 @@ const RelationGraphCanvasContent: React.FC = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
   React.useEffect(() => {
-    setNodes(initialNodes)
+    setNodes((currentNodes) => {
+      if (!currentNodes || currentNodes.length === 0) return initialNodes
+      return initialNodes.map((initNode) => {
+        const existing = currentNodes.find((n) => n.id === initNode.id)
+        if (existing) {
+          return {
+            ...initNode,
+            position: existing.position,
+            selected: existing.selected ?? initNode.selected
+          }
+        }
+        return initNode
+      })
+    })
   }, [initialNodes, setNodes])
 
   React.useEffect(() => {
@@ -2230,7 +2283,7 @@ const RelationGraphCanvasContent: React.FC = () => {
         </div>
 
         {/* Slide-out Entity Inspector Drawer (starts under top-11 header, buttons are 100% unobstructed) */}
-        {activeEntityForPeek && !showBondsDrawer && (
+        {liveActiveEntityForPeek && !showBondsDrawer && (
           <aside className="absolute top-11 right-0 bottom-0 w-84 max-w-full bg-oros-950/98 backdrop-blur-md border-l border-oros-800 shadow-2xl z-30 flex flex-col animate-slide-in-right overflow-y-auto select-text">
             <div className="p-3 border-b border-oros-800 flex items-center justify-between shrink-0 bg-oros-950/95 sticky top-0 z-10 backdrop-blur-sm">
               <div className="flex items-center gap-2">
@@ -2238,7 +2291,7 @@ const RelationGraphCanvasContent: React.FC = () => {
               </div>
               <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => handleDeleteEntity(activeEntityForPeek.id)}
+                  onClick={() => handleDeleteEntity(liveActiveEntityForPeek.id)}
                   className="px-2 py-1 rounded-md bg-rose-950/40 border border-rose-850 hover:border-rose-700 text-rose-300 hover:text-rose-100 text-[10px] font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
                   title="Delete Entry"
                 >
@@ -2247,12 +2300,12 @@ const RelationGraphCanvasContent: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
-                    if (activeEntityForPeek) {
-                      setSelectedEntityId(activeEntityForPeek.id)
+                    if (liveActiveEntityForPeek) {
+                      setSelectedEntityId(liveActiveEntityForPeek.id)
                       openTab({
-                        title: activeEntityForPeek.title,
+                        title: liveActiveEntityForPeek.title,
                         type: 'wiki',
-                        targetId: activeEntityForPeek.id
+                        targetId: liveActiveEntityForPeek.id
                       })
                     }
                   }}
@@ -2274,13 +2327,13 @@ const RelationGraphCanvasContent: React.FC = () => {
 
             <div className="p-3.5 space-y-4">
               <QuickPeekCard 
-                entity={activeEntityForPeek}
+                entity={liveActiveEntityForPeek}
                 onClose={() => setActiveEntityForPeek(null)}
               />
 
               <div className="pt-2 border-t border-oros-800/80">
                 <button
-                  onClick={() => handleDeleteEntity(activeEntityForPeek.id)}
+                  onClick={() => handleDeleteEntity(liveActiveEntityForPeek.id)}
                   className="w-full py-2 px-3 rounded-[3px] bg-rose-950/30 hover:bg-rose-950/60 border border-rose-800/50 hover:border-rose-700 text-rose-300 hover:text-rose-100 text-xs font-mono flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
                 >
                   <Trash2 className="w-3.5 h-3.5 text-rose-400" />
@@ -2392,7 +2445,7 @@ const RelationGraphCanvasContent: React.FC = () => {
                   {/* Origin Card */}
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div className="w-8 h-8 rounded-[3px] bg-oros-900 border border-oros-750 flex items-center justify-center font-serif text-xs font-bold text-oros-200 overflow-hidden shrink-0 shadow-sm">
-                      {sourceEntity?.avatar ? (
+                      {sourceEntity && typeof sourceEntity.avatar === 'string' && sourceEntity.avatar.trim() !== '' ? (
                         <img src={sourceEntity.avatar} alt={sourceEntity.title} className="w-full h-full object-cover" />
                       ) : (
                         <span>{sourceEntity ? sourceEntity.title.charAt(0) : '?'}</span>
@@ -2434,7 +2487,7 @@ const RelationGraphCanvasContent: React.FC = () => {
                       </div>
                     </div>
                     <div className="w-8 h-8 rounded-[3px] bg-oros-900 border border-oros-750 flex items-center justify-center font-serif text-xs font-bold text-oros-200 overflow-hidden shrink-0 shadow-sm">
-                      {targetEntity?.avatar ? (
+                      {targetEntity && typeof targetEntity.avatar === 'string' && targetEntity.avatar.trim() !== '' ? (
                         <img src={targetEntity.avatar} alt={targetEntity.title} className="w-full h-full object-cover" />
                       ) : (
                         <span>{targetMode === 'existing' ? (targetEntity ? targetEntity.title.charAt(0) : '?') : '+'}</span>
@@ -2741,7 +2794,7 @@ const RelationGraphCanvasContent: React.FC = () => {
                   {/* Source Card */}
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div className="w-8 h-8 rounded-[3px] bg-oros-900 border border-oros-750 flex items-center justify-center font-serif text-xs font-bold text-oros-200 overflow-hidden shrink-0 shadow-sm">
-                      {editSourceEntity?.avatar ? (
+                      {editSourceEntity && typeof editSourceEntity.avatar === 'string' && editSourceEntity.avatar.trim() !== '' ? (
                         <img src={editSourceEntity.avatar} alt={editSourceEntity.title} className="w-full h-full object-cover" />
                       ) : (
                         <span>{editSourceEntity ? editSourceEntity.title.charAt(0) : '?'}</span>
@@ -2784,7 +2837,7 @@ const RelationGraphCanvasContent: React.FC = () => {
                       <div className="text-xs font-semibold text-oros-100 truncate">{editTargetEntity?.title || 'Target'}</div>
                     </div>
                     <div className="w-8 h-8 rounded-[3px] bg-oros-900 border border-oros-750 flex items-center justify-center font-serif text-xs font-bold text-oros-200 overflow-hidden shrink-0 shadow-sm">
-                      {editTargetEntity?.avatar ? (
+                      {editTargetEntity && typeof editTargetEntity.avatar === 'string' && editTargetEntity.avatar.trim() !== '' ? (
                         <img src={editTargetEntity.avatar} alt={editTargetEntity.title} className="w-full h-full object-cover" />
                       ) : (
                         <span>{editTargetEntity ? editTargetEntity.title.charAt(0) : '?'}</span>

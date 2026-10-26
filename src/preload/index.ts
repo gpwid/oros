@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 export interface OrosBridge {
   loadVault: () => Promise<string | null>;
   saveVault: (content: string) => Promise<boolean>;
+  saveDataUrlAsset: (dataUrl: string) => Promise<string>;
   selectImage: () => Promise<string | null>;
   importAsset: () => Promise<string | null>;
   exportWorld: (fileName: string, content: string) => Promise<boolean>;
@@ -26,6 +27,7 @@ export interface OrosBridge {
 const api: OrosBridge = {
   loadVault: () => ipcRenderer.invoke('oros:load-vault'),
   saveVault: (content: string) => ipcRenderer.invoke('oros:save-vault', content),
+  saveDataUrlAsset: (dataUrl: string) => ipcRenderer.invoke('oros:save-data-url', dataUrl),
   selectImage: () => ipcRenderer.invoke('oros:select-image'),
   importAsset: () => ipcRenderer.invoke('oros:import-asset'),
   exportWorld: (fileName: string, content: string) => ipcRenderer.invoke('oros:export-world', fileName, content),

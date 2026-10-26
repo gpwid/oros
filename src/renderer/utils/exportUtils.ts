@@ -412,6 +412,17 @@ export async function exportConnectionsToCsv(
 }
 
 export async function exportCanvasToJson(canvas: WhiteboardCanvasData, worldName: string = 'Oros Project'): Promise<boolean> {
+  const cleanNodes = (canvas.nodes || []).map((n: any) => {
+    if (n && typeof n === 'object') {
+      const { attribution: _na, artAttribution: _nb, ...restNode } = n
+      if (restNode.data && typeof restNode.data === 'object') {
+        const { attribution: _da, artAttribution: _db, ...restData } = restNode.data
+        return { ...restNode, data: restData }
+      }
+      return restNode
+    }
+    return n
+  })
   const payload = {
     orosVersion: '0.1.0',
     type: 'whiteboard-canvas',
@@ -420,7 +431,7 @@ export async function exportCanvasToJson(canvas: WhiteboardCanvasData, worldName
     canvas: {
       id: canvas.id,
       name: canvas.name,
-      nodes: canvas.nodes || [],
+      nodes: cleanNodes,
       edges: canvas.edges || [],
       strokes: canvas.strokes || []
     }

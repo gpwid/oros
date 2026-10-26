@@ -8,10 +8,9 @@ import {
   sampleCanvases,
   OSTERGARD_MASTERPIECES 
 } from '../renderer/sample/sampleWorld'
-import { ArtAttribution, LoreEntity, World, WorldMap, CanvasCardData } from '../shared/types'
+import { LoreEntity, World, WorldMap, CanvasCardData } from '../shared/types'
 import { useWorldStore } from '../renderer/store/useWorldStore'
 import { OrosLogoMark } from '../renderer/components/common/OrosLogo'
-import { ArtAttributionBadge } from '../renderer/components/common/ArtAttributionBadge'
 import { QuickPeekCard } from '../renderer/components/common/QuickPeekCard'
 import { WikiInfobox } from '../renderer/components/wiki/WikiInfobox'
 
@@ -102,24 +101,28 @@ describe('M7 Empirical Adversarial Stress Suite (Challenger M7)', () => {
       await useWorldStore.getState().initStore()
 
       const state = useWorldStore.getState()
-      const world = state.worlds.find((w) => w.id === sampleWorld.id)
+      const world = state.worlds.find((w) => w.id === sampleWorld.id) as any
       expect(world?.bannerUrl).not.toContain('artstation.com')
       expect(world?.thumbnailUrl).not.toContain('artstation.com')
-      expect(world?.attribution?.artist).toBe('Caspar David Friedrich')
+      expect(world?.attribution).toBeUndefined()
+      expect(world?.artAttribution).toBeUndefined()
 
-      const entity = state.entities[sampleWorld.id]?.find((e) => e.id === sampleEntities[0].id)
+      const entity = state.entities[sampleWorld.id]?.find((e) => e.id === sampleEntities[0].id) as any
       expect(entity?.avatar).not.toContain('artstation.com')
       expect(entity?.avatarUrl).not.toContain('artstation.com')
       expect(entity?.avatar).toBe(OSTERGARD_MASTERPIECES.corvus.thumbnailUrl)
-      expect(entity?.attribution?.artist).toBe('Rembrandt van Rijn')
+      expect(entity?.attribution).toBeUndefined()
+      expect(entity?.artAttribution).toBeUndefined()
 
-      const map = state.maps[sampleWorld.id]?.[0]
+      const map = state.maps[sampleWorld.id]?.[0] as any
       expect(map?.imageUrl).not.toContain('artstation.com')
-      expect(map?.attribution?.artist).toBe('Lucas Janszoon Waghenaer')
+      expect(map?.attribution).toBeUndefined()
+      expect(map?.artAttribution).toBeUndefined()
 
       const canvasNode = state.canvases[sampleWorld.id]?.[0]?.nodes[0]
       expect(canvasNode?.data?.avatar).not.toContain('artstation.com')
-      expect(canvasNode?.data?.attribution?.artist).toBe('Rembrandt van Rijn')
+      expect(canvasNode?.data?.attribution).toBeUndefined()
+      expect(canvasNode?.data?.artAttribution).toBeUndefined()
     })
 
     it('1.2: verified remediation: uncredited legacy entity banner and bannerUrl are purged when sampleMatch has no banner', async () => {
@@ -234,15 +237,17 @@ describe('M7 Empirical Adversarial Stress Suite (Challenger M7)', () => {
       await useWorldStore.getState().initStore()
 
       const state = useWorldStore.getState()
-      const customWorld = state.worlds.find((w) => w.id === 'world-custom-1')
+      const customWorld = state.worlds.find((w) => w.id === 'world-custom-1') as any
       expect(customWorld).toBeDefined()
       expect(customWorld?.name).toBe('The Obsidian Realm')
-      expect(customWorld?.attribution?.artist).toBe('Custom Painter')
+      expect(customWorld?.attribution).toBeUndefined()
+      expect(customWorld?.artAttribution).toBeUndefined()
 
-      const customEnt = state.entities['world-custom-1']?.find((e) => e.id === customEntityId)
+      const customEnt = state.entities['world-custom-1']?.find((e) => e.id === customEntityId) as any
       expect(customEnt).toBeDefined()
       expect(customEnt?.title).toBe('Master Olar')
-      expect(customEnt?.attribution?.artist).toBe('Custom Artist 2')
+      expect(customEnt?.attribution).toBeUndefined()
+      expect(customEnt?.artAttribution).toBeUndefined()
     })
 
     it('1.7: handles canvas cards referencing non-existent entity IDs without crashing', async () => {
@@ -290,149 +295,76 @@ describe('M7 Empirical Adversarial Stress Suite (Challenger M7)', () => {
   })
 
   // =========================================================================
-  // FOCUS 2: JSON Serialization & Roundtrip Fidelity of ArtAttribution
+  // FOCUS 2: Removal of Deprecated ArtAttribution in Store & Export
   // =========================================================================
-  describe('Focus 2: ArtAttribution JSON Roundtrip & Schema Fidelity', () => {
-    it('2.1: preserves all 10 schema fields across JSON stringify and parse roundtrip', () => {
-      const fullAttribution: ArtAttribution = {
-        artist: 'Albrecht Dürer',
-        artworkTitle: 'Melencolia I (Speculative Copperplate Edition)',
-        year: 1514, // numeric year
-        institution: 'The Metropolitan Museum of Art, New York',
-        sourceUrl: 'https://www.metmuseum.org/art/collection/search/336222?param=1&query=melencolia#provenance',
-        license: 'Public Domain / CC0 1.0 Universal',
-        thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Melencolia.jpg/400px-Melencolia.jpg',
-        medium: 'Engraving on laid paper; copperplate impression',
-        dimensions: '24.0 cm × 18.8 cm (sheet)',
-        notes: 'Includes 4x4 magic square where rows, columns, and quadrants sum to 34.'
-      }
-
-      const serialized = JSON.stringify(fullAttribution)
-      const deserialized: ArtAttribution = JSON.parse(serialized)
-
-      expect(deserialized).toEqual(fullAttribution)
-      expect(Object.keys(deserialized).length).toBe(10)
-      expect(typeof deserialized.year).toBe('number')
-      expect(deserialized.year).toBe(1514)
-      expect(deserialized.medium).toBe('Engraving on laid paper; copperplate impression')
-      expect(deserialized.dimensions).toBe('24.0 cm × 18.8 cm (sheet)')
-      expect(deserialized.notes).toBe('Includes 4x4 magic square where rows, columns, and quadrants sum to 34.')
-    })
-
-    it('2.2: supports both string and number year formats without coercion or corruption', () => {
-      const testCases: (string | number)[] = [
-        1655,
-        '1655',
-        'c. 1500–1504',
-        'Circa 400 BCE',
-        -44,
-        '-44',
-        'Early 17th Century (ca. 1610-1615)'
-      ]
-
-      testCases.forEach((yearVal) => {
-        const attr: ArtAttribution = {
-          artist: 'Historical Master',
-          artworkTitle: 'Temporal Chronicle',
-          year: yearVal,
-          institution: 'Museum of History',
-          sourceUrl: 'https://museum.org/chronicle',
-          license: 'Public Domain'
-        }
-
-        const roundtripped: ArtAttribution = JSON.parse(JSON.stringify(attr))
-        expect(roundtripped.year).toBe(yearVal)
-        expect(typeof roundtripped.year).toBe(typeof yearVal)
-      })
-    })
-
-    it('2.3: preserves international multilingual text, diacritics, quotes, and punctuation', () => {
-      const complexAttribution: ArtAttribution = {
-        artist: 'Albrecht Dürer & Georges de La Tour & 葛飾北斎',
-        artworkTitle: '«L\'Astronome» — "The Ashen Star" <Edition 4> & [Special Reprint]',
-        year: 'c. 1668',
-        institution: 'Musée du Louvre, Paris (Département des Peintures) / 国立博物館',
-        sourceUrl: 'https://collections.louvre.fr/en/ark:/53355/cl010064397?param=val&lang=fr#desc',
-        license: 'Public Domain / Open Access (Licence Ouverte)',
-        thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/test_d%C3%BCrer.jpg',
-        medium: 'Huile sur toile; gold leaf overlay; テンペラ',
-        dimensions: '51.5 cm × 45.5 cm',
-        notes: 'Multi-line note:\nLine 1: ⚔️ Crown & Scepter\nLine 2: Tab\tIndented\nLine 3: Cyrillic: Миротворец\nLine 4: Runes: ᚠᚢᚦᚨᚱᚲ'
-      }
-
-      const json = JSON.stringify(complexAttribution)
-      const parsed: ArtAttribution = JSON.parse(json)
-
-      expect(parsed).toEqual(complexAttribution)
-      expect(parsed.notes).toContain('⚔️')
-      expect(parsed.notes).toContain('\n')
-      expect(parsed.notes).toContain('\t')
-      expect(parsed.notes).toContain('Миротворец')
-      expect(parsed.notes).toContain('ᚠᚢᚦᚨᚱᚲ')
-      expect(parsed.artist).toContain('葛飾北斎')
-      expect(parsed.artist).toContain('Dürer')
-    })
-
-    it('2.4: full store persistence roundtrip via flushSave() and initStore() preserves ArtAttribution', async () => {
-      const customEntity: LoreEntity = {
+  describe('Focus 2: Deprecated ArtAttribution Stripping on Persistence & Export', () => {
+    it('2.1: full store persistence roundtrip via flushSave() and initStore() strips legacy attribution fields', async () => {
+      const customEntity: any = {
         ...sampleEntities[0],
         id: 'char-roundtrip-test',
         title: 'Archivist Thorne',
         attribution: {
           artist: 'Hendrick Avercamp',
-          artworkTitle: 'Winter Landscape with Ice Skaters',
-          year: 1608,
-          institution: 'Rijksmuseum, Amsterdam',
-          sourceUrl: 'https://www.rijksmuseum.nl/en/collection/SK-A-1718',
-          license: 'Public Domain',
-          medium: 'Oil on oak panel',
-          dimensions: '77.3 cm × 131.9 cm',
-          notes: 'Detailed winter scene with castle in background.'
+          artworkTitle: 'Winter Landscape with Ice Skaters'
         },
         artAttribution: {
           artist: 'Hendrick Avercamp',
-          artworkTitle: 'Winter Landscape with Ice Skaters',
-          year: 1608,
-          institution: 'Rijksmuseum, Amsterdam',
-          sourceUrl: 'https://www.rijksmuseum.nl/en/collection/SK-A-1718',
-          license: 'Public Domain',
-          medium: 'Oil on oak panel',
-          dimensions: '77.3 cm × 131.9 cm',
-          notes: 'Detailed winter scene with castle in background.'
+          artworkTitle: 'Winter Landscape with Ice Skaters'
         }
       }
 
       useWorldStore.setState({
         activeWorldId: sampleWorld.id,
-        worlds: [sampleWorld],
+        worlds: [{ ...(sampleWorld as any), attribution: { artist: 'Caspar David Friedrich' } }],
         entities: {
           [sampleWorld.id]: [customEntity]
         }
       })
 
-      // Flush to mock localStorage
       await useWorldStore.getState().flushSave()
 
       const savedRaw = mockLocalStorage.getItem('oros_vault')
       expect(savedRaw).toBeTruthy()
+      expect(savedRaw).not.toContain('"attribution"')
+      expect(savedRaw).not.toContain('"artAttribution"')
 
-      // Reset in-memory store
       useWorldStore.setState({
         worlds: [],
         entities: {}
       })
 
-      // Re-initialize from storage
       await useWorldStore.getState().initStore()
 
-      const loadedEntity = useWorldStore.getState().entities[sampleWorld.id]?.find((e) => e.id === 'char-roundtrip-test')
+      const loadedEntity = useWorldStore.getState().entities[sampleWorld.id]?.find((e) => e.id === 'char-roundtrip-test') as any
       expect(loadedEntity).toBeDefined()
-      expect(loadedEntity?.attribution).toBeDefined()
-      expect(loadedEntity?.attribution?.artist).toBe('Hendrick Avercamp')
-      expect(loadedEntity?.attribution?.year).toBe(1608)
-      expect(loadedEntity?.attribution?.medium).toBe('Oil on oak panel')
-      expect(loadedEntity?.attribution?.dimensions).toBe('77.3 cm × 131.9 cm')
-      expect(loadedEntity?.attribution?.notes).toBe('Detailed winter scene with castle in background.')
+      expect(loadedEntity?.attribution).toBeUndefined()
+      expect(loadedEntity?.artAttribution).toBeUndefined()
+    })
+
+    it('2.2: exportWorld strips legacy attribution and artAttribution from exported .oros.json archive', async () => {
+      let exportedJson = ''
+      ;(globalThis as any).window.oros = {
+        exportWorld: async (_name: string, json: string) => {
+          exportedJson = json
+          return true
+        }
+      }
+
+      useWorldStore.setState({
+        activeWorldId: sampleWorld.id,
+        worlds: [{ ...(sampleWorld as any), attribution: { artist: 'Caspar David Friedrich' }, artAttribution: { artist: 'Caspar David Friedrich' } }],
+        entities: {
+          [sampleWorld.id]: [{ ...(sampleEntities[0] as any), attribution: { artist: 'Rembrandt' }, artAttribution: { artist: 'Rembrandt' } }]
+        },
+        maps: {
+          [sampleWorld.id]: [{ ...(sampleMap as any), attribution: { artist: 'Waghenaer' }, artAttribution: { artist: 'Waghenaer' } }]
+        }
+      })
+
+      const ok = await useWorldStore.getState().exportWorld()
+      expect(ok).toBe(true)
+      expect(exportedJson).not.toContain('"attribution"')
+      expect(exportedJson).not.toContain('"artAttribution"')
     })
   })
 

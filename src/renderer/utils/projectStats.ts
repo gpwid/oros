@@ -1,10 +1,16 @@
 import { LoreEntity, ManuscriptChapter, WorldMap, WhiteboardCanvasData, TimelineEvent } from '@shared/types'
 
+const WORD_COUNT_CACHE = new Map<string, number>()
+const MAX_WORD_CACHE_SIZE = 600
+
 /**
- * Strips HTML tags, entities, and whitespace to compute exact word counts
+ * Strips HTML tags, entities, and whitespace to compute exact word counts with bounded memoization
  */
 export function countWords(content?: string): number {
   if (!content) return 0
+  const cached = WORD_COUNT_CACHE.get(content)
+  if (cached !== undefined) return cached
+
   // Remove HTML tags
   const text = content.replace(/<[^>]*>/g, ' ')
   // Decode common HTML entities
@@ -17,7 +23,16 @@ export function countWords(content?: string): number {
     .replace(/&#39;/g, "'")
   // Match word boundaries
   const words = decoded.trim().match(/[\w\d'-]+/g)
-  return words ? words.length : 0
+  const count = words ? words.length : 0
+
+  if (content.length <= 200_000) {
+    if (WORD_COUNT_CACHE.size >= MAX_WORD_CACHE_SIZE) {
+      const oldestKey = WORD_COUNT_CACHE.keys().next().value
+      if (oldestKey !== undefined) WORD_COUNT_CACHE.delete(oldestKey)
+    }
+    WORD_COUNT_CACHE.set(content, count)
+  }
+  return count
 }
 
 export interface ProjectStats {

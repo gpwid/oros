@@ -387,6 +387,8 @@ interface TtrpgState {
   isDiceTrayOpen: boolean
 
   // Actions
+  hasHydrated: boolean
+  hydrateFromVault: (parsed: any) => void
   initTtrpg: () => Promise<void>
   persistTtrpg: () => Promise<void>
   setActiveCampaignId: (campaignId: string | null) => void
@@ -437,8 +439,39 @@ export const useTtrpgStore = create<TtrpgState>((set, get) => ({
   activeBattlemapId: 'bmap-salt-quay',
   diceHistory: [],
   isDiceTrayOpen: false,
+  hasHydrated: false,
+
+  hydrateFromVault: (parsed: any) => {
+    if (!parsed) {
+      set({ hasHydrated: true })
+      return
+    }
+    if (parsed.ttrpgCampaigns && parsed.ttrpgCampaigns.length > 0) {
+      const rawBattlemaps = parsed.ttrpgBattlemaps || sampleBattlemaps
+      const sanitizedBattlemaps: Record<string, TTRPGBattlemap[]> = {}
+      for (const [cId, bmaps] of Object.entries(rawBattlemaps as Record<string, TTRPGBattlemap[]>)) {
+        sanitizedBattlemaps[cId] = (bmaps || []).map((bm) => ({
+          ...bm,
+          // Strip out legacy sample effects so maps always start clean
+          effects: (bm.effects || []).filter((eff) => !eff.id?.startsWith('fx-sample-'))
+        }))
+      }
+
+      set({
+        campaigns: parsed.ttrpgCampaigns,
+        characters: parsed.ttrpgCharacters || {},
+        battlemaps: sanitizedBattlemaps,
+        activeCampaignId: parsed.ttrpgCampaigns[0]?.id || null,
+        activeBattlemapId: sanitizedBattlemaps[parsed.ttrpgCampaigns[0]?.id]?.[0]?.id || 'bmap-salt-quay',
+        hasHydrated: true
+      })
+    } else {
+      set({ hasHydrated: true })
+    }
+  },
 
   initTtrpg: async () => {
+    if (get().hasHydrated) return
     try {
       let raw: string | null = null
       if (typeof window !== 'undefined' && window.oros) {
@@ -450,56 +483,26 @@ export const useTtrpgStore = create<TtrpgState>((set, get) => ({
 
       if (raw) {
         const parsed = JSON.parse(raw)
-        if (parsed.ttrpgCampaigns && parsed.ttrpgCampaigns.length > 0) {
-          const rawBattlemaps = parsed.ttrpgBattlemaps || sampleBattlemaps
-          const sanitizedBattlemaps: Record<string, TTRPGBattlemap[]> = {}
-          for (const [cId, bmaps] of Object.entries(rawBattlemaps as Record<string, TTRPGBattlemap[]>)) {
-            sanitizedBattlemaps[cId] = (bmaps || []).map((bm) => ({
-              ...bm,
-              // Strip out legacy sample effects so maps always start clean
-              effects: (bm.effects || []).filter((eff) => !eff.id?.startsWith('fx-sample-'))
-            }))
-          }
-
-          set({
-            campaigns: parsed.ttrpgCampaigns,
-            characters: parsed.ttrpgCharacters || {},
-            battlemaps: sanitizedBattlemaps,
-            activeCampaignId: parsed.ttrpgCampaigns[0]?.id || null,
-            activeBattlemapId: sanitizedBattlemaps[parsed.ttrpgCampaigns[0]?.id]?.[0]?.id || 'bmap-salt-quay'
-          })
-          return
-        }
+        get().hydrateFromVault(parsed)
+        return
       }
+      set({ hasHydrated: true })
     } catch (e) {
       console.warn('Could not load saved TTRPG data, using defaults', e)
+      set({ hasHydrated: true })
     }
   },
 
   persistTtrpg: async () => {
+    if (typeof globalThis !== 'undefined' && typeof (globalThis as any).__orosPersistVault === 'function') {
+      await (globalThis as any).__orosPersistVault()
+      return
+    }
     if (saveDebounceTimer) clearTimeout(saveDebounceTimer)
     saveDebounceTimer = setTimeout(async () => {
       try {
-        const { campaigns, characters, battlemaps } = get()
-        let vaultObj: any = {}
-        if (typeof window !== 'undefined' && window.oros) {
-          const raw = await window.oros.loadVault()
-          if (raw) vaultObj = JSON.parse(raw)
-        } else if (typeof window !== 'undefined') {
-          const raw = localStorage.getItem('oros_vault')
-          if (raw) vaultObj = JSON.parse(raw)
-        }
-
-        vaultObj.ttrpgCampaigns = campaigns
-        vaultObj.ttrpgCharacters = characters
-        vaultObj.ttrpgBattlemaps = battlemaps
-
-        const serialized = JSON.stringify(vaultObj, null, 2)
-        if (typeof window !== 'undefined' && window.oros) {
-          await window.oros.saveVault(serialized)
-        }
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('oros_vault', serialized)
+        if (typeof globalThis !== 'undefined' && typeof (globalThis as any).__orosPersistVault === 'function') {
+          await (globalThis as any).__orosPersistVault()
         }
       } catch (err) {
         console.error('Failed to persist TTRPG data', err)

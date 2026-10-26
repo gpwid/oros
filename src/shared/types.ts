@@ -33,19 +33,6 @@ export interface InfoboxSection {
   fields: InfoboxField[];
 }
 
-export interface ArtAttribution {
-  artist: string;
-  artworkTitle: string;
-  year: string | number;
-  institution: string;
-  sourceUrl: string;
-  license: string;
-  thumbnailUrl?: string;
-  medium?: string;
-  dimensions?: string;
-  notes?: string;
-}
-
 export interface CanvasCardData {
   entityId?: string;
   title?: string;
@@ -60,8 +47,6 @@ export interface CanvasCardData {
   tags?: string[];
   width?: number;
   height?: number;
-  attribution?: ArtAttribution;
-  artAttribution?: ArtAttribution;
   [key: string]: any;
 }
 
@@ -85,8 +70,6 @@ export interface LoreEntity {
   };
   customProperties?: Record<string, any>;
   isSecret?: boolean;
-  attribution?: ArtAttribution;
-  artAttribution?: ArtAttribution;
   createdAt: string;
   updatedAt: string;
 }
@@ -136,8 +119,6 @@ export interface WorldMap {
   gridConfig?: MapGridConfig;
   pins: MapPin[];
   regions: MapRegion[];
-  attribution?: ArtAttribution;
-  artAttribution?: ArtAttribution;
   createdAt: string;
   updatedAt: string;
 }
@@ -316,8 +297,6 @@ export interface World {
   calendarConfig?: WorldCalendarConfig;
   bannerUrl?: string;
   thumbnailUrl?: string;
-  attribution?: ArtAttribution;
-  artAttribution?: ArtAttribution;
   themeConfig?: ThemeConfig;
   snippets?: CssSnippet[];
   useWorkspaceStyling?: boolean;

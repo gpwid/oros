@@ -340,7 +340,6 @@ const CanvasCardNode: React.FC<NodeProps> = React.memo(({ id, data, selected }) 
   const cardIsSecret = Boolean((entity as any)?.isSecret ?? cardData.isSecret ?? false)
   const cardTags = (entity?.tags && entity.tags.length > 0) ? entity.tags : (cardData.tags || [])
   const isExpanded = Boolean(cardData.expanded)
-  const cardAttribution = (cardData as any).attribution || (cardData as any).artAttribution || entity?.attribution || entity?.artAttribution
 
   useEffect(() => {
     setImgError(false)

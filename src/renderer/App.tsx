@@ -1,18 +1,18 @@
 import React, { useEffect, lazy, Suspense } from 'react'
 import { useWorldStore } from './store/useWorldStore'
-import { WorkspaceTabs } from './components/layout/WorkspaceTabs'
-import { Sidebar } from './components/layout/Sidebar'
 import { HomePage } from './components/home/HomePage'
 import { CommandPalette } from './components/common/CommandPalette'
 import { ToastContainer } from './components/common/ToastContainer'
 import { ConfirmModal } from './components/common/ConfirmModal'
 import { CustomTooltipProvider } from './components/common/CustomTooltipProvider'
-import { SettingsModal } from './components/settings/SettingsModal'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { useSettingsStore } from './store/useSettingsStore'
 import { applyTheme } from './utils/themeEngine'
 
-// Code-split heavy views to accelerate launch time and memory footprint
+// Code-split workspace layout & heavy views to accelerate launch time and minimize idle memory footprint
+const WorkspaceTabs = lazy(() => import('./components/layout/WorkspaceTabs').then(m => ({ default: m.WorkspaceTabs })))
+const Sidebar = lazy(() => import('./components/layout/Sidebar').then(m => ({ default: m.Sidebar })))
+const SettingsModal = lazy(() => import('./components/settings/SettingsModal').then(m => ({ default: m.SettingsModal })))
 const WhiteboardCanvas = lazy(() => import('./components/canvas/WhiteboardCanvas').then(m => ({ default: m.WhiteboardCanvas })))
 const WikiArticleView = lazy(() => import('./components/wiki/WikiArticleView').then(m => ({ default: m.WikiArticleView })))
 const CardGallery = lazy(() => import('./components/cards/CardGallery').then(m => ({ default: m.CardGallery })))
@@ -182,7 +182,7 @@ export const App: React.FC = () => {
       {appView === 'home' ? (
         <HomePage />
       ) : (
-        <>
+        <Suspense fallback={<ViewFallback />}>
           {/* Top Browser-style Tabs Bar */}
           <WorkspaceTabs />
           
@@ -209,7 +209,7 @@ export const App: React.FC = () => {
               </ErrorBoundary>
             </main>
           </div>
-        </>
+        </Suspense>
       )}
 
       {/* Distraction-Free Codex Reader Compendium Overlay */}
@@ -223,7 +223,11 @@ export const App: React.FC = () => {
       <ToastContainer />
       <ConfirmModal />
       <CustomTooltipProvider />
-      <SettingsModal />
+      {isSettingsOpen && (
+        <Suspense fallback={null}>
+          <SettingsModal />
+        </Suspense>
+      )}
     </div>
   )
 }

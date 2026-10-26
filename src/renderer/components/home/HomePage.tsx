@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react'
 import { useWorldStore } from '../../store/useWorldStore'
 import { useTtrpgStore } from '../../store/useTtrpgStore'
 import { useToastStore } from '../../store/useToastStore'
@@ -12,27 +12,37 @@ import {
 import { World, TTRPGCampaign } from '@shared/types'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { OrosLogoFull } from '../common/OrosLogo'
-import { NewProjectModal } from './NewProjectModal'
-import { NewCampaignModal } from '../ttrpg/NewCampaignModal'
-import { TTRPGCampaignDashboard } from '../ttrpg/TTRPGCampaignDashboard'
 import { calculateProjectStats, formatNumber } from '../../utils/projectStats'
 import { THEME_PRESETS } from '../../utils/themeEngine'
 import { getGenreMeta } from '../../utils/genrePresets'
 
+const NewProjectModal = lazy(() => import('./NewProjectModal').then(m => ({ default: m.NewProjectModal })))
+const NewCampaignModal = lazy(() => import('../ttrpg/NewCampaignModal').then(m => ({ default: m.NewCampaignModal })))
+const TTRPGCampaignDashboard = lazy(() => import('../ttrpg/TTRPGCampaignDashboard').then(m => ({ default: m.TTRPGCampaignDashboard })))
+
 export const HomePage: React.FC = () => {
-  const { 
-    worlds, activeWorldId, setActiveWorldId, setAppView, 
-    entities, manuscripts, maps, canvases, timelines,
-    deleteWorld, exportWorld, importWorld
-  } = useWorldStore()
+  const worlds = useWorldStore((s) => s.worlds)
+  const activeWorldId = useWorldStore((s) => s.activeWorldId)
+  const setActiveWorldId = useWorldStore((s) => s.setActiveWorldId)
+  const setAppView = useWorldStore((s) => s.setAppView)
+  const entities = useWorldStore((s) => s.entities)
+  const manuscripts = useWorldStore((s) => s.manuscripts)
+  const maps = useWorldStore((s) => s.maps)
+  const canvases = useWorldStore((s) => s.canvases)
+  const timelines = useWorldStore((s) => s.timelines)
+  const deleteWorld = useWorldStore((s) => s.deleteWorld)
+  const exportWorld = useWorldStore((s) => s.exportWorld)
+  const importWorld = useWorldStore((s) => s.importWorld)
 
-  const {
-    campaigns, characters, activeCampaignId, setActiveCampaignId,
-    deleteCampaign, initTtrpg
-  } = useTtrpgStore()
+  const campaigns = useTtrpgStore((s) => s.campaigns)
+  const characters = useTtrpgStore((s) => s.characters)
+  const activeCampaignId = useTtrpgStore((s) => s.activeCampaignId)
+  const setActiveCampaignId = useTtrpgStore((s) => s.setActiveCampaignId)
+  const deleteCampaign = useTtrpgStore((s) => s.deleteCampaign)
+  const initTtrpg = useTtrpgStore((s) => s.initTtrpg)
 
-  const { addToast } = useToastStore()
-  const { openSettings } = useSettingsStore()
+  const addToast = useToastStore((s) => s.addToast)
+  const openSettings = useSettingsStore((s) => s.openSettings)
 
   const [hubTab, setHubTab] = useState<'worlds' | 'ttrpg'>('worlds')
   const [searchFilter, setSearchFilter] = useState('')
@@ -191,10 +201,12 @@ export const HomePage: React.FC = () => {
   // If inside an active campaign, render the campaign dashboard
   if (hubTab === 'ttrpg' && activeCampaignId) {
     return (
-      <TTRPGCampaignDashboard
-        campaignId={activeCampaignId}
-        onBackToHub={() => setActiveCampaignId(null)}
-      />
+      <Suspense fallback={<div className="flex-1 bg-oros-950" />}>
+        <TTRPGCampaignDashboard
+          campaignId={activeCampaignId}
+          onBackToHub={() => setActiveCampaignId(null)}
+        />
+      </Suspense>
     )
   }
 
@@ -694,29 +706,37 @@ export const HomePage: React.FC = () => {
       </main>
 
       {/* New / Edit Project Dialog */}
-      <NewProjectModal
-        isOpen={showNewModal || Boolean(editingWorld)}
-        initialWorld={editingWorld}
-        onClose={() => {
-          setShowNewModal(false)
-          setEditingWorld(null)
-        }}
-      />
+      {(showNewModal || Boolean(editingWorld)) && (
+        <Suspense fallback={null}>
+          <NewProjectModal
+            isOpen={showNewModal || Boolean(editingWorld)}
+            initialWorld={editingWorld}
+            onClose={() => {
+              setShowNewModal(false)
+              setEditingWorld(null)
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* New / Edit Campaign Dialog */}
-      <NewCampaignModal
-        isOpen={showNewCampaignModal}
-        campaignToEdit={editingCampaign}
-        onClose={() => {
-          setShowNewCampaignModal(false)
-          setEditingCampaign(null)
-        }}
-        onCreated={(campId) => {
-          setActiveCampaignId(campId)
-          setShowNewCampaignModal(false)
-          setEditingCampaign(null)
-        }}
-      />
+      {showNewCampaignModal && (
+        <Suspense fallback={null}>
+          <NewCampaignModal
+            isOpen={showNewCampaignModal}
+            campaignToEdit={editingCampaign}
+            onClose={() => {
+              setShowNewCampaignModal(false)
+              setEditingCampaign(null)
+            }}
+            onCreated={(campId) => {
+              setActiveCampaignId(campId)
+              setShowNewCampaignModal(false)
+              setEditingCampaign(null)
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

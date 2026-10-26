@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, dialog, protocol, net, nativeImage 
 import { join, dirname, extname, basename } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, statSync, promises as fsPromises } from 'node:fs'
-import { randomUUID } from 'node:crypto'
+import { randomUUID, createHash } from 'node:crypto'
 import { checkGitHubRelease, downloadAssetToFile, launchInstaller } from './updater.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -10,8 +10,14 @@ const __dirname = dirname(__filename)
 
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
 
-// Cap decoded image cache and V8 heap overhead to keep idle and canvas memory low
-app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512')
+// Cap decoded image cache, renderer process pool, and V8 heap overhead to keep idle and canvas memory low
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=384 --expose-gc')
+app.commandLine.appendSwitch('renderer-process-limit', '2')
+app.commandLine.appendSwitch('disable-site-isolation-trials')
+app.commandLine.appendSwitch(
+  'disable-features',
+  'SpareRendererForSitePerProcess,BackForwardCache,Translate,OptimizationHints,MediaRouter'
+)
 
 // Register privileged custom protocol for local world assets
 protocol.registerSchemesAsPrivileged([
@@ -91,12 +97,70 @@ function ensureDirectories() {
   directoriesEnsuredForPath = activeVaultPath
 }
 
+function normalizeAssetExt(extOrSubtype: string): string {
+  const clean = extOrSubtype.toLowerCase().replace(/^\./, '')
+  if (clean === 'jpeg' || clean === 'jpg') return '.jpg'
+  if (clean === 'svg+xml' || clean === 'svg') return '.svg'
+  if (clean === 'webp') return '.webp'
+  if (clean === 'gif') return '.gif'
+  return '.png'
+}
+
+function saveBufferAsAsset(buf: Buffer, extOrSubtype: string): string {
+  ensureDirectories()
+  const ext = normalizeAssetExt(extOrSubtype)
+  const hash = createHash('sha1').update(buf).digest('hex').slice(0, 20)
+  const filename = `asset_${hash}${ext}`
+  const targetPath = join(getAssetsPath(), filename)
+  if (!existsSync(targetPath)) {
+    writeFileSync(targetPath, buf)
+  }
+  return `oros-asset://${filename}`
+}
+
+function saveDataUrlToAsset(dataUrl: string): string {
+  const match = dataUrl.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/)
+  if (!match) return dataUrl
+  try {
+    const buf = Buffer.from(match[2], 'base64')
+    return saveBufferAsAsset(buf, match[1])
+  } catch {
+    return dataUrl
+  }
+}
+
+// Automatically externalize embedded base64 data URLs in JSON to local oros-asset:// files
+const INLINE_BASE64_REGEX = /"data:image\/(png|jpeg|jpg|webp|gif|svg\+xml);base64,([A-Za-z0-9+/=]{512,})"/g
+
+function externalizeBase64Images(jsonContent: string): { content: string; changed: boolean } {
+  if (!jsonContent || !jsonContent.includes('data:image/')) {
+    return { content: jsonContent, changed: false }
+  }
+  let changed = false
+  const compacted = jsonContent.replace(INLINE_BASE64_REGEX, (fullMatch, subtype: string, b64Data: string) => {
+    try {
+      const buf = Buffer.from(b64Data, 'base64')
+      const assetUrl = saveBufferAsAsset(buf, subtype)
+      changed = true
+      return `"${assetUrl}"`
+    } catch {
+      return fullMatch
+    }
+  })
+  return { content: compacted, changed }
+}
+
 async function loadVaultData(): Promise<string | null> {
   try {
     ensureDirectories()
     const dataFilePath = getDataFilePath()
     if (existsSync(dataFilePath)) {
-      return await fsPromises.readFile(dataFilePath, 'utf-8')
+      const raw = await fsPromises.readFile(dataFilePath, 'utf-8')
+      const { content, changed } = externalizeBase64Images(raw)
+      if (changed) {
+        await fsPromises.writeFile(dataFilePath, content, 'utf-8')
+      }
+      return content
     }
   } catch (err) {
     console.error('Failed to load vault data:', err)
@@ -108,6 +172,7 @@ async function saveVaultData(jsonContent: string): Promise<boolean> {
   try {
     ensureDirectories()
     const dataFilePath = getDataFilePath()
+    const { content } = externalizeBase64Images(jsonContent)
     const now = Date.now()
     // Throttle backup creation to once every 10 minutes instead of on every auto-save
     if (now - lastBackupTimeMs > 10 * 60 * 1000 && existsSync(dataFilePath)) {
@@ -117,7 +182,7 @@ async function saveVaultData(jsonContent: string): Promise<boolean> {
         console.warn('Could not write backup file:', backupErr)
       })
     }
-    await fsPromises.writeFile(dataFilePath, jsonContent, 'utf-8')
+    await fsPromises.writeFile(dataFilePath, content, 'utf-8')
     return true
   } catch (err) {
     console.error('Failed to save vault data:', err)
@@ -170,7 +235,7 @@ function launchMainWindow(): void {
   mainWindow?.once('ready-to-show', () => {
     mainWindow?.show()
     if (splashWindow && !splashWindow.isDestroyed()) {
-      splashWindow.close()
+      splashWindow.destroy()
       splashWindow = null
     }
   })
@@ -394,7 +459,11 @@ app.whenReady().then(() => {
         const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : ext === '.svg' ? 'image/svg+xml' : ext === '.gif' ? 'image/gif' : 'image/jpeg'
         const data = readFileSync(targetFile)
         return new Response(data, {
-          headers: { 'Content-Type': mime }
+          headers: {
+            'Content-Type': mime,
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=31536000, immutable'
+          }
         })
       }
     } catch (e) {
@@ -412,7 +481,14 @@ app.whenReady().then(() => {
     return saveVaultData(content)
   })
 
-  // Native Image Importer: Copies file into local vault and returns instant base64 Data URL
+  ipcMain.handle('oros:save-data-url', async (_event, dataUrl: string) => {
+    if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) {
+      return saveDataUrlToAsset(dataUrl)
+    }
+    return dataUrl
+  })
+
+  // Native Image Importer: Copies file into local vault and returns lightweight oros-asset:// URL
   ipcMain.handle('oros:import-asset', async () => {
     if (!mainWindow) return null
     const result = await dialog.showOpenDialog(mainWindow, {
@@ -425,14 +501,8 @@ app.whenReady().then(() => {
 
     const sourcePath = result.filePaths[0]
     const ext = extname(sourcePath).toLowerCase()
-    const id = randomUUID()
-    const targetFilename = `${id}${ext}`
-    const destinationPath = join(getAssetsPath(), targetFilename)
-
-    copyFileSync(sourcePath, destinationPath)
-    const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : ext === '.svg' ? 'image/svg+xml' : ext === '.gif' ? 'image/gif' : 'image/jpeg'
-    const buf = readFileSync(destinationPath)
-    return `data:${mime};base64,${buf.toString('base64')}`
+    const buf = readFileSync(sourcePath)
+    return saveBufferAsAsset(buf, ext)
   })
 
   ipcMain.handle('oros:select-image', async () => {
@@ -445,9 +515,8 @@ app.whenReady().then(() => {
     if (result.canceled || result.filePaths.length === 0) return null
     const filePath = result.filePaths[0]
     const ext = extname(filePath).toLowerCase()
-    const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : ext === '.svg' ? 'image/svg+xml' : ext === '.gif' ? 'image/gif' : 'image/jpeg'
     const buf = readFileSync(filePath)
-    return `data:${mime};base64,${buf.toString('base64')}`
+    return saveBufferAsAsset(buf, ext)
   })
 
   ipcMain.handle('oros:export-world', async (_event, fileName: string, content: string) => {
@@ -472,7 +541,7 @@ app.whenReady().then(() => {
     if (result.canceled || result.filePaths.length === 0) return null
     try {
       const content = readFileSync(result.filePaths[0], 'utf-8')
-      return content
+      return externalizeBase64Images(content).content
     } catch (err) {
       console.error('Failed to read imported world archive:', err)
       return null
@@ -509,6 +578,18 @@ app.whenReady().then(() => {
 
   ipcMain.handle('oros:fetch-image-data-url', async (_event, url: string) => {
     try {
+      if (typeof url === 'string' && url.startsWith('oros-asset://')) {
+        const parsedUrl = new URL(url)
+        const filename = parsedUrl.hostname ? `${parsedUrl.hostname}${parsedUrl.pathname}` : parsedUrl.pathname.replace(/^\/+/, '')
+        const targetFile = join(getAssetsPath(), decodeURIComponent(filename))
+        if (existsSync(targetFile)) {
+          const ext = extname(targetFile).toLowerCase()
+          const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : ext === '.svg' ? 'image/svg+xml' : ext === '.gif' ? 'image/gif' : 'image/jpeg'
+          const buf = readFileSync(targetFile)
+          return `data:${mime};base64,${buf.toString('base64')}`
+        }
+        return null
+      }
       const res = await net.fetch(url)
       if (!res.ok) return null
       const arrayBuffer = await res.arrayBuffer()

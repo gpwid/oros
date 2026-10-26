@@ -29,17 +29,17 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
   const imageElementRef = useRef<HTMLImageElement | null>(null)
   const [safeImageSrc, setSafeImageSrc] = useState(imageSrc)
 
-  // Ensure data URL to bypass CORS for canvas cropping
+  // Ensure CORS-safe URL for canvas cropping without allocating huge base64 strings for local assets
   useEffect(() => {
     let active = true
     if (!imageSrc) return
 
-    if (imageSrc.startsWith('data:')) {
+    if (imageSrc.startsWith('data:') || imageSrc.startsWith('oros-asset://') || imageSrc.startsWith('blob:')) {
       setSafeImageSrc(imageSrc)
       return
     }
 
-    // Attempt to convert to data URL for clean canvas export
+    // Attempt to convert external remote URLs to data URL for clean canvas export
     fetch(imageSrc, { mode: 'cors' })
       .then((res) => res.blob())
       .then((blob) => {
@@ -199,14 +199,14 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
   }
 
   // Crop execution on Canvas
-  const handleConfirmCrop = () => {
+  const handleConfirmCrop = async () => {
     if (!imageElementRef.current) {
       onConfirm(safeImageSrc)
       return
     }
 
     try {
-      const outputWidth = 1200
+      const outputWidth = 960
       const outputHeight = Math.round(outputWidth / aspectRatio)
 
       const canvas = document.createElement('canvas')
@@ -239,8 +239,16 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
         outputHeight
       )
 
-      const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.90)
-      onConfirm(croppedDataUrl)
+      const croppedDataUrl = canvas.toDataURL('image/webp', 0.85)
+      canvas.width = 0
+      canvas.height = 0
+
+      if (typeof window !== 'undefined' && window.oros?.saveDataUrlAsset) {
+        const assetUrl = await window.oros.saveDataUrlAsset(croppedDataUrl)
+        onConfirm(assetUrl || croppedDataUrl)
+      } else {
+        onConfirm(croppedDataUrl)
+      }
     } catch {
       // If tainted canvas due to strict CORS, use direct image source
       onConfirm(safeImageSrc)

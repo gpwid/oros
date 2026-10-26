@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react'
 import { 
   ArrowLeft, Plus, Shield, Heart, Eye, 
   Trash2, BookOpen, Layers, Sparkles, User, FileText, 
@@ -11,10 +11,11 @@ import { TTRPGCampaign, Dnd5eCharacter, Dnd5eAttack } from '@shared/types'
 import { useTtrpgStore } from '../../store/useTtrpgStore'
 import { useToastStore } from '../../store/useToastStore'
 import { confirmDialog } from '../../store/useConfirmStore'
-import { Dnd5eCharacterSheet } from './Dnd5eCharacterSheet'
 import { NewCharacterModal } from './NewCharacterModal'
 import { NewCampaignModal } from './NewCampaignModal'
-import { TTRPGBattlemapViewer } from './TTRPGBattlemapViewer'
+
+const Dnd5eCharacterSheet = lazy(() => import('./Dnd5eCharacterSheet').then(m => ({ default: m.Dnd5eCharacterSheet })))
+const TTRPGBattlemapViewer = lazy(() => import('./TTRPGBattlemapViewer').then(m => ({ default: m.TTRPGBattlemapViewer })))
 
 interface TTRPGCampaignDashboardProps {
   campaignId: string
@@ -95,10 +96,12 @@ export const TTRPGCampaignDashboard: React.FC<TTRPGCampaignDashboardProps> = ({
   const activeCharacter = campaignCharacters.find(ch => ch.id === activeCharacterId)
   if (activeCharacter) {
     return (
-      <Dnd5eCharacterSheet
-        character={activeCharacter}
-        onBack={() => setActiveCharacterId(null)}
-      />
+      <Suspense fallback={<div className="flex-1 bg-oros-950" />}>
+        <Dnd5eCharacterSheet
+          character={activeCharacter}
+          onBack={() => setActiveCharacterId(null)}
+        />
+      </Suspense>
     )
   }
 
@@ -377,10 +380,12 @@ export const TTRPGCampaignDashboard: React.FC<TTRPGCampaignDashboardProps> = ({
 
       {/* Main Campaign Content Switcher */}
       {activeView === 'battlemap' ? (
-        <TTRPGBattlemapViewer
-          campaign={campaign}
-          onOpenCharacterSheet={(id) => setActiveCharacterId(id)}
-        />
+        <Suspense fallback={<div className="flex-1 bg-oros-950" />}>
+          <TTRPGBattlemapViewer
+            campaign={campaign}
+            onOpenCharacterSheet={(id) => setActiveCharacterId(id)}
+          />
+        </Suspense>
       ) : activeView === 'roster' ? (
         <div className="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto w-full space-y-6">
           {/* Header Strip with Quick Stats */}

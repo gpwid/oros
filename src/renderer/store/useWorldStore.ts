@@ -19,6 +19,7 @@ import {
   sampleConlangs, sampleRelationNodePositions
 } from '../sample/sampleWorld'
 import { getTemplateById, getTemplateForType } from '../utils/entityTemplates'
+import { useTtrpgStore } from './useTtrpgStore'
 
 export type ActiveNavTab = 'wiki' | 'cards' | 'relations' | 'wiki-network' | 'maps' | 'timeline' | 'writer' | 'graph' | 'canvas' | 'dictionary';
 
@@ -208,12 +209,30 @@ function optimizeMuseumUrl(url?: string): string | undefined {
   return url
 }
 
-function optimizeAttribution(attr?: any): any {
-  if (!attr || typeof attr !== 'object') return attr
-  if (attr.thumbnailUrl && typeof attr.thumbnailUrl === 'string' && attr.thumbnailUrl.includes('/original/')) {
-    return { ...attr, thumbnailUrl: optimizeMuseumUrl(attr.thumbnailUrl) }
+function stripAttribution<T extends Record<string, any>>(obj: T): T {
+  if (!obj || typeof obj !== 'object') return obj
+  const { attribution: _a, artAttribution: _b, ...rest } = obj as any
+  return rest as T
+}
+
+function cleanCanvasAttribution(canvas: WhiteboardCanvasData): WhiteboardCanvasData {
+  if (!canvas || typeof canvas !== 'object') return canvas
+  return {
+    ...stripAttribution(canvas),
+    nodes: (canvas.nodes || []).map((node: any) => {
+      if (node && typeof node === 'object') {
+        const cleanedNode = stripAttribution(node)
+        if (cleanedNode.data && typeof cleanedNode.data === 'object') {
+          return {
+            ...cleanedNode,
+            data: stripAttribution(cleanedNode.data)
+          }
+        }
+        return cleanedNode
+      }
+      return node
+    })
   }
-  return attr
 }
 
 let persistDebounceTimer: any = null;
@@ -278,7 +297,15 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       }
 
       if (raw) {
-        const parsed: StorageData = JSON.parse(raw);
+        const parsed: StorageData & {
+          ttrpgCampaigns?: any;
+          ttrpgCharacters?: any;
+          ttrpgBattlemaps?: any;
+        } = JSON.parse(raw);
+
+        useTtrpgStore.getState().hydrateFromVault(parsed);
+
+        let needsPersist = false;
         if (parsed.worlds && (parsed.worlds.length === 0 || (parsed.worlds.length === 1 && parsed.worlds[0].id === 'world-aethelgard'))) {
           // Automatically upgrade legacy mock world to the newly remade Ostergard world
           parsed.worlds = [sampleWorld];
@@ -294,31 +321,29 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           parsed.categories = { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES };
           parsed.calendars = { [sampleWorld.id]: sampleWorld.calendarConfig || DEFAULT_FANTASY_CALENDAR_CONFIG };
           parsed.conlangs = { [sampleWorld.id]: sampleConlangs };
+          needsPersist = true;
         }
 
         const sampleEntityMap = new Map(sampleEntities.map((e) => [e.id, e]));
 
         const healedWorlds = (parsed.worlds || [sampleWorld]).map((w: World) => {
-          let b = optimizeMuseumUrl(w.bannerUrl);
-          let t = optimizeMuseumUrl(w.thumbnailUrl);
-          let attr = optimizeAttribution(w.attribution || w.artAttribution);
+          const cleanW = stripAttribution(w);
+          let b = optimizeMuseumUrl(cleanW.bannerUrl);
+          let t = optimizeMuseumUrl(cleanW.thumbnailUrl);
           if (b && b.toLowerCase().includes('artstation.com')) {
             b = sampleWorld.bannerUrl;
           }
           if (t && t.toLowerCase().includes('artstation.com')) {
             t = sampleWorld.thumbnailUrl;
           }
-          if (w.id === sampleWorld.id || !attr) {
-            attr = sampleWorld.attribution;
+          if (cleanW.id === sampleWorld.id) {
             if (!b) b = sampleWorld.bannerUrl;
             if (!t) t = sampleWorld.thumbnailUrl;
           }
           return {
-            ...w,
+            ...cleanW,
             bannerUrl: b,
-            thumbnailUrl: t || b,
-            attribution: attr,
-            artAttribution: attr
+            thumbnailUrl: t || b
           };
         });
 
@@ -326,18 +351,17 @@ export const useWorldStore = create<WorldState>((set, get) => ({
         const healedEntities: Record<string, LoreEntity[]> = {};
         for (const [wId, list] of Object.entries(rawEntities)) {
           healedEntities[wId] = (list || []).map((ent: LoreEntity) => {
-            const sampleMatch = sampleEntityMap.get(ent.id);
-            const avatarHasArtstation = (ent.avatar && ent.avatar.toLowerCase().includes('artstation.com')) || 
-                                       (ent.avatarUrl && ent.avatarUrl.toLowerCase().includes('artstation.com'));
-            const bannerHasArtstation = (ent.banner && ent.banner.toLowerCase().includes('artstation.com')) ||
-                                       (ent.bannerUrl && ent.bannerUrl.toLowerCase().includes('artstation.com'));
+            const cleanEnt = stripAttribution(ent);
+            const sampleMatch = sampleEntityMap.get(cleanEnt.id);
+            const avatarHasArtstation = (cleanEnt.avatar && cleanEnt.avatar.toLowerCase().includes('artstation.com')) || 
+                                       (cleanEnt.avatarUrl && cleanEnt.avatarUrl.toLowerCase().includes('artstation.com'));
+            const bannerHasArtstation = (cleanEnt.banner && cleanEnt.banner.toLowerCase().includes('artstation.com')) ||
+                                       (cleanEnt.bannerUrl && cleanEnt.bannerUrl.toLowerCase().includes('artstation.com'));
 
-            let avatar = optimizeMuseumUrl(ent.avatar);
-            let avatarUrl = optimizeMuseumUrl(ent.avatarUrl || ent.avatar);
-            let banner = optimizeMuseumUrl(ent.banner);
-            let bannerUrl = optimizeMuseumUrl(ent.bannerUrl || ent.banner);
-            let attribution = optimizeAttribution(ent.attribution);
-            let artAttribution = optimizeAttribution(ent.artAttribution || ent.attribution);
+            let avatar = optimizeMuseumUrl(cleanEnt.avatar);
+            let avatarUrl = optimizeMuseumUrl(cleanEnt.avatarUrl || cleanEnt.avatar);
+            let banner = optimizeMuseumUrl(cleanEnt.banner);
+            let bannerUrl = optimizeMuseumUrl(cleanEnt.bannerUrl || cleanEnt.banner);
 
             if (sampleMatch) {
               // Only heal if avatar is missing or broken artstation domain; DO NOT wipe user-uploaded custom images!
@@ -348,10 +372,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
               if (bannerHasArtstation) {
                 banner = sampleMatch.banner;
                 bannerUrl = sampleMatch.bannerUrl || sampleMatch.banner;
-              }
-              if (!attribution && !artAttribution) {
-                attribution = sampleMatch.attribution;
-                artAttribution = sampleMatch.artAttribution || sampleMatch.attribution;
               }
             } else {
               if (avatarHasArtstation) {
@@ -365,13 +385,11 @@ export const useWorldStore = create<WorldState>((set, get) => ({
             }
 
             return {
-              ...ent,
+              ...cleanEnt,
               avatar,
               avatarUrl,
               banner,
-              bannerUrl,
-              attribution,
-              artAttribution
+              bannerUrl
             };
           });
         }
@@ -380,30 +398,23 @@ export const useWorldStore = create<WorldState>((set, get) => ({
         const healedMaps: Record<string, WorldMap[]> = {};
         for (const [wId, list] of Object.entries(rawMaps)) {
           healedMaps[wId] = (list || []).map((m: WorldMap) => {
-            const hasArtstation = m.imageUrl && m.imageUrl.toLowerCase().includes('artstation.com');
-            const hasBrokenWikimedia = m.imageUrl && m.imageUrl.includes('upload.wikimedia.org') && m.imageUrl.includes('Waghenaer');
-            let imageUrl = optimizeMuseumUrl(m.imageUrl) || '';
-            let attribution = optimizeAttribution(m.attribution);
-            let artAttribution = optimizeAttribution(m.artAttribution || m.attribution);
+            const cleanM = stripAttribution(m);
+            const hasArtstation = cleanM.imageUrl && cleanM.imageUrl.toLowerCase().includes('artstation.com');
+            const hasBrokenWikimedia = cleanM.imageUrl && cleanM.imageUrl.includes('upload.wikimedia.org') && cleanM.imageUrl.includes('Waghenaer');
+            let imageUrl = optimizeMuseumUrl(cleanM.imageUrl) || '';
 
-            if (m.id === sampleMap.id) {
+            if (cleanM.id === sampleMap.id) {
               // Only fallback to sampleMap if the image is missing, has an old broken artstation link, or has the legacy broken wikimedia URL
               if (!imageUrl || hasArtstation || hasBrokenWikimedia) {
                 imageUrl = sampleMap.imageUrl;
-                attribution = sampleMap.attribution;
-                artAttribution = sampleMap.artAttribution || sampleMap.attribution;
               }
             } else if (hasArtstation) {
               imageUrl = sampleMap.imageUrl;
-              attribution = sampleMap.attribution;
-              artAttribution = sampleMap.artAttribution || sampleMap.attribution;
             }
 
             return {
-              ...m,
-              imageUrl,
-              attribution,
-              artAttribution
+              ...cleanM,
+              imageUrl
             };
           });
         }
@@ -416,41 +427,43 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           const titleMap = new Map(worldEnts.map((e) => [e.title.trim().toLowerCase(), e]));
 
           healedCanvases[wId] = (list || []).map((c: WhiteboardCanvasData) => ({
-            ...c,
+            ...stripAttribution(c),
             nodes: (c.nodes || []).map((node: any) => {
-              if (node.type === 'canvasCard' && node.data) {
-                const entMatch = (node.data.entityId && entityMap.get(node.data.entityId)) ||
-                                 (node.data.title && titleMap.get(node.data.title.trim().toLowerCase())) ||
-                                 (node.data.entityId ? sampleEntityMap.get(node.data.entityId) : undefined);
+              const cleanNode = stripAttribution(node);
+              if (cleanNode.type === 'canvasCard' && cleanNode.data) {
+                const cleanData = stripAttribution(cleanNode.data);
+                const entMatch = (cleanData.entityId && entityMap.get(cleanData.entityId)) ||
+                                 (cleanData.title && titleMap.get(cleanData.title.trim().toLowerCase())) ||
+                                 (cleanData.entityId ? sampleEntityMap.get(cleanData.entityId) : undefined);
                 if (entMatch) {
                   return {
-                    ...node,
+                    ...cleanNode,
                     data: {
-                      ...node.data,
+                      ...cleanData,
                       entityId: entMatch.id,
-                      title: entMatch.title || node.data.title,
-                      subtitle: entMatch.summary || node.data.subtitle,
-                      entityType: entMatch.type || node.data.entityType,
-                      avatar: optimizeMuseumUrl((entMatch.avatar !== undefined && entMatch.avatar !== '') ? entMatch.avatar : node.data.avatar),
-                      tags: (entMatch.tags && entMatch.tags.length > 0) ? entMatch.tags : node.data.tags,
-                      attribution: optimizeAttribution((entMatch as any).attribution || (sampleEntityMap.get(entMatch.id) as any)?.attribution || node.data.attribution),
-                      artAttribution: optimizeAttribution((entMatch as any).artAttribution || (sampleEntityMap.get(entMatch.id) as any)?.artAttribution || node.data.artAttribution || (entMatch as any).attribution)
+                      title: entMatch.title || cleanData.title,
+                      subtitle: entMatch.summary || cleanData.subtitle,
+                      entityType: entMatch.type || cleanData.entityType,
+                      avatar: optimizeMuseumUrl((entMatch.avatar !== undefined && entMatch.avatar !== '') ? entMatch.avatar : cleanData.avatar),
+                      tags: (entMatch.tags && entMatch.tags.length > 0) ? entMatch.tags : cleanData.tags
                     }
                   };
                 }
-                if (node.data.avatar) {
+                if (cleanData.avatar) {
                   return {
-                    ...node,
+                    ...cleanNode,
                     data: {
-                      ...node.data,
-                      avatar: optimizeMuseumUrl(node.data.avatar),
-                      attribution: optimizeAttribution(node.data.attribution),
-                      artAttribution: optimizeAttribution(node.data.artAttribution)
+                      ...cleanData,
+                      avatar: optimizeMuseumUrl(cleanData.avatar)
                     }
                   };
                 }
+                return {
+                  ...cleanNode,
+                  data: cleanData
+                };
               }
-              return node;
+              return cleanNode;
             })
           }));
         }
@@ -472,11 +485,15 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           conlangs: parsed.conlangs || { [sampleWorld.id]: sampleConlangs }
         });
         get().syncVaultDirectory();
-        get().persistStore();
+        if (needsPersist) {
+          get().persistStore();
+        }
         return;
       }
+      useTtrpgStore.getState().hydrateFromVault(null);
     } catch (err) {
       console.warn('Failed to load from desktop vault, falling back to default:', err);
+      useTtrpgStore.getState().hydrateFromVault(null);
     }
     // Run sync for initial sample state
     get().syncVaultDirectory();
@@ -488,22 +505,42 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       persistDebounceTimer = null;
     }
     const s = get();
-    const payload: StorageData = {
+    const ttrpg = useTtrpgStore.getState();
+    const cleanedEntities: Record<string, LoreEntity[]> = {};
+    for (const [k, list] of Object.entries(s.entities)) {
+      cleanedEntities[k] = (list || []).map(stripAttribution);
+    }
+    const cleanedMaps: Record<string, WorldMap[]> = {};
+    for (const [k, list] of Object.entries(s.maps)) {
+      cleanedMaps[k] = (list || []).map(stripAttribution);
+    }
+    const cleanedCanvases: Record<string, WhiteboardCanvasData[]> = {};
+    for (const [k, list] of Object.entries(s.canvases)) {
+      cleanedCanvases[k] = (list || []).map(cleanCanvasAttribution);
+    }
+    const payload: StorageData & {
+      ttrpgCampaigns?: any;
+      ttrpgCharacters?: any;
+      ttrpgBattlemaps?: any;
+    } = {
       version: '1.0.0',
-      worlds: s.worlds,
+      worlds: s.worlds.map(stripAttribution),
       activeWorldId: s.activeWorldId,
-      entities: s.entities,
-      maps: s.maps,
+      entities: cleanedEntities,
+      maps: cleanedMaps,
       relations: s.relations,
       timelines: s.timelines,
       manuscripts: s.manuscripts,
       folders: s.folders,
       directoryItems: s.directoryItems,
-      canvases: s.canvases,
+      canvases: cleanedCanvases,
       categories: s.categories,
       calendars: s.calendars,
       relationNodePositions: s.relationNodePositions,
-      conlangs: s.conlangs
+      conlangs: s.conlangs,
+      ttrpgCampaigns: ttrpg.campaigns,
+      ttrpgCharacters: ttrpg.characters,
+      ttrpgBattlemaps: ttrpg.battlemaps
     };
     try {
       const jsonStr = JSON.stringify(payload);
@@ -2423,18 +2460,19 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
     const exportData = {
       version: '1.0.0',
-      world: activeWorld,
-      entities: s.entities[s.activeWorldId] || [],
-      maps: s.maps[s.activeWorldId] || [],
+      world: stripAttribution(activeWorld),
+      entities: (s.entities[s.activeWorldId] || []).map(stripAttribution),
+      maps: (s.maps[s.activeWorldId] || []).map(stripAttribution),
       relations: s.relations[s.activeWorldId] || [],
       timelines: s.timelines[s.activeWorldId] || [],
       manuscripts: s.manuscripts[s.activeWorldId] || [],
       folders: s.folders[s.activeWorldId] || [],
       directoryItems: s.directoryItems[s.activeWorldId] || [],
-      canvases: s.canvases[s.activeWorldId] || [],
+      canvases: (s.canvases[s.activeWorldId] || []).map(cleanCanvasAttribution),
       categories: s.categories[s.activeWorldId] || [],
       calendar: s.getCalendarConfig(s.activeWorldId),
-      relationNodePositions: s.relationNodePositions[s.activeWorldId] || {}
+      relationNodePositions: s.relationNodePositions[s.activeWorldId] || {},
+      conlangs: s.conlangs[s.activeWorldId] || []
     };
 
     const json = JSON.stringify(exportData, null, 2);
@@ -2481,7 +2519,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       }
 
       if (isSingleWorldBundle) {
-        const w: World = parsed.world;
+        const w: World = stripAttribution(parsed.world);
         const targetWorldId = w.id || `world-${Date.now()}`;
         w.id = targetWorldId;
 
@@ -2492,11 +2530,11 @@ export const useWorldStore = create<WorldState>((set, get) => ({
             activeWorldId: targetWorldId,
             entities: {
               ...state.entities,
-              [targetWorldId]: parsed.entities || []
+              [targetWorldId]: (parsed.entities || []).map(stripAttribution)
             },
             maps: {
               ...state.maps,
-              [targetWorldId]: parsed.maps || []
+              [targetWorldId]: (parsed.maps || []).map(stripAttribution)
             },
             relations: {
               ...state.relations,
@@ -2520,7 +2558,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
             },
             canvases: {
               ...state.canvases,
-              [targetWorldId]: parsed.canvases || []
+              [targetWorldId]: (parsed.canvases || []).map(cleanCanvasAttribution)
             },
             categories: {
               ...state.categories,
@@ -2546,17 +2584,30 @@ export const useWorldStore = create<WorldState>((set, get) => ({
         return true;
       } else {
         // Full vault restore
+        const cleanedEntities: Record<string, LoreEntity[]> = {};
+        for (const [k, list] of Object.entries(parsed.entities || {})) {
+          cleanedEntities[k] = ((list as LoreEntity[]) || []).map(stripAttribution);
+        }
+        const cleanedMaps: Record<string, WorldMap[]> = {};
+        for (const [k, list] of Object.entries(parsed.maps || {})) {
+          cleanedMaps[k] = ((list as WorldMap[]) || []).map(stripAttribution);
+        }
+        const cleanedCanvases: Record<string, WhiteboardCanvasData[]> = {};
+        for (const [k, list] of Object.entries(parsed.canvases || {})) {
+          cleanedCanvases[k] = ((list as WhiteboardCanvasData[]) || []).map(cleanCanvasAttribution);
+        }
+
         set({
-          worlds: parsed.worlds,
+          worlds: (parsed.worlds || []).map(stripAttribution),
           activeWorldId: parsed.activeWorldId || parsed.worlds[0]?.id || sampleWorld.id,
-          entities: parsed.entities || {},
-          maps: parsed.maps || {},
+          entities: cleanedEntities,
+          maps: cleanedMaps,
           relations: parsed.relations || {},
           timelines: parsed.timelines || {},
           manuscripts: parsed.manuscripts || {},
           folders: parsed.folders || {},
           directoryItems: parsed.directoryItems || {},
-          canvases: parsed.canvases || {},
+          canvases: cleanedCanvases,
           categories: parsed.categories || {},
           calendars: parsed.calendars || {},
           relationNodePositions: parsed.relationNodePositions || {},
@@ -2724,6 +2775,13 @@ if (typeof globalThis !== 'undefined') {
       return s.activeWorldId ? (s.categories[s.activeWorldId] || []) : [];
     } catch {
       return [];
+    }
+  };
+  ;(globalThis as any).__orosPersistVault = () => {
+    try {
+      return useWorldStore.getState().persistStore();
+    } catch {
+      return Promise.resolve();
     }
   };
 }

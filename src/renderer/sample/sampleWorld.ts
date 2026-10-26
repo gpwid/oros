@@ -1,7 +1,7 @@
 import { 
   World, LoreEntity, WorldMap, RelationEdge, TimelineEvent, ManuscriptChapter,
   DirectoryFolder, DirectoryItem, WhiteboardCanvasData, WorkspaceTab, WorldCalendarConfig,
-  ConlangLanguage, ArtAttribution
+  ConlangLanguage
 } from '@shared/types'
 
 export const OSTERGARD_CALENDAR_CONFIG: WorldCalendarConfig = {
@@ -36,198 +36,54 @@ export const OSTERGARD_CALENDAR_CONFIG: WorldCalendarConfig = {
 
 export const OSTERGARD_MASTERPIECES = {
   world: {
-    artist: 'Caspar David Friedrich',
-    artworkTitle: 'Wanderer above the Sea of Fog',
-    year: '1818',
-    institution: 'Hamburger Kunsthalle',
-    sourceUrl: 'https://online-sammlung.hamburger-kunsthalle.de/de/objekt/Der-Wanderer-ueber-dem-Nebelmeer',
-    license: 'Open Access / CC0',
-    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Caspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg/1200px-Caspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg',
-    medium: 'Oil on canvas',
-    dimensions: '94.8 cm × 74.8 cm',
-    notes: 'Iconic Romantic masterpiece depicting a wanderer overlooking a storm-scoured mist-filled sea.'
+    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Caspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg/1200px-Caspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg'
   },
   corvus: {
-    artist: 'Rembrandt van Rijn',
-    artworkTitle: 'A Man in Armour',
-    year: '1655',
-    institution: 'Glasgow Museums (Kelvingrove)',
-    sourceUrl: 'https://collections.glasgowlife.org.uk/item/60074',
-    license: 'Public Domain / Open Access',
-    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Rembrandt_van_Rijn_-_A_Man_in_Armour_-_1655.jpg/800px-Rembrandt_van_Rijn_-_A_Man_in_Armour_-_1655.jpg',
-    medium: 'Oil on canvas',
-    dimensions: '137.5 cm × 104.5 cm',
-    notes: 'Warrior king in dark plate and helm, symbolizing scarred command and defensive vigilance.'
+    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Rembrandt_van_Rijn_-_A_Man_in_Armour_-_1655.jpg/800px-Rembrandt_van_Rijn_-_A_Man_in_Armour_-_1655.jpg'
   },
   lysandra: {
-    artist: 'John Singer Sargent',
-    artworkTitle: 'Madame X (Madame Pierre Gautreau)',
-    year: '1883–1884',
-    institution: 'The Metropolitan Museum of Art',
-    sourceUrl: 'https://www.metmuseum.org/art/collection/search/12127',
-    license: 'Open Access (CC0)',
-    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/ap/web-large/DP-14436-001.jpg',
-    medium: 'Oil on canvas',
-    dimensions: '208.6 cm × 109.9 cm',
-    notes: 'Sublime portrait of aristocratic poise and calculating subtlety in satin and gold.'
+    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/ap/web-large/DP-14436-001.jpg'
   },
   torvald: {
-    artist: 'Rembrandt van Rijn',
-    artworkTitle: 'Bust of an Old Bearded Man',
-    year: '1631',
-    institution: 'Rijksmuseum, Amsterdam',
-    sourceUrl: 'https://www.rijksmuseum.nl/en/collection/SK-A-4138',
-    license: 'Public Domain / CC0',
-    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Rembrandt_van_Rijn_-_Bust_of_an_Old_Man_with_a_Beard_-_Google_Art_Project.jpg/800px-Rembrandt_van_Rijn_-_Bust_of_an_Old_Man_with_a_Beard_-_Google_Art_Project.jpg',
-    medium: 'Oil on panel',
-    dimensions: '59.9 cm × 51.1 cm',
-    notes: 'Fierce, weathered profile evoking northern gales, salt spray, and corsair defiance.'
+    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Rembrandt_van_Rijn_-_Bust_of_an_Old_Man_with_a_Beard_-_Google_Art_Project.jpg/800px-Rembrandt_van_Rijn_-_Bust_of_an_Old_Man_with_a_Beard_-_Google_Art_Project.jpg'
   },
   morwenna: {
-    artist: 'Georges de La Tour',
-    artworkTitle: 'The Penitent Magdalene',
-    year: 'ca. 1640',
-    institution: 'The Metropolitan Museum of Art',
-    sourceUrl: 'https://www.metmuseum.org/art/collection/search/436838',
-    license: 'Open Access (CC0)',
-    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/ep/web-large/DP276856.jpg',
-    medium: 'Oil on canvas',
-    dimensions: '133.4 cm × 102.2 cm',
-    notes: 'Tenebrist candlelight contemplation of skull, flame, and mortal asceticism.'
+    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/ep/web-large/DP276856.jpg'
   },
   vane: {
-    artist: 'Rembrandt van Rijn',
-    artworkTitle: 'Portrait of an Old Man',
-    year: '1665',
-    institution: 'The Metropolitan Museum of Art',
-    sourceUrl: 'https://www.metmuseum.org/art/collection/search/437394',
-    license: 'Open Access (CC0)',
-    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/ep/web-large/DP145924.jpg',
-    medium: 'Oil on canvas',
-    dimensions: '104 cm × 86 cm',
-    notes: 'Somber portrait of aging sovereign authority, melancholy, and political suspicion.'
+    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/ep/web-large/DP145924.jpg'
   },
   julian: {
-    artist: 'John Singer Sargent',
-    artworkTitle: 'Dr. Pozzi at Home',
-    year: '1881',
-    institution: 'Hammer Museum',
-    sourceUrl: 'https://hammer.ucla.edu/collections/armand-hammer-collection/dr-pozzi-at-home',
-    license: 'Public Domain / Open Access',
-    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/John_Singer_Sargent_-_Dr._Pozzi_at_Home_-_Google_Art_Project.jpg/800px-John_Singer_Sargent_-_Dr._Pozzi_at_Home_-_Google_Art_Project.jpg',
-    medium: 'Oil on canvas',
-    dimensions: '201.6 cm × 102.2 cm',
-    notes: 'Flamboyant crimson-robed gentleman of culture, charisma, and high court fashion.'
+    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/John_Singer_Sargent_-_Dr._Pozzi_at_Home_-_Google_Art_Project.jpg/800px-John_Singer_Sargent_-_Dr._Pozzi_at_Home_-_Google_Art_Project.jpg'
   },
   dunCarrow: {
-    artist: 'Caspar David Friedrich',
-    artworkTitle: 'The Abbey in the Oakwood',
-    year: '1809–1810',
-    institution: 'Alte Nationalgalerie, Berlin',
-    sourceUrl: 'https://recherche.smb.museum/detail/964098',
-    license: 'Public Domain / Open Access',
-    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Caspar_David_Friedrich_-_Abtei_im_Eichwald_-_Google_Art_Project.jpg/1024px-Caspar_David_Friedrich_-_Abtei_im_Eichwald_-_Google_Art_Project.jpg',
-    medium: 'Oil on canvas',
-    dimensions: '110 cm × 171 cm',
-    notes: 'Haunting gothic ruins rising above winter trees, mist, and ancient stone ramparts.'
+    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Caspar_David_Friedrich_-_Abtei_im_Eichwald_-_Google_Art_Project.jpg/1024px-Caspar_David_Friedrich_-_Abtei_im_Eichwald_-_Google_Art_Project.jpg'
   },
   morMarshes: {
-    artist: 'Caspar David Friedrich',
-    artworkTitle: 'The Sea of Ice (The Wreck of Hope)',
-    year: '1823–1824',
-    institution: 'Hamburger Kunsthalle',
-    sourceUrl: 'https://online-sammlung.hamburger-kunsthalle.de/de/objekt/Das-Eismeer',
-    license: 'Open Access / CC0',
-    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Caspar_David_Friedrich_-_Das_Eismeer_-_Hamburger_Kunsthalle.jpg/1024px-Caspar_David_Friedrich_-_Das_Eismeer_-_Hamburger_Kunsthalle.jpg',
-    medium: 'Oil on canvas',
-    dimensions: '96.7 cm × 126.9 cm',
-    notes: 'Jagged slabs of frozen brine and desolate winter wreckage in primeval fens.'
+    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Caspar_David_Friedrich_-_Das_Eismeer_-_Hamburger_Kunsthalle.jpg/1024px-Caspar_David_Friedrich_-_Das_Eismeer_-_Hamburger_Kunsthalle.jpg'
   },
   skellIsles: {
-    artist: 'Caspar David Friedrich',
-    artworkTitle: 'Moonrise by the Sea',
-    year: '1822',
-    institution: 'Alte Nationalgalerie, Berlin',
-    sourceUrl: 'https://recherche.smb.museum/detail/964101',
-    license: 'Public Domain / Open Access',
-    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Caspar_David_Friedrich_-_Mondaufgang_am_Meer_-_Google_Art_Project.jpg/1024px-Caspar_David_Friedrich_-_Mondaufgang_am_Meer_-_Google_Art_Project.jpg',
-    medium: 'Oil on canvas',
-    dimensions: '55 cm × 71 cm',
-    notes: 'Boulders on a rocky northern shore bathed in silver moonlight, gazing at distant sails.'
+    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Caspar_David_Friedrich_-_Mondaufgang_am_Meer_-_Google_Art_Project.jpg/1024px-Caspar_David_Friedrich_-_Mondaufgang_am_Meer_-_Google_Art_Project.jpg'
   },
   houseOstergard: {
-    artist: 'Albrecht Dürer',
-    artworkTitle: 'Coat of Arms with a Skull',
-    year: '1503',
-    institution: 'The Metropolitan Museum of Art',
-    sourceUrl: 'https://www.metmuseum.org/art/collection/search/391256',
-    license: 'Open Access (CC0)',
-    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/dp/web-large/DP816117.jpg',
-    medium: 'Engraving',
-    dimensions: '22 cm × 15.6 cm',
-    notes: 'Heraldic dynastic emblem bearing winged helm, armorial shield, and memento mori.'
+    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/dp/web-large/DP816117.jpg'
   },
   saltCovenant: {
-    artist: 'Rembrandt van Rijn',
-    artworkTitle: "The Syndics of the Drapers' Guild",
-    year: '1662',
-    institution: 'Rijksmuseum, Amsterdam',
-    sourceUrl: 'https://www.rijksmuseum.nl/en/collection/SK-C-6',
-    license: 'Public Domain / CC0',
-    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Rembrandt_-_The_Syndics_of_the_Amsterdam_Drapers%27_Guild%2C_known_as_%27The_Staalmeesters%27_-_Google_Art_Project.jpg/1024px-Rembrandt_-_The_Syndics_of_the_Amsterdam_Drapers%27_Guild%2C_known_as_%27The_Staalmeesters%27_-_Google_Art_Project.jpg',
-    medium: 'Oil on canvas',
-    dimensions: '191.5 cm × 279 cm',
-    notes: 'The merchant conclave reviewing maritime ledgers and grain shipping manifests.'
+    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Rembrandt_-_The_Syndics_of_the_Amsterdam_Drapers%27_Guild%2C_known_as_%27The_Staalmeesters%27_-_Google_Art_Project.jpg/1024px-Rembrandt_-_The_Syndics_of_the_Amsterdam_Drapers%27_Guild%2C_known_as_%27The_Staalmeesters%27_-_Google_Art_Project.jpg'
   },
   ashenLiturgy: {
-    artist: 'Gustave Doré',
-    artworkTitle: "Dante's Inferno: The Heretics",
-    year: '1861',
-    institution: 'The Cleveland Museum of Art',
-    sourceUrl: 'https://www.clevelandart.org/art/1922.378',
-    license: 'CC0 1.0 Universal',
-    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Gustave_Dor%C3%A9_-_Dante_Alighieri_-_Inferno_-_Plate_28_%28Canto_IX_-_The_Heretics%29.jpg/800px-Gustave_Dor%C3%A9_-_Dante_Alighieri_-_Inferno_-_Plate_28_%28Canto_IX_-_The_Heretics%29.jpg',
-    medium: 'Wood engraving',
-    dimensions: '24.2 cm × 19.8 cm',
-    notes: 'Fiery sepulchers and ascetic inquisitors purging corruption in sacred fire.'
+    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Gustave_Dor%C3%A9_-_Dante_Alighieri_-_Inferno_-_Plate_28_%28Canto_IX_-_The_Heretics%29.jpg/800px-Gustave_Dor%C3%A9_-_Dante_Alighieri_-_Inferno_-_Plate_28_%28Canto_IX_-_The_Heretics%29.jpg'
   },
   blackSigil: {
-    artist: 'Renaissance Goldsmith Art',
-    artworkTitle: 'Signet Ring with Intaglio Crest',
-    year: 'ca. 1570',
-    institution: 'The Metropolitan Museum of Art',
-    sourceUrl: 'https://www.metmuseum.org/art/collection/search/460773',
-    license: 'Open Access (CC0)',
-    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/md/web-large/sf1975-1-1407s1.jpg',
-    medium: 'Gold and intaglio engraved stone',
-    dimensions: '2.5 cm × 2.2 cm',
-    notes: 'Imperial signet ring of heavy star-iron and blood-wax seal intaglio.'
+    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/md/web-large/sf1975-1-1407s1.jpg'
   },
   widowsWeight: {
-    artist: 'Albrecht Dürer',
-    artworkTitle: 'Knight, Death and the Devil',
-    year: '1513',
-    institution: 'The Metropolitan Museum of Art',
-    sourceUrl: 'https://www.metmuseum.org/art/collection/search/391255',
-    license: 'Open Access (CC0)',
-    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/dp/web-large/DP816115.jpg',
-    medium: 'Engraving',
-    dimensions: '24.6 cm × 19 cm',
-    notes: 'Armored knight on warhorse with notched broadsword riding through the valley of shadow.'
+    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/dp/web-large/DP816115.jpg'
   },
   mapCoast: {
-    artist: 'Lucas Janszoon Waghenaer',
-    artworkTitle: "Spieghel der Zeevaerdt (The Mariner's Mirror: Sea Chart)",
-    year: '1584–1585',
-    institution: 'The Metropolitan Museum of Art',
-    sourceUrl: 'https://www.metmuseum.org/art/collection/search/391255',
-    license: 'Public Domain / CC0',
-    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/dp/web-large/DP802619.jpg',
-    medium: 'Hand-colored copperplate engraving',
-    dimensions: '33 cm × 51 cm',
-    notes: 'Detailed navigational chart of coastal rocks, sea beacons, sounding depths, and skerries.'
+    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/dp/web-large/DP802619.jpg'
   }
-} as const satisfies Record<string, ArtAttribution>;
+} as const;
 
 export const sampleWorld: World = {
   id: 'world-ostergard',
@@ -238,8 +94,6 @@ export const sampleWorld: World = {
   calendarConfig: OSTERGARD_CALENDAR_CONFIG,
   bannerUrl: OSTERGARD_MASTERPIECES.world.thumbnailUrl,
   thumbnailUrl: OSTERGARD_MASTERPIECES.world.thumbnailUrl,
-  attribution: OSTERGARD_MASTERPIECES.world,
-  artAttribution: OSTERGARD_MASTERPIECES.world,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString()
 }
@@ -256,8 +110,6 @@ export const sampleEntities: LoreEntity[] = [
     aliases: ['The Iron Warden', 'Corvus the Silent', 'The Bastard of Dun Craigh'],
     avatar: OSTERGARD_MASTERPIECES.corvus.thumbnailUrl,
     avatarUrl: OSTERGARD_MASTERPIECES.corvus.thumbnailUrl,
-    attribution: OSTERGARD_MASTERPIECES.corvus,
-    artAttribution: OSTERGARD_MASTERPIECES.corvus,
     infobox: {
       subtitle: '11th Sovereign Duke of the Bitter Coast',
       sections: [
@@ -294,8 +146,6 @@ export const sampleEntities: LoreEntity[] = [
     aliases: ['The Silver Finch', 'The Ledger Mistress'],
     avatar: OSTERGARD_MASTERPIECES.lysandra.thumbnailUrl,
     avatarUrl: OSTERGARD_MASTERPIECES.lysandra.thumbnailUrl,
-    attribution: OSTERGARD_MASTERPIECES.lysandra,
-    artAttribution: OSTERGARD_MASTERPIECES.lysandra,
     infobox: {
       subtitle: 'High Chancellor of the Bitter Coast',
       sections: [
@@ -323,8 +173,6 @@ export const sampleEntities: LoreEntity[] = [
     aliases: ['The Sea-Wolf', 'The Reaver of Skell'],
     avatar: OSTERGARD_MASTERPIECES.torvald.thumbnailUrl,
     avatarUrl: OSTERGARD_MASTERPIECES.torvald.thumbnailUrl,
-    attribution: OSTERGARD_MASTERPIECES.torvald,
-    artAttribution: OSTERGARD_MASTERPIECES.torvald,
     infobox: {
       subtitle: 'Admiral of the Skell Reavers',
       sections: [
@@ -352,8 +200,6 @@ export const sampleEntities: LoreEntity[] = [
     aliases: ['The Ashen Mother', 'The Salt Prophet'],
     avatar: OSTERGARD_MASTERPIECES.morwenna.thumbnailUrl,
     avatarUrl: OSTERGARD_MASTERPIECES.morwenna.thumbnailUrl,
-    attribution: OSTERGARD_MASTERPIECES.morwenna,
-    artAttribution: OSTERGARD_MASTERPIECES.morwenna,
     infobox: {
       subtitle: 'Suprema of the Ashen Liturgy',
       sections: [
@@ -380,8 +226,6 @@ export const sampleEntities: LoreEntity[] = [
     aliases: ['The Old Duke', 'Vane the Miser'],
     avatar: OSTERGARD_MASTERPIECES.vane.thumbnailUrl,
     avatarUrl: OSTERGARD_MASTERPIECES.vane.thumbnailUrl,
-    attribution: OSTERGARD_MASTERPIECES.vane,
-    artAttribution: OSTERGARD_MASTERPIECES.vane,
     infobox: {
       subtitle: 'Late Sovereign Duke (Deceased)',
       sections: [
@@ -410,8 +254,6 @@ export const sampleEntities: LoreEntity[] = [
     aliases: ['The Drowned Heir', 'Julian the Fair'],
     avatar: OSTERGARD_MASTERPIECES.julian.thumbnailUrl,
     avatarUrl: OSTERGARD_MASTERPIECES.julian.thumbnailUrl,
-    attribution: OSTERGARD_MASTERPIECES.julian,
-    artAttribution: OSTERGARD_MASTERPIECES.julian,
     infobox: {
       subtitle: 'Crown Heir (Murdered)',
       sections: [
@@ -440,8 +282,6 @@ export const sampleEntities: LoreEntity[] = [
     aliases: ['The Black Keep', 'The Sea-Spire'],
     avatar: OSTERGARD_MASTERPIECES.dunCarrow.thumbnailUrl,
     avatarUrl: OSTERGARD_MASTERPIECES.dunCarrow.thumbnailUrl,
-    attribution: OSTERGARD_MASTERPIECES.dunCarrow,
-    artAttribution: OSTERGARD_MASTERPIECES.dunCarrow,
     infobox: {
       subtitle: 'Seat of Sovereign Authority',
       sections: [
@@ -469,8 +309,6 @@ export const sampleEntities: LoreEntity[] = [
     aliases: ['The Weeping Fens', 'The Drowned Mor'],
     avatar: OSTERGARD_MASTERPIECES.morMarshes.thumbnailUrl,
     avatarUrl: OSTERGARD_MASTERPIECES.morMarshes.thumbnailUrl,
-    attribution: OSTERGARD_MASTERPIECES.morMarshes,
-    artAttribution: OSTERGARD_MASTERPIECES.morMarshes,
     infobox: {
       subtitle: 'Brackish Wetland Territory',
       sections: [
@@ -498,8 +336,6 @@ export const sampleEntities: LoreEntity[] = [
     aliases: ['The Wolf Skerries'],
     avatar: OSTERGARD_MASTERPIECES.skellIsles.thumbnailUrl,
     avatarUrl: OSTERGARD_MASTERPIECES.skellIsles.thumbnailUrl,
-    attribution: OSTERGARD_MASTERPIECES.skellIsles,
-    artAttribution: OSTERGARD_MASTERPIECES.skellIsles,
     infobox: {
       subtitle: 'Independent Corsair Stronghold',
       sections: [
@@ -527,8 +363,6 @@ export const sampleEntities: LoreEntity[] = [
     aliases: ['The Sea-Eagle Lords'],
     avatar: OSTERGARD_MASTERPIECES.houseOstergard.thumbnailUrl,
     avatarUrl: OSTERGARD_MASTERPIECES.houseOstergard.thumbnailUrl,
-    attribution: OSTERGARD_MASTERPIECES.houseOstergard,
-    artAttribution: OSTERGARD_MASTERPIECES.houseOstergard,
     infobox: {
       subtitle: 'Ducal Sovereign Dynasty',
       sections: [
@@ -556,8 +390,6 @@ export const sampleEntities: LoreEntity[] = [
     aliases: ['The Brine Masters', 'The Merchant Conclave'],
     avatar: OSTERGARD_MASTERPIECES.saltCovenant.thumbnailUrl,
     avatarUrl: OSTERGARD_MASTERPIECES.saltCovenant.thumbnailUrl,
-    attribution: OSTERGARD_MASTERPIECES.saltCovenant,
-    artAttribution: OSTERGARD_MASTERPIECES.saltCovenant,
     infobox: {
       subtitle: 'Mercantile Syndicate',
       sections: [
@@ -585,8 +417,6 @@ export const sampleEntities: LoreEntity[] = [
     aliases: ['The Order of the Hearth'],
     avatar: OSTERGARD_MASTERPIECES.ashenLiturgy.thumbnailUrl,
     avatarUrl: OSTERGARD_MASTERPIECES.ashenLiturgy.thumbnailUrl,
-    attribution: OSTERGARD_MASTERPIECES.ashenLiturgy,
-    artAttribution: OSTERGARD_MASTERPIECES.ashenLiturgy,
     infobox: {
       subtitle: 'Orthodox Religious Body',
       sections: [
@@ -614,8 +444,6 @@ export const sampleEntities: LoreEntity[] = [
     aliases: ['The Eagle Seal', 'The Cold Iron'],
     avatar: OSTERGARD_MASTERPIECES.blackSigil.thumbnailUrl,
     avatarUrl: OSTERGARD_MASTERPIECES.blackSigil.thumbnailUrl,
-    attribution: OSTERGARD_MASTERPIECES.blackSigil,
-    artAttribution: OSTERGARD_MASTERPIECES.blackSigil,
     infobox: {
       subtitle: 'Sovereign Heirloom',
       sections: [
@@ -642,8 +470,6 @@ export const sampleEntities: LoreEntity[] = [
     aliases: ['The Bog Blade'],
     avatar: OSTERGARD_MASTERPIECES.widowsWeight.thumbnailUrl,
     avatarUrl: OSTERGARD_MASTERPIECES.widowsWeight.thumbnailUrl,
-    attribution: OSTERGARD_MASTERPIECES.widowsWeight,
-    artAttribution: OSTERGARD_MASTERPIECES.widowsWeight,
     infobox: {
       subtitle: 'Martial Broadsword',
       sections: [
@@ -668,8 +494,6 @@ export const sampleMap: WorldMap = {
   name: 'The Bitter Coast & The Skell Archipelago',
   description: 'Detailed maritime chart of the Grand Duchy of Ostergard, showing sea-lanes, coastal beacons, and pirate waters.',
   imageUrl: OSTERGARD_MASTERPIECES.mapCoast.thumbnailUrl,
-  attribution: OSTERGARD_MASTERPIECES.mapCoast,
-  artAttribution: OSTERGARD_MASTERPIECES.mapCoast,
   scaleUnit: 'Leagues',
   scaleDistance: 50,
   scaleBarPixels: 140,
@@ -1129,8 +953,6 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
           title: 'Lord Corvus Ostergard',
           subtitle: 'The Iron Warden',
           avatar: OSTERGARD_MASTERPIECES.corvus.thumbnailUrl,
-          attribution: OSTERGARD_MASTERPIECES.corvus,
-          artAttribution: OSTERGARD_MASTERPIECES.corvus,
           width: 190,
           height: 260
         }
@@ -1145,8 +967,6 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
           title: 'Julian Ostergard',
           subtitle: 'The Drowned Heir (Dead)',
           avatar: OSTERGARD_MASTERPIECES.julian.thumbnailUrl,
-          attribution: OSTERGARD_MASTERPIECES.julian,
-          artAttribution: OSTERGARD_MASTERPIECES.julian,
           width: 190,
           height: 260
         }
@@ -1201,8 +1021,6 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
           title: 'Lady Lysandra Vance',
           subtitle: 'High Chancellor',
           avatar: OSTERGARD_MASTERPIECES.lysandra.thumbnailUrl,
-          attribution: OSTERGARD_MASTERPIECES.lysandra,
-          artAttribution: OSTERGARD_MASTERPIECES.lysandra,
           width: 190,
           height: 260
         }
@@ -1217,8 +1035,6 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
           title: 'The Salt Covenant',
           subtitle: 'Merchant Syndicate',
           avatar: OSTERGARD_MASTERPIECES.saltCovenant.thumbnailUrl,
-          attribution: OSTERGARD_MASTERPIECES.saltCovenant,
-          artAttribution: OSTERGARD_MASTERPIECES.saltCovenant,
           width: 190,
           height: 260
         }
@@ -1260,8 +1076,6 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
           title: 'Arch-Inquisitor Morwenna',
           subtitle: 'Suprema of the Liturgy',
           avatar: OSTERGARD_MASTERPIECES.morwenna.thumbnailUrl,
-          attribution: OSTERGARD_MASTERPIECES.morwenna,
-          artAttribution: OSTERGARD_MASTERPIECES.morwenna,
           width: 190,
           height: 260
         }
@@ -1276,8 +1090,6 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
           title: 'The Ashen Liturgy',
           subtitle: 'Church of Cinder',
           avatar: OSTERGARD_MASTERPIECES.ashenLiturgy.thumbnailUrl,
-          attribution: OSTERGARD_MASTERPIECES.ashenLiturgy,
-          artAttribution: OSTERGARD_MASTERPIECES.ashenLiturgy,
           width: 190,
           height: 260
         }
@@ -1320,8 +1132,6 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
           title: 'Torvald Black-Thorn',
           subtitle: 'Corsair Admiral',
           avatar: OSTERGARD_MASTERPIECES.torvald.thumbnailUrl,
-          attribution: OSTERGARD_MASTERPIECES.torvald,
-          artAttribution: OSTERGARD_MASTERPIECES.torvald,
           width: 190,
           height: 260
         }
@@ -1336,8 +1146,6 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
           title: 'The Skell Archipelago',
           subtitle: 'Pirate Skerries',
           avatar: OSTERGARD_MASTERPIECES.skellIsles.thumbnailUrl,
-          attribution: OSTERGARD_MASTERPIECES.skellIsles,
-          artAttribution: OSTERGARD_MASTERPIECES.skellIsles,
           width: 190,
           height: 260
         }
@@ -1377,8 +1185,6 @@ export const sampleCanvases: WhiteboardCanvasData[] = [
           title: 'The Unseen Assassin',
           subtitle: 'Southern Imperial Envoy (Wanted)',
           avatar: null,
-          attribution: undefined,
-          artAttribution: undefined,
           width: 190,
           height: 260
         }

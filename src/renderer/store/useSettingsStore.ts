@@ -123,6 +123,52 @@ export const MONO_FONT_MAP: Record<string, string> = {
   consolas: 'Consolas, "Courier New", monospace'
 }
 
+const DYNAMIC_GOOGLE_FONT_SPECS: Record<string, string> = {
+  'cinzel-decorative': 'Cinzel+Decorative:wght@700',
+  cormorant: 'Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600',
+  literata: 'Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400',
+  merriweather: 'Merriweather:ital,wght@0,400;0,700;1,400',
+  lora: 'Lora:ital,wght@0,400;0,600;1,400',
+  'eb-garamond': 'EB+Garamond:ital,wght@0,400;0,600;1,400',
+  'crimson-pro': 'Crimson+Pro:ital,wght@0,400;0,600;1,400',
+  philosopher: 'Philosopher:ital,wght@0,400;0,700;1,400',
+  outfit: 'Outfit:wght@400;500;600;700',
+  'space-grotesk': 'Space+Grotesk:wght@400;500;600;700',
+  raleway: 'Raleway:ital,wght@0,400;0,600;1,400',
+  fira: 'Fira+Code:wght@400;500',
+  'ibm-plex': 'IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400',
+  'space-mono': 'Space+Mono:ital,wght@0,400;0,700;1,400',
+  courier: 'Courier+Prime:ital,wght@0,400;0,700;1,400'
+}
+
+function ensureDynamicGoogleFonts(headingFont: string, bodyFont: string, monoFont: string) {
+  if (typeof document === 'undefined') return
+  const specs = [
+    DYNAMIC_GOOGLE_FONT_SPECS[headingFont],
+    DYNAMIC_GOOGLE_FONT_SPECS[bodyFont],
+    DYNAMIC_GOOGLE_FONT_SPECS[monoFont]
+  ].filter(Boolean)
+
+  const linkId = 'oros-dynamic-fonts'
+  let linkEl = document.getElementById(linkId) as HTMLLinkElement | null
+
+  if (specs.length === 0) {
+    if (linkEl) linkEl.remove()
+    return
+  }
+
+  const href = `https://fonts.googleapis.com/css2?${specs.map((s) => `family=${s}`).join('&')}&display=swap`
+  if (!linkEl) {
+    linkEl = document.createElement('link')
+    linkEl.id = linkId
+    linkEl.rel = 'stylesheet'
+    linkEl.href = href
+    document.head.appendChild(linkEl)
+  } else if (linkEl.href !== href) {
+    linkEl.href = href
+  }
+}
+
 export function applySystemAppearance(settings: AppSettings['interface']) {
   if (typeof document === 'undefined') return
 
@@ -162,6 +208,9 @@ export function applySystemAppearance(settings: AppSettings['interface']) {
   root.setAttribute('data-density', settings.uiDensity)
   root.setAttribute('data-blur', settings.enableBackdropBlur ? 'true' : 'false')
   root.setAttribute('data-animations', settings.enableAnimations ? 'true' : 'false')
+
+  // Load any non-default Google Fonts on demand
+  ensureDynamicGoogleFonts(settings.headingFont, settings.bodyFont, settings.monoFont)
 
   // Set font families
   root.style.setProperty('--font-serif', SERIF_FONT_MAP[settings.headingFont] || SERIF_FONT_MAP.playfair)

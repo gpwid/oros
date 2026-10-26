@@ -15,13 +15,14 @@ const root = path.resolve(__dirname, '..')
 let electronProcess = null
 
 async function startVite() {
+  process.env.OROS_SKIP_ELECTRON_AUTOSTART = '1'
   const server = await createServer({
     configFile: path.join(root, 'vite.config.ts'),
     root
   })
   await server.listen()
   const info = server.resolvedUrls
-  const url = info?.local[0] ?? 'http://localhost:5173'
+  const url = info?.local[0] ?? 'http://localhost:3000'
   console.log(`\n  🏔  Oros Vite server running at: ${url}\n`)
   return url
 }

@@ -29,6 +29,13 @@ protocol.registerSchemesAsPrivileged([
 
 let mainWindow: BrowserWindow | null = null
 
+// Isolate Chromium GPU/disk cache in dev mode to prevent Windows (0x5) cache lock collisions
+if (process.env.VITE_DEV_SERVER_URL) {
+  try {
+    app.setPath('sessionData', join(app.getPath('temp'), 'oros-dev-session'))
+  } catch {}
+}
+
 // Enforce single-instance lock to avoid Windows GPU/Cache access collision
 const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) {

@@ -12,6 +12,15 @@ export default defineConfig({
     electron({
       main: {
         entry: 'src/main/index.ts',
+        onstart({ startup }) {
+          const hasDisplay =
+            process.platform === 'win32' ||
+            process.platform === 'darwin' ||
+            Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY)
+          if (hasDisplay && !process.env.OROS_SKIP_ELECTRON_AUTOSTART) {
+            startup()
+          }
+        },
         vite: {
           build: {
             outDir: 'dist-electron',
@@ -45,7 +54,8 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5173
+    port: 3000,
+    host: '0.0.0.0'
   },
   build: {
     rollupOptions: {

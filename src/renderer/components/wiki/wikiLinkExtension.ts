@@ -1,7 +1,8 @@
-import { Node, mergeAttributes } from '@tiptap/react'
+import { Node, mergeAttributes, nodeInputRule } from '@tiptap/react'
 import Suggestion, { SuggestionOptions, SuggestionPluginKey } from '@tiptap/suggestion'
 import tippy, { Instance } from 'tippy.js'
 import { useWorldStore } from '../../store/useWorldStore'
+import { resolveEntityFromLink } from '../../utils/proseProcessor'
 
 export interface WikiLinkItem {
   id: string;
@@ -216,6 +217,8 @@ export interface WikiLinkOptions {
   suggestion: Omit<SuggestionOptions, 'editor'>
 }
 
+const WIKI_LINK_INPUT_REGEX = /\[\[([^\]|#\n]+)(?:#([^\]|\n]+))?(?:\|([^\]\n]+))?\]\]$/
+
 export const WikiLink = Node.create<WikiLinkOptions>({
   name: 'wikiLink',
   group: 'inline',
@@ -253,6 +256,22 @@ export const WikiLink = Node.create<WikiLinkOptions>({
           if (!attributes.title) return {}
           return { 'data-title': attributes.title }
         }
+      },
+      section: {
+        default: null,
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-section'),
+        renderHTML: (attributes: Record<string, any>) => {
+          if (!attributes.section) return {}
+          return { 'data-section': attributes.section }
+        }
+      },
+      label: {
+        default: null,
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-label'),
+        renderHTML: (attributes: Record<string, any>) => {
+          if (!attributes.label) return {}
+          return { 'data-label': attributes.label }
+        }
       }
     }
   },
@@ -269,15 +288,48 @@ export const WikiLink = Node.create<WikiLinkOptions>({
   },
 
   renderHTML({ node, HTMLAttributes }: { node: any; HTMLAttributes: Record<string, any> }) {
+    const title = (node.attrs.title || '').replace(/^\[\[/, '').replace(/\]\]$/, '').trim()
+    const section = node.attrs.section ? String(node.attrs.section).trim() : ''
+    const label = node.attrs.label ? String(node.attrs.label).trim() : ''
+    const displayText = label || (section ? `${title} § ${section}` : (title || 'Entity'))
+
     return [
       'span',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
-      `[[${node.attrs.title || 'Entity'}]]`
+      displayText
     ]
   },
 
   renderText({ node }: { node: any }) {
-    return `[[${node.attrs.title || ''}]]`
+    const title = (node.attrs.title || '').replace(/^\[\[/, '').replace(/\]\]$/, '').trim()
+    const sec = node.attrs.section ? `#${node.attrs.section}` : ''
+    const lbl = node.attrs.label ? `|${node.attrs.label}` : ''
+    return `[[${title}${sec}${lbl}]]`
+  },
+
+  addInputRules() {
+    return [
+      nodeInputRule({
+        find: WIKI_LINK_INPUT_REGEX,
+        type: this.type,
+        getAttributes: (match) => {
+          const rawTarget = (match[1] || '').trim()
+          const rawSection = match[2] ? match[2].trim() : null
+          const rawLabel = match[3] ? match[3].trim() : null
+
+          const { entities, activeWorldId } = useWorldStore.getState()
+          const list = activeWorldId ? entities[activeWorldId] || [] : []
+          const resolved = resolveEntityFromLink(list, null, rawTarget)
+
+          return {
+            id: resolved?.id || null,
+            title: resolved?.title || rawTarget,
+            section: rawSection,
+            label: rawLabel
+          }
+        }
+      })
+    ]
   },
 
   addProseMirrorPlugins() {

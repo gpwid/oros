@@ -141,10 +141,6 @@ export const HomePage: React.FC = () => {
 
   const handleDeleteWorld = async (worldId: string, worldName: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (worlds.length <= 1) {
-      addToast('Cannot delete the last remaining project in your vault', 'warning')
-      return
-    }
 
     const { settings } = useSettingsStore.getState()
     let confirmed = true
@@ -536,8 +532,8 @@ export const HomePage: React.FC = () => {
               </div>
 
               {/* Empty Search Results */}
-              {filteredWorlds.length === 0 && (
-                <div className="p-12 text-center bg-oros-900/40 border border-oros-800 rounded-md">
+              {Boolean(searchFilter.trim()) && filteredWorlds.length === 0 && (
+                <div className="p-12 text-center bg-oros-900/40 border border-oros-800 rounded-md mt-4">
                   <Compass className="w-8 h-8 text-oros-500 mx-auto mb-2" />
                   <h3 className="text-sm font-semibold text-oros-200">No matching projects found</h3>
                   <p className="text-xs text-oros-400 mt-1">Try another search keyword or clear your filter.</p>

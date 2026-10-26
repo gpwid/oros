@@ -238,15 +238,15 @@ function cleanCanvasAttribution(canvas: WhiteboardCanvasData): WhiteboardCanvasD
 let persistDebounceTimer: any = null;
 
 export const useWorldStore = create<WorldState>((set, get) => ({
-  activeTab: 'canvas',
-  openTabs: sampleWorkspaceTabs,
-  activeTabId: 'tab-canvas',
-  activeWorldId: sampleWorld.id,
-  selectedEntityId: sampleEntities[0].id,
-  selectedMapId: sampleMap.id,
-  selectedChapterId: sampleManuscript[0].id,
-  selectedCanvasId: sampleCanvases[0].id,
-  selectedLanguageId: sampleConlangs[0]?.id || null,
+  activeTab: 'wiki-network',
+  openTabs: [],
+  activeTabId: '',
+  activeWorldId: null,
+  selectedEntityId: null,
+  selectedMapId: null,
+  selectedChapterId: null,
+  selectedCanvasId: null,
+  selectedLanguageId: null,
   searchQuery: '',
   isSaving: false,
   gmMode: false,
@@ -272,19 +272,19 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     set({ isDiceTrayOpen: open });
   },
 
-  worlds: [sampleWorld],
-  entities: { [sampleWorld.id]: sampleEntities },
-  maps: { [sampleWorld.id]: [sampleMap] },
-  relations: { [sampleWorld.id]: sampleRelations },
-  timelines: { [sampleWorld.id]: sampleTimelines },
-  manuscripts: { [sampleWorld.id]: sampleManuscript },
-  folders: { [sampleWorld.id]: sampleFolders },
-  directoryItems: { [sampleWorld.id]: sampleDirectoryItems },
-  canvases: { [sampleWorld.id]: sampleCanvases },
-  categories: { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES },
-  calendars: { [sampleWorld.id]: sampleWorld.calendarConfig || DEFAULT_FANTASY_CALENDAR_CONFIG },
-  relationNodePositions: { [sampleWorld.id]: sampleRelationNodePositions },
-  conlangs: { [sampleWorld.id]: sampleConlangs },
+  worlds: [],
+  entities: {},
+  maps: {},
+  relations: {},
+  timelines: {},
+  manuscripts: {},
+  folders: {},
+  directoryItems: {},
+  canvases: {},
+  categories: {},
+  calendars: {},
+  relationNodePositions: {},
+  conlangs: {},
 
   initStore: async () => {
     try {
@@ -306,40 +306,38 @@ export const useWorldStore = create<WorldState>((set, get) => ({
         useTtrpgStore.getState().hydrateFromVault(parsed);
 
         let needsPersist = false;
-        if (parsed.worlds && (parsed.worlds.length === 0 || (parsed.worlds.length === 1 && parsed.worlds[0].id === 'world-aethelgard'))) {
-          // Automatically upgrade legacy mock world to the newly remade Ostergard world
-          parsed.worlds = [sampleWorld];
-          parsed.activeWorldId = sampleWorld.id;
-          parsed.entities = { [sampleWorld.id]: sampleEntities };
-          parsed.maps = { [sampleWorld.id]: [sampleMap] };
-          parsed.relations = { [sampleWorld.id]: sampleRelations };
-          parsed.timelines = { [sampleWorld.id]: sampleTimelines };
-          parsed.manuscripts = { [sampleWorld.id]: sampleManuscript };
-          parsed.folders = { [sampleWorld.id]: sampleFolders };
-          parsed.directoryItems = { [sampleWorld.id]: sampleDirectoryItems };
-          parsed.canvases = { [sampleWorld.id]: sampleCanvases };
-          parsed.categories = { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES };
-          parsed.calendars = { [sampleWorld.id]: sampleWorld.calendarConfig || DEFAULT_FANTASY_CALENDAR_CONFIG };
-          parsed.conlangs = { [sampleWorld.id]: sampleConlangs };
+        const isBuiltInSampleWorld = (w: World) =>
+          w.id === sampleWorld.id ||
+          w.id === 'world-aethelgard' ||
+          w.id === 'world-ostergard' ||
+          w.name === 'The Ashen Crown: Chronicles of Ostergard';
+
+        const rawWorlds: World[] = Array.isArray(parsed.worlds) ? parsed.worlds : [];
+        const userWorlds = rawWorlds.filter((w) => !isBuiltInSampleWorld(w));
+        if (userWorlds.length !== rawWorlds.length) {
           needsPersist = true;
+          rawWorlds.forEach((w) => {
+            if (isBuiltInSampleWorld(w)) {
+              if (parsed.entities) delete parsed.entities[w.id];
+              if (parsed.maps) delete parsed.maps[w.id];
+              if (parsed.relations) delete parsed.relations[w.id];
+              if (parsed.timelines) delete parsed.timelines[w.id];
+              if (parsed.manuscripts) delete parsed.manuscripts[w.id];
+              if (parsed.folders) delete parsed.folders[w.id];
+              if (parsed.directoryItems) delete parsed.directoryItems[w.id];
+              if (parsed.canvases) delete parsed.canvases[w.id];
+              if (parsed.categories) delete parsed.categories[w.id];
+              if (parsed.calendars) delete parsed.calendars[w.id];
+              if (parsed.relationNodePositions) delete parsed.relationNodePositions[w.id];
+              if (parsed.conlangs) delete parsed.conlangs[w.id];
+            }
+          });
         }
 
-        const sampleEntityMap = new Map(sampleEntities.map((e) => [e.id, e]));
-
-        const healedWorlds = (parsed.worlds || [sampleWorld]).map((w: World) => {
+        const healedWorlds = userWorlds.map((w: World) => {
           const cleanW = stripAttribution(w);
-          let b = optimizeMuseumUrl(cleanW.bannerUrl);
-          let t = optimizeMuseumUrl(cleanW.thumbnailUrl);
-          if (b && b.toLowerCase().includes('artstation.com')) {
-            b = sampleWorld.bannerUrl;
-          }
-          if (t && t.toLowerCase().includes('artstation.com')) {
-            t = sampleWorld.thumbnailUrl;
-          }
-          if (cleanW.id === sampleWorld.id) {
-            if (!b) b = sampleWorld.bannerUrl;
-            if (!t) t = sampleWorld.thumbnailUrl;
-          }
+          const b = optimizeMuseumUrl(cleanW.bannerUrl);
+          const t = optimizeMuseumUrl(cleanW.thumbnailUrl);
           return {
             ...cleanW,
             bannerUrl: b,
@@ -347,43 +345,15 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           };
         });
 
-        const rawEntities = parsed.entities || { [sampleWorld.id]: sampleEntities };
+        const rawEntities = parsed.entities || {};
         const healedEntities: Record<string, LoreEntity[]> = {};
         for (const [wId, list] of Object.entries(rawEntities)) {
           healedEntities[wId] = (list || []).map((ent: LoreEntity) => {
             const cleanEnt = stripAttribution(ent);
-            const sampleMatch = sampleEntityMap.get(cleanEnt.id);
-            const avatarHasArtstation = (cleanEnt.avatar && cleanEnt.avatar.toLowerCase().includes('artstation.com')) || 
-                                       (cleanEnt.avatarUrl && cleanEnt.avatarUrl.toLowerCase().includes('artstation.com'));
-            const bannerHasArtstation = (cleanEnt.banner && cleanEnt.banner.toLowerCase().includes('artstation.com')) ||
-                                       (cleanEnt.bannerUrl && cleanEnt.bannerUrl.toLowerCase().includes('artstation.com'));
-
-            let avatar = optimizeMuseumUrl(cleanEnt.avatar);
-            let avatarUrl = optimizeMuseumUrl(cleanEnt.avatarUrl || cleanEnt.avatar);
-            let banner = optimizeMuseumUrl(cleanEnt.banner);
-            let bannerUrl = optimizeMuseumUrl(cleanEnt.bannerUrl || cleanEnt.banner);
-
-            if (sampleMatch) {
-              // Only heal if avatar is missing or broken artstation domain; DO NOT wipe user-uploaded custom images!
-              if (!avatar || avatarHasArtstation) {
-                avatar = sampleMatch.avatar;
-                avatarUrl = sampleMatch.avatarUrl || sampleMatch.avatar;
-              }
-              if (bannerHasArtstation) {
-                banner = sampleMatch.banner;
-                bannerUrl = sampleMatch.bannerUrl || sampleMatch.banner;
-              }
-            } else {
-              if (avatarHasArtstation) {
-                avatar = undefined;
-                avatarUrl = undefined;
-              }
-              if (bannerHasArtstation) {
-                banner = undefined;
-                bannerUrl = undefined;
-              }
-            }
-
+            const avatar = optimizeMuseumUrl(cleanEnt.avatar);
+            const avatarUrl = optimizeMuseumUrl(cleanEnt.avatarUrl || cleanEnt.avatar);
+            const banner = optimizeMuseumUrl(cleanEnt.banner);
+            const bannerUrl = optimizeMuseumUrl(cleanEnt.bannerUrl || cleanEnt.banner);
             return {
               ...cleanEnt,
               avatar,
@@ -394,24 +364,12 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           });
         }
 
-        const rawMaps = parsed.maps || { [sampleWorld.id]: [sampleMap] };
+        const rawMaps = parsed.maps || {};
         const healedMaps: Record<string, WorldMap[]> = {};
         for (const [wId, list] of Object.entries(rawMaps)) {
           healedMaps[wId] = (list || []).map((m: WorldMap) => {
             const cleanM = stripAttribution(m);
-            const hasArtstation = cleanM.imageUrl && cleanM.imageUrl.toLowerCase().includes('artstation.com');
-            const hasBrokenWikimedia = cleanM.imageUrl && cleanM.imageUrl.includes('upload.wikimedia.org') && cleanM.imageUrl.includes('Waghenaer');
-            let imageUrl = optimizeMuseumUrl(cleanM.imageUrl) || '';
-
-            if (cleanM.id === sampleMap.id) {
-              // Only fallback to sampleMap if the image is missing, has an old broken artstation link, or has the legacy broken wikimedia URL
-              if (!imageUrl || hasArtstation || hasBrokenWikimedia) {
-                imageUrl = sampleMap.imageUrl;
-              }
-            } else if (hasArtstation) {
-              imageUrl = sampleMap.imageUrl;
-            }
-
+            const imageUrl = optimizeMuseumUrl(cleanM.imageUrl) || '';
             return {
               ...cleanM,
               imageUrl
@@ -419,7 +377,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           });
         }
 
-        const rawCanvases = parsed.canvases || { [sampleWorld.id]: sampleCanvases };
+        const rawCanvases = parsed.canvases || {};
         const healedCanvases: Record<string, WhiteboardCanvasData[]> = {};
         for (const [wId, list] of Object.entries(rawCanvases)) {
           const worldEnts = healedEntities[wId] || [];
@@ -433,8 +391,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
               if (cleanNode.type === 'canvasCard' && cleanNode.data) {
                 const cleanData = stripAttribution(cleanNode.data);
                 const entMatch = (cleanData.entityId && entityMap.get(cleanData.entityId)) ||
-                                 (cleanData.title && titleMap.get(cleanData.title.trim().toLowerCase())) ||
-                                 (cleanData.entityId ? sampleEntityMap.get(cleanData.entityId) : undefined);
+                                 (cleanData.title && titleMap.get(cleanData.title.trim().toLowerCase()));
                 if (entMatch) {
                   return {
                     ...cleanNode,
@@ -468,35 +425,40 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           }));
         }
 
+        const nextActiveWorldId =
+          parsed.activeWorldId && healedWorlds.some((w) => w.id === parsed.activeWorldId)
+            ? parsed.activeWorldId
+            : healedWorlds[0]?.id || null;
+
         set({
           worlds: healedWorlds,
-          activeWorldId: parsed.activeWorldId || sampleWorld.id,
+          activeWorldId: nextActiveWorldId,
           entities: healedEntities,
           maps: healedMaps,
-          relations: parsed.relations || { [sampleWorld.id]: sampleRelations },
-          timelines: parsed.timelines || { [sampleWorld.id]: sampleTimelines },
-          manuscripts: parsed.manuscripts || { [sampleWorld.id]: sampleManuscript },
-          folders: parsed.folders || { [sampleWorld.id]: sampleFolders },
-          directoryItems: parsed.directoryItems || { [sampleWorld.id]: sampleDirectoryItems },
+          relations: parsed.relations || {},
+          timelines: parsed.timelines || {},
+          manuscripts: parsed.manuscripts || {},
+          folders: parsed.folders || {},
+          directoryItems: parsed.directoryItems || {},
           canvases: healedCanvases,
-          categories: parsed.categories || { [sampleWorld.id]: DEFAULT_PRESET_CATEGORIES },
-          calendars: parsed.calendars || { [sampleWorld.id]: sampleWorld.calendarConfig || DEFAULT_FANTASY_CALENDAR_CONFIG },
+          categories: parsed.categories || {},
+          calendars: parsed.calendars || {},
           relationNodePositions: parsed.relationNodePositions || {},
-          conlangs: parsed.conlangs || { [sampleWorld.id]: sampleConlangs }
+          conlangs: parsed.conlangs || {}
         });
-        get().syncVaultDirectory();
+        if (nextActiveWorldId) {
+          get().syncVaultDirectory(nextActiveWorldId);
+        }
         if (needsPersist) {
-          get().persistStore();
+          await get().flushSave();
         }
         return;
       }
       useTtrpgStore.getState().hydrateFromVault(null);
     } catch (err) {
-      console.warn('Failed to load from desktop vault, falling back to default:', err);
+      console.warn('Failed to load from desktop vault, falling back to empty vault:', err);
       useTtrpgStore.getState().hydrateFromVault(null);
     }
-    // Run sync for initial sample state
-    get().syncVaultDirectory();
   },
 
   flushSave: async () => {
@@ -1189,7 +1151,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   // Vault Auto-Detection & Reconciliation
   syncVaultDirectory: (targetWorldId) => {
-    const worldId = targetWorldId || get().activeWorldId || sampleWorld.id;
+    const worldId = targetWorldId || get().activeWorldId;
+    if (!worldId) return;
     const s = get();
     const existingItems = s.directoryItems[worldId] || [];
     const entitiesList = s.entities[worldId] || [];
@@ -1574,10 +1537,28 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       delete nextCategories[worldId];
       const nextCalendars = { ...state.calendars };
       delete nextCalendars[worldId];
+      const nextRelationNodePositions = { ...state.relationNodePositions };
+      delete nextRelationNodePositions[worldId];
+      const nextConlangs = { ...state.conlangs };
+      delete nextConlangs[worldId];
+
+      const isDeletingActive = state.activeWorldId === worldId || remainingWorlds.length === 0;
 
       return {
         worlds: remainingWorlds,
-        activeWorldId: state.activeWorldId === worldId ? nextActiveId : state.activeWorldId,
+        activeWorldId: isDeletingActive ? nextActiveId : state.activeWorldId,
+        ...(remainingWorlds.length === 0
+          ? {
+              appView: 'home' as const,
+              openTabs: [],
+              activeTabId: '',
+              selectedEntityId: null,
+              selectedMapId: null,
+              selectedChapterId: null,
+              selectedCanvasId: null,
+              selectedLanguageId: null
+            }
+          : {}),
         entities: nextEntities,
         maps: nextMaps,
         relations: nextRelations,
@@ -1587,10 +1568,12 @@ export const useWorldStore = create<WorldState>((set, get) => ({
         directoryItems: nextDirectoryItems,
         canvases: nextCanvases,
         categories: nextCategories,
-        calendars: nextCalendars
+        calendars: nextCalendars,
+        relationNodePositions: nextRelationNodePositions,
+        conlangs: nextConlangs
       };
     });
-    get().persistStore();
+    get().flushSave();
   },
 
   setWorldTheme: (worldId, theme, customAccentColor) => {

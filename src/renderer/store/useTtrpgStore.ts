@@ -431,12 +431,12 @@ interface TtrpgState {
 let saveDebounceTimer: any = null
 
 export const useTtrpgStore = create<TtrpgState>((set, get) => ({
-  campaigns: sampleCampaigns,
-  characters: sampleCharacters,
-  battlemaps: sampleBattlemaps,
-  activeCampaignId: SAMPLE_CAMPAIGN_ID,
+  campaigns: [],
+  characters: {},
+  battlemaps: {},
+  activeCampaignId: null,
   activeCharacterId: null,
-  activeBattlemapId: 'bmap-salt-quay',
+  activeBattlemapId: null,
   diceHistory: [],
   isDiceTrayOpen: false,
   hasHydrated: false,
@@ -446,27 +446,41 @@ export const useTtrpgStore = create<TtrpgState>((set, get) => ({
       set({ hasHydrated: true })
       return
     }
-    if (parsed.ttrpgCampaigns && parsed.ttrpgCampaigns.length > 0) {
-      const rawBattlemaps = parsed.ttrpgBattlemaps || sampleBattlemaps
+    const userCampaigns = Array.isArray(parsed.ttrpgCampaigns)
+      ? parsed.ttrpgCampaigns.filter((c: TTRPGCampaign) => c.id !== SAMPLE_CAMPAIGN_ID)
+      : []
+
+    if (userCampaigns.length > 0) {
+      const rawBattlemaps = parsed.ttrpgBattlemaps || {}
       const sanitizedBattlemaps: Record<string, TTRPGBattlemap[]> = {}
       for (const [cId, bmaps] of Object.entries(rawBattlemaps as Record<string, TTRPGBattlemap[]>)) {
+        if (cId === SAMPLE_CAMPAIGN_ID) continue
         sanitizedBattlemaps[cId] = (bmaps || []).map((bm) => ({
           ...bm,
-          // Strip out legacy sample effects so maps always start clean
           effects: (bm.effects || []).filter((eff) => !eff.id?.startsWith('fx-sample-'))
         }))
       }
 
+      const rawCharacters = { ...(parsed.ttrpgCharacters || {}) }
+      delete rawCharacters[SAMPLE_CAMPAIGN_ID]
+
       set({
-        campaigns: parsed.ttrpgCampaigns,
-        characters: parsed.ttrpgCharacters || {},
+        campaigns: userCampaigns,
+        characters: rawCharacters,
         battlemaps: sanitizedBattlemaps,
-        activeCampaignId: parsed.ttrpgCampaigns[0]?.id || null,
-        activeBattlemapId: sanitizedBattlemaps[parsed.ttrpgCampaigns[0]?.id]?.[0]?.id || 'bmap-salt-quay',
+        activeCampaignId: null,
+        activeBattlemapId: sanitizedBattlemaps[userCampaigns[0]?.id]?.[0]?.id || null,
         hasHydrated: true
       })
     } else {
-      set({ hasHydrated: true })
+      set({
+        campaigns: [],
+        characters: {},
+        battlemaps: {},
+        activeCampaignId: null,
+        activeBattlemapId: null,
+        hasHydrated: true
+      })
     }
   },
 

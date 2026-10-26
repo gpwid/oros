@@ -13,6 +13,7 @@ import { ManuscriptCompilerModal } from './ManuscriptCompilerModal'
 import { getCategoryMeta, getCategoryIconComponent } from '../../utils/categoryIcons'
 import { LoreEntity, ConlangWord } from '@shared/types'
 import { useSettingsStore } from '../../store/useSettingsStore'
+import { enrichProseHtml } from '../../utils/proseProcessor'
 
 export const StudioWriter: React.FC = () => {
   const { 
@@ -1020,7 +1021,11 @@ export const StudioWriter: React.FC = () => {
                       <div className="select-text">
                         <div 
                           className="oros-wiki-prose text-xs text-oros-300 leading-relaxed max-h-[calc(100vh-220px)] overflow-y-auto pr-1"
-                          dangerouslySetInnerHTML={{ __html: currentReferenceEntity.content || '<p class="text-oros-500 italic">No lore notes written yet.</p>' }}
+                          dangerouslySetInnerHTML={{
+                            __html: currentReferenceEntity.content
+                              ? enrichProseHtml(currentReferenceEntity.content, worldEntities, worldConlangs).processedHtml
+                              : '<p class="text-oros-500 italic">No lore notes written yet.</p>'
+                          }}
                         />
                       </div>
                     )}

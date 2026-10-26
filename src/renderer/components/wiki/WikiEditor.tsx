@@ -1,5 +1,7 @@
-import React, { useEffect, useRef } from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
+import React, { useEffect, useRef, useMemo } from 'react'
+import { useEditor, EditorContent, Extension } from '@tiptap/react'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Mention from '@tiptap/extension-mention'
@@ -12,8 +14,92 @@ import {
 } from 'lucide-react'
 import { Spoiler } from './spoilerExtension'
 import { WikiLink } from './wikiLinkExtension'
-
+import { useWorldStore } from '../../store/useWorldStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
+import { normalizeWikiLinksInHtml } from '../../utils/proseProcessor'
+
+const conlangDecorationPluginKey = new PluginKey('orosConlangDecoration')
+
+const ConlangHighlightExtension = Extension.create({
+  name: 'conlangHighlight',
+  addProseMirrorPlugins() {
+    const buildDecorations = (doc: any) => {
+      const { conlangs, activeWorldId } = useWorldStore.getState()
+      const worldConlangs = activeWorldId ? conlangs[activeWorldId] || [] : []
+      if (worldConlangs.length === 0) return DecorationSet.empty
+
+      const terms: { term: string; langName: string }[] = []
+      worldConlangs.forEach((lang) => {
+        ;(lang.words || []).forEach((w) => {
+          const t = w.term?.trim()
+          if (t && t.length >= 2) {
+            terms.push({ term: t, langName: lang.name })
+          }
+        })
+      })
+      if (terms.length === 0) return DecorationSet.empty
+
+      terms.sort((a, b) => b.term.length - a.term.length)
+      const escaped = terms.map((t) => t.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
+      if (!escaped) return DecorationSet.empty
+
+      const regex = new RegExp(`(^|[^\\p{L}\\p{N}_])(${escaped})(?=$|[^\\p{L}\\p{N}_])`, 'giu')
+      const termLookup = new Map<string, { term: string; langName: string }>()
+      terms.forEach((t) => {
+        const key = t.term.toLowerCase()
+        if (!termLookup.has(key)) termLookup.set(key, t)
+      })
+
+      const decorations: Decoration[] = []
+      doc.descendants((node: any, pos: number) => {
+        if (!node.isText || !node.text) return
+        // Do not decorate inside code marks
+        if (node.marks?.some((m: any) => m.type.name === 'code')) return
+
+        regex.lastIndex = 0
+        let match: RegExpExecArray | null
+        while ((match = regex.exec(node.text)) !== null) {
+          const prefix = match[1] || ''
+          const word = match[2]
+          const from = pos + match.index + prefix.length
+          const to = from + word.length
+          const info = termLookup.get(word.toLowerCase())
+          decorations.push(
+            Decoration.inline(from, to, {
+              class: 'oros-conlang-term',
+              'data-conlang-term': info?.term || word,
+              ...(info?.langName ? { 'data-conlang-lang': info.langName } : {})
+            })
+          )
+        }
+      })
+
+      return DecorationSet.create(doc, decorations)
+    }
+
+    return [
+      new Plugin({
+        key: conlangDecorationPluginKey,
+        state: {
+          init(_, { doc }) {
+            return buildDecorations(doc)
+          },
+          apply(tr, oldSet, _oldState, newState) {
+            if (tr.docChanged || tr.getMeta(conlangDecorationPluginKey)) {
+              return buildDecorations(newState.doc)
+            }
+            return oldSet.map(tr.mapping, tr.doc)
+          }
+        },
+        props: {
+          decorations(state) {
+            return this.getState(state)
+          }
+        }
+      })
+    ]
+  }
+})
 
 interface WikiEditorProps {
   content: string;
@@ -32,6 +118,18 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
 }) => {
   const { addToast } = useToastStore()
   const { settings } = useSettingsStore()
+  const activeWorldId = useWorldStore((s) => s.activeWorldId)
+  const entities = useWorldStore((s) => s.entities)
+  const conlangs = useWorldStore((s) => s.conlangs)
+  const worldEntities = useMemo(() => (activeWorldId ? entities[activeWorldId] || [] : []), [activeWorldId, entities])
+  const worldConlangs = useMemo(() => (activeWorldId ? conlangs[activeWorldId] || [] : []), [activeWorldId, conlangs])
+
+  const normalizedInitialContent = useMemo(
+    () => normalizeWikiLinksInHtml(content, worldEntities),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  )
+
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -50,9 +148,10 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
         suggestion: createMentionSuggestion()
       }),
       WikiLink,
-      Spoiler
+      Spoiler,
+      ConlangHighlightExtension
     ],
-    content,
+    content: normalizedInitialContent,
     editorProps: {
       attributes: {
         class: `oros-wiki-prose focus:outline-none min-h-[380px] p-5 select-text leading-relaxed text-oros-200 ${contentClassName || ''}`,
@@ -116,10 +215,18 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
   // Synchronize when entity selection changes externally
   useEffect(() => {
     if (editor && content !== lastEmittedHtmlRef.current && content !== editor.getHTML()) {
+      const normalized = normalizeWikiLinksInHtml(content, worldEntities)
       lastEmittedHtmlRef.current = content
-      editor.commands.setContent(content)
+      editor.commands.setContent(normalized)
     }
-  }, [content, editor])
+  }, [content, editor, worldEntities])
+
+  // Refresh Conlang decorations when active world's conlang lexicon updates
+  useEffect(() => {
+    if (editor && editor.view) {
+      editor.view.dispatch(editor.state.tr.setMeta(conlangDecorationPluginKey, true))
+    }
+  }, [editor, worldConlangs])
 
   // Synchronize dynamic typography style reactively to ProseMirror DOM
   useEffect(() => {

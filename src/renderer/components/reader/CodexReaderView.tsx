@@ -5,16 +5,17 @@ import {
   Settings2, Eye, Compass, Feather, Layers, Search, Bookmark, Check
 } from 'lucide-react'
 import { LoreEntity, ManuscriptChapter } from '@shared/types'
-import { ConlangGlossPopover } from '../conlang/ConlangGlossPopover'
+import { enrichProseHtml, resolveEntityFromLink } from '../../utils/proseProcessor'
 
 export const CodexReaderView: React.FC = () => {
   const { 
-    worlds, activeWorldId, entities, manuscripts, 
+    worlds, activeWorldId, entities, manuscripts, conlangs,
     closeReaderMode, isReaderMode, readerTarget
   } = useWorldStore()
 
   const world = worlds.find(w => w.id === activeWorldId) || worlds[0]
-  const worldEntities = (activeWorldId ? entities[activeWorldId] : []) || []
+  const worldEntities = useMemo(() => (activeWorldId ? entities[activeWorldId] : []) || [], [activeWorldId, entities])
+  const worldConlangs = useMemo(() => (activeWorldId ? conlangs[activeWorldId] : []) || [], [activeWorldId, conlangs])
   const worldChapters = useMemo(() => {
     return (activeWorldId ? [...(manuscripts[activeWorldId] || [])] : []).sort((a, b) => a.order - b.order)
   }, [activeWorldId, manuscripts])
@@ -48,6 +49,39 @@ export const CodexReaderView: React.FC = () => {
   const activeChapter = currentSection.type === 'chapter' ? worldChapters.find(c => c.id === currentSection.id) : null
   const isEntity = currentSection.type === 'entity' || currentSection.type === 'card'
   const activeEntity = isEntity ? worldEntities.find(e => e.id === currentSection.id) : null
+
+  const enrichedChapterHtml = useMemo(() => {
+    if (!activeChapter?.content) return ''
+    return enrichProseHtml(activeChapter.content, worldEntities, worldConlangs).processedHtml
+  }, [activeChapter?.content, worldEntities, worldConlangs])
+
+  const enrichedEntityHtml = useMemo(() => {
+    if (!activeEntity?.content) return ''
+    return enrichProseHtml(activeEntity.content, worldEntities, worldConlangs).processedHtml
+  }, [activeEntity?.content, worldEntities, worldConlangs])
+
+  const handleReaderProseClick = (e: React.MouseEvent) => {
+    const spoiler = (e.target as HTMLElement).closest('.oros-spoiler')
+    if (spoiler) {
+      spoiler.classList.toggle('is-revealed')
+      return
+    }
+
+    const linkEl = (e.target as HTMLElement).closest('.oros-wiki-link, .oros-mention') as HTMLElement | null
+    if (linkEl) {
+      e.preventDefault()
+      e.stopPropagation()
+      const dataId = linkEl.getAttribute('data-id')
+      const dataTitle =
+        linkEl.getAttribute('data-title') ||
+        linkEl.getAttribute('data-label') ||
+        linkEl.textContent?.replace(/^\[\[/, '').replace(/\]\]$/, '').trim()
+      const targetEntity = resolveEntityFromLink(worldEntities, dataId, dataTitle)
+      if (targetEntity) {
+        setCurrentSection({ type: 'entity', id: targetEntity.id })
+      }
+    }
+  }
 
   // Filtered TOC Items
   const filteredChapters = useMemo(() => {
@@ -320,21 +354,22 @@ export const CodexReaderView: React.FC = () => {
             {/* Document Body */}
             <div 
               style={typographyStyle}
-              className="prose-reading text-[#cbd5e1] space-y-6"
+              onClick={handleReaderProseClick}
+              className="prose-reading oros-wiki-prose text-[#cbd5e1] space-y-6"
             >
               {currentSection.type === 'chapter' && activeChapter ? (
-                activeChapter.content ? (
+                enrichedChapterHtml ? (
                   <div 
-                    dangerouslySetInnerHTML={{ __html: activeChapter.content }}
+                    dangerouslySetInnerHTML={{ __html: enrichedChapterHtml }}
                     className="leading-relaxed [&>p]:mb-5 [&>h2]:font-serif [&>h2]:text-2xl [&>h2]:text-oros-100 [&>h2]:font-bold [&>h2]:mt-8 [&>h2]:mb-3 [&>blockquote]:border-l-2 [&>blockquote]:border-accent [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-oros-300"
                   />
                 ) : (
                   <p className="text-oros-500 italic">This chapter contains no written prose yet.</p>
                 )
               ) : activeEntity ? (
-                activeEntity.content ? (
+                enrichedEntityHtml ? (
                   <div 
-                    dangerouslySetInnerHTML={{ __html: activeEntity.content }}
+                    dangerouslySetInnerHTML={{ __html: enrichedEntityHtml }}
                     className="leading-relaxed [&>p]:mb-5 [&>h2]:font-serif [&>h2]:text-2xl [&>h2]:text-oros-100 [&>h2]:font-bold [&>h2]:mt-8 [&>h2]:mb-3 [&>blockquote]:border-l-2 [&>blockquote]:border-accent [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-oros-300"
                   />
                 ) : (

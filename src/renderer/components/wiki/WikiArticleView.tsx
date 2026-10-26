@@ -23,6 +23,7 @@ import { useSettingsStore } from '../../store/useSettingsStore'
 import { ExportDropdown, ExportOption, createObsidianExportOption } from '../common/ExportDropdown'
 import { exportWorldToObsidianJson, downloadFile } from '../../utils/exportUtils'
 import { exportWorldToObsidianFiles } from '../../utils/obsidianBridge'
+import { enrichProseHtml } from '../../utils/proseProcessor'
 
 interface WikiArticleViewProps {
   entityId?: string
@@ -90,63 +91,13 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId, isAc
   // Dynamically extract real headings from article HTML and inject unique IDs
   const worldConlangs = useMemo(() => activeWorldId ? conlangs[activeWorldId] || [] : [], [activeWorldId, conlangs])
 
-  // Dynamically extract real headings from article HTML and inject unique IDs & auto-gloss conlang terms
+  // Dynamically extract real headings from article HTML, normalize wiki links, and auto-gloss conlang terms
   const { processedHtml, tocItems } = useMemo(() => {
     if (!currentEntity?.content) return { processedHtml: '', tocItems: [] }
-
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(currentEntity.content, 'text/html')
-    const headings = doc.querySelectorAll('h1, h2, h3, h4')
-    const items: { id: string; text: string; level: number }[] = []
-
-    headings.forEach((heading, idx) => {
-      const text = heading.textContent?.trim() || ''
-      if (!text) return
-      const slug = `sec-${idx}-${text.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
-      heading.setAttribute('id', slug)
-      heading.classList.add('scroll-mt-6')
-      items.push({
-        id: slug,
-        text,
-        level: parseInt(heading.tagName.substring(1), 10)
-      })
+    return enrichProseHtml(currentEntity.content, worldEntities, worldConlangs, {
+      injectHeadingIds: true
     })
-
-    // Auto-gloss registered conlang terms in prose
-    if (worldConlangs.length > 0) {
-      const conlangTerms: { term: string; meaning: string; ipa?: string; lang: string }[] = []
-      worldConlangs.forEach((lang) => {
-        lang.words.forEach((w) => {
-          if (w.term && w.term.trim().length >= 3) {
-            conlangTerms.push({ term: w.term.trim(), meaning: w.definition, ipa: w.phonetic, lang: lang.name })
-          }
-        })
-      })
-
-      if (conlangTerms.length > 0) {
-        const paragraphs = doc.querySelectorAll('p, li, td')
-        paragraphs.forEach((p) => {
-          let html = p.innerHTML
-          conlangTerms.forEach(({ term, meaning, ipa, lang }) => {
-            const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-            const regex = new RegExp(`\\b(${escaped})\\b(?![^<]*>|[^<>]*<\\/)`, 'gi')
-            if (regex.test(html)) {
-              html = html.replace(
-                regex, 
-                `<span class="oros-conlang-term border-b border-dotted border-accent text-accent cursor-help font-medium" title="${term} (${lang}): &quot;${meaning}&quot;${ipa ? ` [/${ipa}/]` : ''}">$1</span>`
-              )
-            }
-          })
-          p.innerHTML = html
-        })
-      }
-    }
-
-    return {
-      processedHtml: doc.body.innerHTML,
-      tocItems: items
-    }
-  }, [currentEntity?.content, worldConlangs])
+  }, [currentEntity?.content, worldEntities, worldConlangs])
 
   // Associated Conlang Vocabulary for this entity
   const associatedWords = useMemo(() => {
@@ -850,8 +801,6 @@ export const WikiArticleView: React.FC<WikiArticleViewProps> = ({ entityId, isAc
                     <div 
                       className={`oros-wiki-prose ${gmMode ? 'oros-gm-revealed' : ''}`}
                       style={typographyStyle}
-                      onMouseOver={handleProseMouseOver}
-                      onMouseOut={handleProseMouseOut}
                       onClick={handleProseClick}
                       dangerouslySetInnerHTML={{ __html: processedHtml }}
                     />

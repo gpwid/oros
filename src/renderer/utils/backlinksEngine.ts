@@ -345,6 +345,34 @@ export function findForwardLinksForEntity(
     })
   })
 
+  // A2. TipTap Wiki-link spans without raw [[ ]] brackets: <span class="oros-wiki-link" data-type="wiki-link" ...>
+  const wikiSpanRegex = /<span[^>]*data-type="wiki-link"[^>]*>(.*?)<\/span>/gi
+  let wikiSpanMatch: RegExpExecArray | null
+  while ((wikiSpanMatch = wikiSpanRegex.exec(content)) !== null) {
+    const fullTag = wikiSpanMatch[0]
+    const innerText = wikiSpanMatch[1] || ''
+    // Skip if already captured by [[...]] parser
+    if (innerText.includes('[[') && innerText.includes(']]')) continue
+
+    const idMatch = /data-id="([^"]+)"/i.exec(fullTag)
+    const titleMatch = /data-title="([^"]+)"/i.exec(fullTag)
+    const sectionMatch = /data-section="([^"]+)"/i.exec(fullTag)
+    const labelMatch = /data-label="([^"]+)"/i.exec(fullTag)
+
+    const rawTitle = (titleMatch?.[1] || innerText).replace(/^\[\[/, '').replace(/\]\]$/, '').trim()
+    if (!rawTitle) continue
+
+    const resolved = (idMatch?.[1] && entityIdMap.get(idMatch[1])) || entityTitleMap.get(rawTitle.toLowerCase())
+    results.push({
+      targetId: resolved?.id || idMatch?.[1],
+      targetTitle: resolved?.title || rawTitle,
+      section: sectionMatch?.[1] || undefined,
+      label: labelMatch?.[1] || undefined,
+      sourceField: 'content',
+      rawLink: fullTag
+    })
+  }
+
   // B. TipTap Mention tags: <span data-type="mention" data-id="xyz" data-label="Title">
   const mentionRegex = /<span[^>]*data-type="mention"[^>]*data-id="([^"]+)"[^>]*data-label="([^"]+)"[^>]*>/g
   let mentionMatch: RegExpExecArray | null

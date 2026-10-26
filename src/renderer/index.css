@@ -535,6 +535,65 @@ html.light .oros-wiki-prose h3 {
   box-shadow: 0 0 8px var(--oros-accent-glow, rgba(226, 232, 240, 0.25));
 }
 
+/* Wiki Link Highlight Badges (replaces raw [[ ]] brackets) */
+.oros-wiki-link {
+  background-color: var(--oros-accent-muted, rgba(56, 189, 248, 0.14));
+  color: var(--oros-accent, #38bdf8);
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--oros-accent-border, rgba(56, 189, 248, 0.38));
+  border-bottom: 1.5px solid var(--oros-accent, #38bdf8);
+  display: inline-block;
+  line-height: 1.35;
+  text-decoration: none;
+  transition: all 0.15s ease-in-out;
+}
+
+.oros-wiki-link:hover {
+  background-color: var(--oros-accent-ring, rgba(56, 189, 248, 0.24));
+  color: var(--oros-accent-hover, #7dd3fc);
+  border-color: var(--oros-accent, #38bdf8);
+  box-shadow: 0 0 10px var(--oros-accent-glow, rgba(56, 189, 248, 0.28));
+  transform: translateY(-0.5px);
+}
+
+/* Conlang Term Linguistic Highlight */
+.oros-conlang-term {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border-radius: 3px;
+  padding: 0.5px 5px;
+  font-weight: 500;
+  font-style: italic;
+  cursor: help;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-bottom: 1.5px dashed rgba(251, 191, 36, 0.75);
+  display: inline-block;
+  line-height: 1.35;
+  transition: all 0.15s ease-in-out;
+}
+
+.oros-conlang-term:hover {
+  background-color: rgba(245, 158, 11, 0.22);
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.85);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.24);
+}
+
+[data-mode="light"] .oros-conlang-term {
+  background-color: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.35);
+  border-bottom-color: #d97706;
+}
+
+[data-mode="light"] .oros-conlang-term:hover {
+  background-color: rgba(217, 119, 6, 0.2);
+  color: #92400e;
+}
+
 /* Atmospheric Accent-Tinted Dotted Surface for Canvases and Empty Workspaces */
 .oros-dotted-surface {
   background-image: radial-gradient(circle, var(--oros-accent-dots, var(--oros-accent-border, rgba(226, 232, 240, 0.28))) 1.25px, transparent 1.25px);

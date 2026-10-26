@@ -844,7 +844,7 @@ export const InteractiveMapViewer: React.FC = () => {
   const handleCreateMap = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMapName.trim()) return
-    const url = newMapUrl.trim() || 'https://images.metmuseum.org/CRDImages/dp/original/DP802619.jpg'
+    const url = newMapUrl.trim() || 'https://images.metmuseum.org/CRDImages/dp/web-large/DP802619.jpg'
     const created = createMap(newMapName.trim(), url)
     setSelectedMapId(created.id)
     setShowNewMapModal(false)
@@ -900,7 +900,7 @@ export const InteractiveMapViewer: React.FC = () => {
 
   const handleRestoreDefaultMapImage = () => {
     if (!currentMap) return
-    const defaultUrl = 'https://images.metmuseum.org/CRDImages/dp/original/DP802619.jpg'
+    const defaultUrl = 'https://images.metmuseum.org/CRDImages/dp/web-large/DP802619.jpg'
     updateMap(currentMap.id, { imageUrl: defaultUrl })
     setMapImgError(false)
     addToast('Restored standard historical nautical chart', 'success')

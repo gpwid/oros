@@ -261,7 +261,7 @@ const CardinalHandleItem: React.FC<CardinalHandleItemProps> = ({
   )
 }
 
-export const CanvasCardinalHandles: React.FC<{ nodeId: string; isConnectable?: boolean }> = ({
+export const CanvasCardinalHandles: React.FC<{ nodeId: string; isConnectable?: boolean }> = React.memo(({
   nodeId,
   isConnectable = true
 }) => {
@@ -293,13 +293,13 @@ export const CanvasCardinalHandles: React.FC<{ nodeId: string; isConnectable?: b
       />
     </>
   )
-}
+})
 
 // 1. Draggable Character / Lore Card Node
 const BASE_CARD_WIDTH = 180
 const BASE_CARD_HEIGHT = 250
 
-const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
+const CanvasCardNode: React.FC<NodeProps> = React.memo(({ id, data, selected }) => {
   const [imgError, setImgError] = useState(false)
   const cardData = data as { 
     entityId?: string
@@ -318,14 +318,19 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   }
   const reactFlow = useReactFlow()
   const { openPeek } = useContext(CanvasPeekContext)
-  const { entities, categories, activeWorldId, openTab } = useWorldStore()
-  const selectedCount = reactFlow.getNodes().filter((n) => n.selected).length
-  
-  const worldEntities = (activeWorldId && entities[activeWorldId]) || []
-  const entity = cardData.entityId 
-    ? worldEntities.find((e) => e.id === cardData.entityId) 
-    : (cardData.title ? worldEntities.find((e) => e.title.trim().toLowerCase() === cardData.title?.trim().toLowerCase()) : undefined)
-  const worldCats = (activeWorldId && categories[activeWorldId]) ? categories[activeWorldId] : undefined
+  const entity = useWorldStore((s) => {
+    const list = (s.activeWorldId && s.entities[s.activeWorldId]) || []
+    if (cardData.entityId) return list.find((e) => e.id === cardData.entityId)
+    if (cardData.title) {
+      const targetTitle = cardData.title.trim().toLowerCase()
+      return list.find((e) => e.title.trim().toLowerCase() === targetTitle)
+    }
+    return undefined
+  })
+  const worldCats = useWorldStore((s) => (s.activeWorldId && s.categories[s.activeWorldId]) || undefined)
+  const openTab = useWorldStore((s) => s.openTab)
+  const selectedCount = selected ? reactFlow.getNodes().filter((n) => n.selected).length : 0
+
   const cardType = entity?.type || cardData.entityType || cardData.subtitle || 'character'
   const catMeta = getCategoryMeta(cardType, worldCats)
   const CategoryIcon = getCategoryIconComponent(catMeta.icon)
@@ -488,6 +493,8 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
               <img
                 src={cardAvatar}
                 alt={cardTitle}
+                loading="lazy"
+                decoding="async"
                 onError={() => setImgError(true)}
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
               />
@@ -594,7 +601,7 @@ const CanvasCardNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       </div>
     </div>
   )
-}
+})
 
 // 2. Lined Sticky Note Node
 const BASE_NOTE_WIDTH = 250
@@ -667,7 +674,7 @@ const NOTE_THEMES: Record<string, { bg: string; border: string; text: string; li
   }
 }
 
-const StickyNoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
+const StickyNoteNode: React.FC<NodeProps> = React.memo(({ id, data, selected }) => {
   const noteData = data as { 
     title?: string; 
     content?: string; 
@@ -693,7 +700,7 @@ const StickyNoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const reactFlow = useReactFlow()
-  const selectedCount = reactFlow.getNodes().filter((n) => n.selected).length
+  const selectedCount = selected ? reactFlow.getNodes().filter((n) => n.selected).length : 0
 
   const curTheme = NOTE_THEMES[colorTheme] || NOTE_THEMES.yellow
   const fontFamilyClass = fontFamily === 'sans' ? 'font-sans' : fontFamily === 'mono' ? 'font-mono' : 'font-serif'
@@ -1088,7 +1095,7 @@ const StickyNoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       </div>
     </div>
   )
-}
+})
 
 // 3. Geometric Shape Node (Parallelogram, Diamond, Rectangle, Circle)
 const BASE_SHAPE_WIDTH = 160
@@ -1120,7 +1127,7 @@ export type WhiteboardShapeType =
   | 'speech'
   | 'arrow'
 
-const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
+const ShapeNode: React.FC<NodeProps> = React.memo(({ id, data, selected }) => {
   const shapeData = data as { 
     shapeType?: WhiteboardShapeType; 
     color?: string; 
@@ -1143,7 +1150,7 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const shapeInnerRef = useRef<HTMLDivElement>(null)
   const type: WhiteboardShapeType = shapeData.shapeType || 'rectangle'
   const reactFlow = useReactFlow()
-  const selectedCount = reactFlow.getNodes().filter((n) => n.selected).length
+  const selectedCount = selected ? reactFlow.getNodes().filter((n) => n.selected).length : 0
   const color = shapeData.color || '#334155'
   const fillMode = shapeData.fillMode || 'solid'
   const isBold = Boolean(shapeData.isBold)
@@ -1837,13 +1844,13 @@ const ShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       </div>
     </div>
   )
-}
+})
 
 // 4. Freeform Canvas Text Node
 const BASE_TEXT_WIDTH = 240
 const BASE_TEXT_HEIGHT = 44
 
-const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
+const CanvasTextNode: React.FC<NodeProps> = React.memo(({ id, data, selected }) => {
   const textData = data as { 
     text?: string; 
     width?: number; 
@@ -1861,7 +1868,7 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const [showColorPicker, setShowColorPicker] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const reactFlow = useReactFlow()
-  const selectedCount = reactFlow.getNodes().filter((n) => n.selected).length
+  const selectedCount = selected ? reactFlow.getNodes().filter((n) => n.selected).length : 0
 
   const color = textData.color || '#e2e8f0'
   const fontFamily = textData.fontFamily || 'serif'
@@ -2180,10 +2187,10 @@ const CanvasTextNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       </div>
     </div>
   )
-}
+})
 
 // 5. FIRST-CLASS DRAGGABLE, SCALABLE, DELETABLE DRAWING NODE
-const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
+const CanvasDrawingNode: React.FC<NodeProps> = React.memo(({ id, data, selected }) => {
   const drawingData = data as {
     path?: string;
     color?: string;
@@ -2344,13 +2351,13 @@ const CanvasDrawingNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       </svg>
     </div>
   )
-}
+})
 
 // 6. Direct Image Node (Dropped from Chrome, File Explorer, or pasted)
 const BASE_IMG_WIDTH = 280
 const BASE_IMG_HEIGHT = 210
 
-const CanvasImageNode: React.FC<NodeProps> = ({ id, data, selected }) => {
+const CanvasImageNode: React.FC<NodeProps> = React.memo(({ id, data, selected }) => {
   const [imgError, setImgError] = useState(false)
   const imgData = data as {
     src?: string;
@@ -2515,6 +2522,8 @@ const CanvasImageNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             <img
               src={imgData.src}
               alt={caption || 'Canvas Image'}
+              loading="lazy"
+              decoding="async"
               onError={() => setImgError(true)}
               className="w-full h-full object-cover object-center pointer-events-none"
             />
@@ -2559,7 +2568,7 @@ const CanvasImageNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       </div>
     </div>
   )
-}
+})
 
 // ==========================================
 // CUSTOM WHITEBOARD ARROW EDGE (Mouse-Editable + Dynamic Moveable Ledgers)
@@ -2810,7 +2819,7 @@ export function pointsToSmoothPath(points: Point[], cornerRadius: number = 8): s
   return d
 }
 
-const WhiteboardCustomEdge: React.FC<EdgeProps> = ({
+const WhiteboardCustomEdge: React.FC<EdgeProps> = React.memo(({
   id,
   source,
   target,
@@ -2876,13 +2885,20 @@ const WhiteboardCustomEdge: React.FC<EdgeProps> = ({
     }
   }, [selected])
 
-  // Dynamic orthogonal waypoints with obstacle avoidance
+  // Dynamic orthogonal waypoints with obstacle avoidance (skipped for straight/bezier curves)
   const waypoints = useMemo(() => {
     if (edgeData.waypoints && edgeData.waypoints.length >= 2) {
       const cloned = edgeData.waypoints.map((p) => ({ ...p }))
       cloned[0] = { x: sourceX, y: sourceY }
       cloned[cloned.length - 1] = { x: targetX, y: targetY }
       return cloned
+    }
+
+    if (edgeType === 'straight' || edgeType === 'bezier') {
+      return [
+        { x: sourceX, y: sourceY },
+        { x: targetX, y: targetY }
+      ]
     }
 
     const allNodes = reactFlow.getNodes()
@@ -2893,7 +2909,8 @@ const WhiteboardCustomEdge: React.FC<EdgeProps> = ({
     const maxBoundY = Math.max(sourceY, targetY) + 300
 
     const obstacles: Box[] = []
-    for (const n of allNodes) {
+    for (let i = 0; i < allNodes.length; i++) {
+      const n = allNodes[i]
       if (n.id === source || n.id === target) continue
       const nw = Number(n.width || n.data?.width || n.style?.width || (n.type === 'canvasCard' ? 240 : 200))
       const nh = Number(n.height || n.data?.height || n.style?.height || (n.type === 'canvasCard' ? 180 : 140))
@@ -2915,6 +2932,7 @@ const WhiteboardCustomEdge: React.FC<EdgeProps> = ({
     )
   }, [
     edgeData.waypoints,
+    edgeType,
     sourceX,
     sourceY,
     targetX,
@@ -3457,7 +3475,7 @@ const WhiteboardCustomEdge: React.FC<EdgeProps> = ({
       </EdgeLabelRenderer>
     </>
   )
-}
+})
 
 const nodeTypes = {
   canvasCard: CanvasCardNode,
@@ -3529,18 +3547,23 @@ interface WhiteboardCanvasProps {
 }
 
 export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canvasId }) => {
-  const { 
-    worlds, activeWorldId, canvases, selectedCanvasId, setSelectedCanvasId,
-    createCanvas, updateCanvas, deleteCanvas, saveCanvasNodesAndEdges,
-    entities, openTab
-  } = useWorldStore()
+  const worlds = useWorldStore((s) => s.worlds)
+  const activeWorldId = useWorldStore((s) => s.activeWorldId)
+  const canvases = useWorldStore((s) => s.canvases)
+  const selectedCanvasId = useWorldStore((s) => s.selectedCanvasId)
+  const setSelectedCanvasId = useWorldStore((s) => s.setSelectedCanvasId)
+  const createCanvas = useWorldStore((s) => s.createCanvas)
+  const updateCanvas = useWorldStore((s) => s.updateCanvas)
+  const saveCanvasNodesAndEdges = useWorldStore((s) => s.saveCanvasNodesAndEdges)
+  const entities = useWorldStore((s) => s.entities)
+  const openTab = useWorldStore((s) => s.openTab)
 
   const activeWorld = (worlds || []).find((w) => w.id === activeWorldId)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const { addToast } = useToastStore()
-  const { settings } = useSettingsStore()
-  const isLight = getEffectiveColorMode(settings.interface.colorMode) === 'light'
+  const addToast = useToastStore((s) => s.addToast)
+  const colorMode = useSettingsStore((s) => s.settings.interface.colorMode)
+  const isLight = getEffectiveColorMode(colorMode) === 'light'
   const themeTokens = useActiveThemeTokens()
   const reactFlowInstance = useReactFlow()
 
@@ -3951,45 +3974,46 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
   // Smart Snapping & Alignment state
   const [smartSnapEnabled, setSmartSnapEnabled] = useState(true)
   const [snapGuides, setSnapGuides] = useState<SnapGuideLine[]>([])
+  const snapGuidesCountRef = useRef(0)
+  snapGuidesCountRef.current = snapGuides.length
   const isAltPressedRef = useRef(false)
-  const [isAltPressed, setIsAltPressed] = useState(false)
   const lastMousePosRef = useRef<{ clientX: number; clientY: number } | null>(null)
+  const currentCanvasIdRef = useRef<string | undefined>(currentCanvas?.id)
+  currentCanvasIdRef.current = currentCanvas?.id
+  const hasMultiSelectionRef = useRef(false)
+  hasMultiSelectionRef.current = selectedNodes.length > 1
 
   // Track Alt key press globally to temporarily bypass snapping
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Alt') {
         isAltPressedRef.current = true
-        setIsAltPressed(true)
-        setSnapGuides([])
+        setSnapGuides((prev) => (prev.length > 0 ? [] : prev))
       }
     }
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'Alt') {
         isAltPressedRef.current = false
-        setIsAltPressed(false)
       }
     }
 
     const handleWindowBlur = () => {
       isAltPressedRef.current = false
-      setIsAltPressed(false)
     }
 
     const handlePointerMove = (e: PointerEvent | MouseEvent) => {
       lastMousePosRef.current = { clientX: e.clientX, clientY: e.clientY }
       if (e.altKey !== isAltPressedRef.current) {
         isAltPressedRef.current = e.altKey
-        setIsAltPressed(e.altKey)
-        if (e.altKey) setSnapGuides([])
+        if (e.altKey) setSnapGuides((prev) => (prev.length > 0 ? [] : prev))
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
     window.addEventListener('blur', handleWindowBlur)
-    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointermove', handlePointerMove, { passive: true })
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
@@ -4001,7 +4025,8 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
 
   // Arrow Modification state
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
-  const selectedEdge = edges.find((e) => e.id === selectedEdgeId)
+  const selectedEdgeIdRef = useRef<string | null>(null)
+  selectedEdgeIdRef.current = selectedEdgeId
   const [showDefaultArrowOptions, setShowDefaultArrowOptions] = useState(false)
   const [defaultArrowSettings, setDefaultArrowSettings] = useState<WhiteboardEdgeData>({
     edgeType: 'smoothstep',
@@ -4011,6 +4036,8 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     arrowDirection: 'end',
     isAnimated: false
   })
+  const defaultArrowSettingsRef = useRef(defaultArrowSettings)
+  defaultArrowSettingsRef.current = defaultArrowSettings
 
   // Direct Image Drop & Drag Over state
   const [isDraggingOver, setIsDraggingOver] = useState(false)
@@ -4024,19 +4051,20 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
 
   // Handle new edge connection with directional arrow matching settings
   const onConnect = useCallback((connection: Connection) => {
+    const arrowCfg = defaultArrowSettingsRef.current
     const markers = getEdgeMarkerConfig(
-      defaultArrowSettings.arrowDirection,
-      defaultArrowSettings.strokeColor || themeTokens.accent,
-      defaultArrowSettings.strokeWidth
+      arrowCfg.arrowDirection,
+      arrowCfg.strokeColor || themeTokens.accent,
+      arrowCfg.strokeWidth
     )
     const newEdge: Edge = {
       ...connection,
       id: `edge-${Date.now()}`,
       type: 'whiteboardEdge',
-      animated: defaultArrowSettings.isAnimated,
-      style: { stroke: defaultArrowSettings.strokeColor, strokeWidth: defaultArrowSettings.strokeWidth },
+      animated: arrowCfg.isAnimated,
+      style: { stroke: arrowCfg.strokeColor, strokeWidth: arrowCfg.strokeWidth },
       data: {
-        ...defaultArrowSettings,
+        ...arrowCfg,
         sourceHandle: connection.sourceHandle,
         targetHandle: connection.targetHandle,
         label: ''
@@ -4046,18 +4074,20 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     }
     setEdges((eds) => {
       const updated = addEdge(newEdge, eds)
-      if (currentCanvas) {
-        saveCanvasNodesAndEdges(currentCanvas.id, nodes, updated)
+      const cId = currentCanvasIdRef.current
+      if (cId) {
+        saveCanvasNodesAndEdges(cId, reactFlowInstance.getNodes(), updated)
       }
       return updated
     })
     setSelectedEdgeId(newEdge.id)
     addToast('Connection created', 'info')
-  }, [nodes, currentCanvas, saveCanvasNodesAndEdges, defaultArrowSettings, themeTokens.accent, addToast])
+  }, [reactFlowInstance, saveCanvasNodesAndEdges, themeTokens.accent, addToast, setEdges])
 
   // Quick connect: pressing a handle circle automatically creates an adjacent corresponding element + arrow
   const handleQuickConnect = useCallback((sourceNodeId: string, direction: 'top' | 'bottom' | 'left' | 'right') => {
-    const sourceNode = reactFlowInstance?.getNode(sourceNodeId) || nodes.find((n) => n.id === sourceNodeId)
+    const currentNodes = reactFlowInstance.getNodes()
+    const sourceNode = reactFlowInstance.getNode(sourceNodeId) || currentNodes.find((n) => n.id === sourceNodeId)
     if (!sourceNode) return
 
     takeSnapshot()
@@ -4111,10 +4141,11 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
       selected: true
     }
 
+    const arrowCfg = defaultArrowSettingsRef.current
     const markers = getEdgeMarkerConfig(
-      defaultArrowSettings.arrowDirection,
-      defaultArrowSettings.strokeColor || themeTokens.accent,
-      defaultArrowSettings.strokeWidth
+      arrowCfg.arrowDirection,
+      arrowCfg.strokeColor || themeTokens.accent,
+      arrowCfg.strokeWidth
     )
 
     const newEdge: Edge = {
@@ -4124,10 +4155,10 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
       sourceHandle: direction,
       targetHandle: targetHandle,
       type: 'whiteboardEdge',
-      animated: defaultArrowSettings.isAnimated,
-      style: { stroke: defaultArrowSettings.strokeColor, strokeWidth: defaultArrowSettings.strokeWidth },
+      animated: arrowCfg.isAnimated,
+      style: { stroke: arrowCfg.strokeColor, strokeWidth: arrowCfg.strokeWidth },
       data: {
-        ...defaultArrowSettings,
+        ...arrowCfg,
         sourceHandle: direction,
         targetHandle: targetHandle,
         label: ''
@@ -4137,12 +4168,13 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     }
 
     setNodes((nds) => {
-      const unselected = nds.map((n) => ({ ...n, selected: false }))
+      const unselected = nds.map((n) => (n.selected ? { ...n, selected: false } : n))
       const updated = [...unselected, newNode]
       setEdges((eds) => {
         const updatedEdges = [...eds, newEdge]
-        if (currentCanvas) {
-          saveCanvasNodesAndEdges(currentCanvas.id, updated, updatedEdges)
+        const cId = currentCanvasIdRef.current
+        if (cId) {
+          saveCanvasNodesAndEdges(cId, updated, updatedEdges)
         }
         return updatedEdges
       })
@@ -4150,7 +4182,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
     })
 
     addToast('Connected element created', 'success')
-  }, [reactFlowInstance, nodes, edges, takeSnapshot, defaultArrowSettings, themeTokens.accent, currentCanvas, saveCanvasNodesAndEdges, addToast])
+  }, [reactFlowInstance, takeSnapshot, themeTokens.accent, saveCanvasNodesAndEdges, addToast, setNodes, setEdges])
 
   // Update selected edge properties live
   const handleUpdateEdge = useCallback((id: string, updates: Partial<WhiteboardEdgeData>) => {
@@ -4179,16 +4211,13 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
         }
         return e
       })
-      if (currentCanvas) {
-        saveCanvasNodesAndEdges(currentCanvas.id, nodes, updated)
+      const cId = currentCanvasIdRef.current
+      if (cId) {
+        saveCanvasNodesAndEdges(cId, reactFlowInstance.getNodes(), updated)
       }
       return updated
     })
-  }, [currentCanvas, nodes, saveCanvasNodesAndEdges])
-
-  const updateSelectedEdge = useCallback((updates: Partial<WhiteboardEdgeData>) => {
-    if (selectedEdgeId) handleUpdateEdge(selectedEdgeId, updates)
-  }, [selectedEdgeId, handleUpdateEdge])
+  }, [reactFlowInstance, saveCanvasNodesAndEdges, setEdges])
 
   // Reverse source and target on connection and reverse waypoints
   const handleReverseEdge = useCallback((edgeId: string) => {
@@ -4221,34 +4250,28 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
         }
         return e
       })
-      if (currentCanvas) {
-        saveCanvasNodesAndEdges(currentCanvas.id, nodes, updated)
+      const cId = currentCanvasIdRef.current
+      if (cId) {
+        saveCanvasNodesAndEdges(cId, reactFlowInstance.getNodes(), updated)
       }
       return updated
     })
     addToast('Reversed connection direction', 'info')
-  }, [currentCanvas, nodes, saveCanvasNodesAndEdges, themeTokens.accent, addToast])
-
-  const handleReverseEdgeDirection = useCallback(() => {
-    if (selectedEdgeId) handleReverseEdge(selectedEdgeId)
-  }, [selectedEdgeId, handleReverseEdge])
+  }, [reactFlowInstance, saveCanvasNodesAndEdges, themeTokens.accent, addToast, setEdges])
 
   // Delete edge
   const handleDeleteEdge = useCallback((edgeId: string) => {
     setEdges((eds) => {
       const updated = eds.filter((e) => e.id !== edgeId)
-      if (currentCanvas) {
-        saveCanvasNodesAndEdges(currentCanvas.id, nodes, updated)
+      const cId = currentCanvasIdRef.current
+      if (cId) {
+        saveCanvasNodesAndEdges(cId, reactFlowInstance.getNodes(), updated)
       }
       return updated
     })
-    if (selectedEdgeId === edgeId) setSelectedEdgeId(null)
+    if (selectedEdgeIdRef.current === edgeId) setSelectedEdgeId(null)
     addToast('Connection deleted', 'info')
-  }, [selectedEdgeId, currentCanvas, nodes, saveCanvasNodesAndEdges, addToast])
-
-  const handleDeleteSelectedEdge = useCallback(() => {
-    if (selectedEdgeId) handleDeleteEdge(selectedEdgeId)
-  }, [selectedEdgeId, handleDeleteEdge])
+  }, [reactFlowInstance, saveCanvasNodesAndEdges, addToast, setEdges])
 
   // Update waypoints on edge
   const handleUpdateWaypoints = useCallback((edgeId: string, waypoints: Point[] | undefined) => {
@@ -4265,12 +4288,13 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
         }
         return e
       })
-      if (currentCanvas) {
-        saveCanvasNodesAndEdges(currentCanvas.id, nodes, updated)
+      const cId = currentCanvasIdRef.current
+      if (cId) {
+        saveCanvasNodesAndEdges(cId, reactFlowInstance.getNodes(), updated)
       }
       return updated
     })
-  }, [currentCanvas, nodes, saveCanvasNodesAndEdges])
+  }, [reactFlowInstance, saveCanvasNodesAndEdges, setEdges])
 
   const edgeActionsValue = useMemo<EdgeActionContextType>(() => ({
     updateEdge: handleUpdateEdge,
@@ -4282,6 +4306,10 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
   const quickConnectValue = useMemo(() => ({
     quickConnect: handleQuickConnect
   }), [handleQuickConnect])
+
+  const peekContextValue = useMemo(() => ({
+    openPeek: (id: string) => setPeekEntityId(id)
+  }), [])
 
   // Window-level Del / Backspace shortcut listener for Whiteboard elements
   useEffect(() => {
@@ -4305,94 +4333,107 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
       }
 
       // 1. If an edge is selected
-      if (selectedEdgeId) {
+      if (selectedEdgeIdRef.current) {
         e.preventDefault()
-        handleDeleteEdge(selectedEdgeId)
+        handleDeleteEdge(selectedEdgeIdRef.current)
         return
       }
-      const selectedEdge = edges.find((ed) => ed.selected)
-      if (selectedEdge) {
+      const currentEdges = reactFlowInstance.getEdges()
+      const selEdge = currentEdges.find((ed) => ed.selected)
+      if (selEdge) {
         e.preventDefault()
-        handleDeleteEdge(selectedEdge.id)
+        handleDeleteEdge(selEdge.id)
         return
       }
 
       // 2. If one or more nodes are selected
       const currentNodes = reactFlowInstance.getNodes()
-      const selectedNodes = currentNodes.filter((n) => n.selected)
-      if (selectedNodes.length > 0) {
+      const selNodes = currentNodes.filter((n) => n.selected)
+      if (selNodes.length > 0) {
         e.preventDefault()
-        const selectedIds = new Set(selectedNodes.map((n) => n.id))
+        const selectedIds = new Set(selNodes.map((n) => n.id))
         setNodes((nds) => {
           const updated = nds.filter((n) => !selectedIds.has(n.id))
-          if (currentCanvas) {
-            saveCanvasNodesAndEdges(currentCanvas.id, updated, edges)
+          const cId = currentCanvasIdRef.current
+          if (cId) {
+            saveCanvasNodesAndEdges(cId, updated, reactFlowInstance.getEdges())
           }
           return updated
         })
-        addToast(`Deleted ${selectedNodes.length} canvas element${selectedNodes.length > 1 ? 's' : ''}`, 'info')
+        addToast(`Deleted ${selNodes.length} canvas element${selNodes.length > 1 ? 's' : ''}`, 'info')
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedEdgeId, edges, reactFlowInstance, currentCanvas, setNodes, saveCanvasNodesAndEdges, handleDeleteEdge, addToast])
+  }, [reactFlowInstance, setNodes, saveCanvasNodesAndEdges, handleDeleteEdge, addToast])
 
   // Smart snapping node movement & saving with trailing debounce (Alt key bypasses)
   const handleNodesChangeWrapped = useCallback((changes: any) => {
+    const posChanges = changes.filter((c: any) => c.type === 'position' && c.dragging && c.position)
     if (smartSnapEnabled && !isAltPressedRef.current) {
-      const posChanges = changes.filter((c: any) => c.type === 'position' && c.dragging && c.position)
       if (posChanges.length === 1) {
         const posChange = posChanges[0]
-        const dragged = nodes.find((n) => n.id === posChange.id)
+        const currentNodes = reactFlowInstance.getNodes()
+        const dragged = currentNodes.find((n) => n.id === posChange.id)
         if (dragged) {
           const dW = Number(dragged.style?.width ?? dragged.data?.width ?? 180)
           const dH = Number(dragged.style?.height ?? dragged.data?.height ?? 250)
-          const others = nodes
-            .filter((n) => n.id !== dragged.id && !n.selected)
-            .map((n) => ({
-              id: n.id,
-              x: n.position.x,
-              y: n.position.y,
-              width: Number(n.style?.width ?? n.data?.width ?? 180),
-              height: Number(n.style?.height ?? n.data?.height ?? 250)
-            }))
+          const others: SnapNodeBox[] = []
+          for (let i = 0; i < currentNodes.length; i++) {
+            const n = currentNodes[i]
+            if (n.id !== dragged.id && !n.selected) {
+              others.push({
+                id: n.id,
+                x: n.position.x,
+                y: n.position.y,
+                width: Number(n.style?.width ?? n.data?.width ?? 180),
+                height: Number(n.style?.height ?? n.data?.height ?? 250)
+              })
+            }
+          }
           const { snappedX, snappedY, guides } = calculateSmartSnap(
             { id: dragged.id, x: posChange.position.x, y: posChange.position.y, width: dW, height: dH },
             others
           )
           posChange.position.x = snappedX
           posChange.position.y = snappedY
-          setSnapGuides(guides)
+          if (guides.length > 0 || snapGuidesCountRef.current > 0) {
+            setSnapGuides(guides)
+          }
         }
-      } else if (posChanges.length > 1) {
-        // Multi-select dragging: preserve relative offsets cleanly
-        if (snapGuides.length > 0) setSnapGuides([])
-      } else if (snapGuides.length > 0) {
+      } else if (snapGuidesCountRef.current > 0) {
         setSnapGuides([])
       }
-    } else if (snapGuides.length > 0) {
+    } else if (snapGuidesCountRef.current > 0) {
       setSnapGuides([])
     }
 
     onNodesChange(changes)
 
-    if (nodeChangeTimerRef.current) {
-      clearTimeout(nodeChangeTimerRef.current)
-    }
-    nodeChangeTimerRef.current = setTimeout(() => {
-      if (currentCanvas) {
-        saveCanvasNodesAndEdges(currentCanvas.id, reactFlowInstance.getNodes(), edges)
+    // Skip store sync while actively dragging a node; handleNodeDragStop saves on release
+    if (posChanges.length === 0) {
+      if (nodeChangeTimerRef.current) {
+        clearTimeout(nodeChangeTimerRef.current)
       }
-    }, 250)
-  }, [nodes, onNodesChange, smartSnapEnabled, snapGuides.length, currentCanvas, edges, saveCanvasNodesAndEdges, reactFlowInstance])
+      nodeChangeTimerRef.current = setTimeout(() => {
+        const cId = currentCanvasIdRef.current
+        if (cId) {
+          saveCanvasNodesAndEdges(cId, reactFlowInstance.getNodes(), reactFlowInstance.getEdges())
+        }
+      }, 300)
+    }
+  }, [onNodesChange, smartSnapEnabled, saveCanvasNodesAndEdges, reactFlowInstance])
 
   const handleNodeDragStop = useCallback(() => {
-    setSnapGuides([])
-    if (currentCanvas) {
-      saveCanvasNodesAndEdges(currentCanvas.id, reactFlowInstance.getNodes(), edges)
+    if (snapGuidesCountRef.current > 0) {
+      setSnapGuides([])
     }
-  }, [currentCanvas, edges, saveCanvasNodesAndEdges, reactFlowInstance])
+    const cId = currentCanvasIdRef.current
+    if (cId) {
+      saveCanvasNodesAndEdges(cId, reactFlowInstance.getNodes(), reactFlowInstance.getEdges())
+    }
+  }, [saveCanvasNodesAndEdges, reactFlowInstance])
 
   // Insert image node at specified position
   const insertImageNode = useCallback((src: string, pos: { x: number; y: number }, captionName?: string) => {
@@ -4900,7 +4941,7 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
   const worldEntities = entities[worldId] || []
 
   return (
-    <CanvasPeekContext.Provider value={{ openPeek: (id) => setPeekEntityId(id) }}>
+    <CanvasPeekContext.Provider value={peekContextValue}>
       <div 
         ref={containerRef}
       className="relative w-full h-full bg-oros-950 overflow-hidden select-none"
@@ -4921,7 +4962,11 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
           colorMode={isLight ? 'light' : 'dark'}
           onNodesChange={handleNodesChangeWrapped}
           onEdgesChange={onEdgesChange}
-          onMove={(_, vp) => setViewport(vp)}
+          onMove={(_, vp) => {
+            if (hasMultiSelectionRef.current) {
+              setViewport(vp)
+            }
+          }}
           onNodeDragStart={() => takeSnapshot()}
           // Multi-selection is handled natively via multiSelectionKeyCode
           onNodesDelete={(deleted) => {
@@ -4929,8 +4974,9 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             const delIds = new Set(deleted.map((n) => n.id))
             setNodes((nds) => {
               const updated = nds.filter((n) => !delIds.has(n.id))
-              if (currentCanvas) {
-                saveCanvasNodesAndEdges(currentCanvas.id, updated, edges)
+              const cId = currentCanvasIdRef.current
+              if (cId) {
+                saveCanvasNodesAndEdges(cId, updated, reactFlowInstance.getEdges())
               }
               return updated
             })
@@ -4940,8 +4986,9 @@ export const WhiteboardCanvasContent: React.FC<WhiteboardCanvasProps> = ({ canva
             const delIds = new Set(deleted.map((e) => e.id))
             setEdges((eds) => {
               const updated = eds.filter((e) => !delIds.has(e.id))
-              if (currentCanvas) {
-                saveCanvasNodesAndEdges(currentCanvas.id, nodes, updated)
+              const cId = currentCanvasIdRef.current
+              if (cId) {
+                saveCanvasNodesAndEdges(cId, reactFlowInstance.getNodes(), updated)
               }
               return updated
             })

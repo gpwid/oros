@@ -41,6 +41,8 @@ interface TabItem {
 }
 
 const TabViewContainer: React.FC<{ tab: TabItem; isActive: boolean }> = React.memo(({ tab, isActive }) => {
+  if (!isActive) return null
+
   const renderContent = () => {
     switch (tab.type) {
       case 'canvas':

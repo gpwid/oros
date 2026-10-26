@@ -66,7 +66,7 @@ export const OSTERGARD_MASTERPIECES = {
     institution: 'The Metropolitan Museum of Art',
     sourceUrl: 'https://www.metmuseum.org/art/collection/search/12127',
     license: 'Open Access (CC0)',
-    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/ap/original/DP-14436-001.jpg',
+    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/ap/web-large/DP-14436-001.jpg',
     medium: 'Oil on canvas',
     dimensions: '208.6 cm × 109.9 cm',
     notes: 'Sublime portrait of aristocratic poise and calculating subtlety in satin and gold.'
@@ -90,7 +90,7 @@ export const OSTERGARD_MASTERPIECES = {
     institution: 'The Metropolitan Museum of Art',
     sourceUrl: 'https://www.metmuseum.org/art/collection/search/436838',
     license: 'Open Access (CC0)',
-    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/ep/original/DP276856.jpg',
+    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/ep/web-large/DP276856.jpg',
     medium: 'Oil on canvas',
     dimensions: '133.4 cm × 102.2 cm',
     notes: 'Tenebrist candlelight contemplation of skull, flame, and mortal asceticism.'
@@ -102,7 +102,7 @@ export const OSTERGARD_MASTERPIECES = {
     institution: 'The Metropolitan Museum of Art',
     sourceUrl: 'https://www.metmuseum.org/art/collection/search/437394',
     license: 'Open Access (CC0)',
-    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/ep/original/DP145924.jpg',
+    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/ep/web-large/DP145924.jpg',
     medium: 'Oil on canvas',
     dimensions: '104 cm × 86 cm',
     notes: 'Somber portrait of aging sovereign authority, melancholy, and political suspicion.'
@@ -162,7 +162,7 @@ export const OSTERGARD_MASTERPIECES = {
     institution: 'The Metropolitan Museum of Art',
     sourceUrl: 'https://www.metmuseum.org/art/collection/search/391256',
     license: 'Open Access (CC0)',
-    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/dp/original/DP816117.jpg',
+    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/dp/web-large/DP816117.jpg',
     medium: 'Engraving',
     dimensions: '22 cm × 15.6 cm',
     notes: 'Heraldic dynastic emblem bearing winged helm, armorial shield, and memento mori.'
@@ -198,7 +198,7 @@ export const OSTERGARD_MASTERPIECES = {
     institution: 'The Metropolitan Museum of Art',
     sourceUrl: 'https://www.metmuseum.org/art/collection/search/460773',
     license: 'Open Access (CC0)',
-    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/md/original/sf1975-1-1407s1.jpg',
+    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/md/web-large/sf1975-1-1407s1.jpg',
     medium: 'Gold and intaglio engraved stone',
     dimensions: '2.5 cm × 2.2 cm',
     notes: 'Imperial signet ring of heavy star-iron and blood-wax seal intaglio.'
@@ -210,7 +210,7 @@ export const OSTERGARD_MASTERPIECES = {
     institution: 'The Metropolitan Museum of Art',
     sourceUrl: 'https://www.metmuseum.org/art/collection/search/391255',
     license: 'Open Access (CC0)',
-    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/dp/original/DP816115.jpg',
+    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/dp/web-large/DP816115.jpg',
     medium: 'Engraving',
     dimensions: '24.6 cm × 19 cm',
     notes: 'Armored knight on warhorse with notched broadsword riding through the valley of shadow.'
@@ -222,7 +222,7 @@ export const OSTERGARD_MASTERPIECES = {
     institution: 'The Metropolitan Museum of Art',
     sourceUrl: 'https://www.metmuseum.org/art/collection/search/391255',
     license: 'Public Domain / CC0',
-    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/dp/original/DP802619.jpg',
+    thumbnailUrl: 'https://images.metmuseum.org/CRDImages/dp/web-large/DP802619.jpg',
     medium: 'Hand-colored copperplate engraving',
     dimensions: '33 cm × 51 cm',
     notes: 'Detailed navigational chart of coastal rocks, sea beacons, sounding depths, and skerries.'

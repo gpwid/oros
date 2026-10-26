@@ -362,7 +362,7 @@ interface GenealogyEdgeData {
 // ==========================================
 // DYNAMIC GENEALOGY ARROW EDGE WITH MOVEABLE LEDGERS & TOOLBAR
 // ==========================================
-const GenealogyCustomEdge: React.FC<EdgeProps> = ({
+const GenealogyCustomEdge: React.FC<EdgeProps> = React.memo(({
   id,
   sourceX,
   sourceY,
@@ -916,10 +916,10 @@ const GenealogyCustomEdge: React.FC<EdgeProps> = ({
       </EdgeLabelRenderer>
     </>
   )
-}
+})
 
 // Portrait Card Node matching Project Oros UI
-const GenealogyCardNode = ({ id, data, selected }: { 
+const GenealogyCardNode = React.memo(({ id, data, selected }: { 
   id: string; 
   data: { 
     entity?: LoreEntity; 
@@ -1072,6 +1072,8 @@ const GenealogyCardNode = ({ id, data, selected }: {
             <img
               src={entity.avatar}
               alt={entity.title}
+              loading="lazy"
+              decoding="async"
               onError={() => setImgError(true)}
               className="w-full h-full object-cover pointer-events-none select-none"
             />
@@ -1105,7 +1107,7 @@ const GenealogyCardNode = ({ id, data, selected }: {
       )}
     </div>
   )
-}
+})
 
 const nodeTypes = {
   genealogyCard: GenealogyCardNode
@@ -1451,11 +1453,12 @@ const RelationGraphCanvasContent: React.FC = () => {
       const posChanges = changes.filter((c: any) => c.type === 'position' && c.dragging && c.position)
       if (posChanges.length === 1) {
         const posChange = posChanges[0]
-        const dragged = nodes.find((n) => n.id === posChange.id)
+        const currentNodes = reactFlowInstance.getNodes()
+        const dragged = currentNodes.find((n) => n.id === posChange.id)
         if (dragged) {
           const dW = 144 // Card width (w-36 = 144px)
           const dH = 192 // Card height (h-48 = 192px)
-          const others = nodes
+          const others = currentNodes
             .filter((n) => n.id !== dragged.id && !n.selected)
             .map((n) => ({
               id: n.id,
@@ -1474,16 +1477,16 @@ const RelationGraphCanvasContent: React.FC = () => {
         }
       } else if (posChanges.length > 1) {
         // Multi-select dragging: preserve relative offsets cleanly
-        if (snapGuides.length > 0) setSnapGuides([])
-      } else if (snapGuides.length > 0) {
-        setSnapGuides([])
+        setSnapGuides((prev) => (prev.length > 0 ? [] : prev))
+      } else {
+        setSnapGuides((prev) => (prev.length > 0 ? [] : prev))
       }
-    } else if (snapGuides.length > 0) {
-      setSnapGuides([])
+    } else {
+      setSnapGuides((prev) => (prev.length > 0 ? [] : prev))
     }
 
     onNodesChange(changes)
-  }, [nodes, onNodesChange, smartSnapEnabled, snapGuides.length])
+  }, [reactFlowInstance, onNodesChange, smartSnapEnabled])
 
   const handleNodeDragStop = useCallback((_: any, node: Node) => {
     setSnapGuides([])
@@ -1540,6 +1543,14 @@ const RelationGraphCanvasContent: React.FC = () => {
 
   // Unified Multi-selection & Batch Operations
   const selectedNodes = useMemo(() => nodes.filter((n) => n.selected), [nodes])
+  const hasMultiSelectionRef = useRef(false)
+  hasMultiSelectionRef.current = selectedNodes.length > 1
+
+  useEffect(() => {
+    if (selectedNodes.length > 1) {
+      setViewport(reactFlowInstance.getViewport())
+    }
+  }, [selectedNodes.length, reactFlowInstance])
 
   const handleDeselectAll = useCallback(() => {
     setNodes((nds) =>
@@ -2110,7 +2121,11 @@ const RelationGraphCanvasContent: React.FC = () => {
             colorMode={isLight ? 'light' : 'dark'}
             onNodesChange={handleNodesChangeWrapped}
             onEdgesChange={onEdgesChange}
-            onMove={(_, vp) => setViewport(vp)}
+            onMove={(_, vp) => {
+              if (hasMultiSelectionRef.current) {
+                setViewport(vp)
+              }
+            }}
             onPaneClick={() => {
               handleDeselectAll()
               setActiveEntityForPeek(null)

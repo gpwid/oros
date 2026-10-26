@@ -16,17 +16,25 @@ export interface DeepSearchResult {
 function stripHtml(html: string): string {
   if (!html) return '';
   if (!html.includes('<') && !html.includes('&')) return html;
-  return html
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/\s+/g, ' ')
-    .trim();
+  let res = html;
+  if (res.includes('<style') || res.includes('<STYLE')) {
+    res = res.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  }
+  if (res.includes('<script') || res.includes('<SCRIPT')) {
+    res = res.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  }
+  if (res.includes('<')) {
+    res = res.replace(/<[^>]+>/g, ' ');
+  }
+  if (res.includes('&')) {
+    res = res
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"');
+  }
+  return res.replace(/\s+/g, ' ').trim();
 }
 
 function extractSnippet(text: string, q: string, radius: number = 60): string | undefined {
@@ -250,7 +258,7 @@ export function searchDeepVault(
 
       // Search inside Chapter Prose (only if raw content matches query)
       if (ch.content) {
-        const rawLower = (ch as any)._lowerContent ?? ((ch as any)._lowerContent = ch.content.toLowerCase());
+        const rawLower = (ch as any)._lowerContent ?? ((entOrCh => entOrCh._lowerContent = ch.content.toLowerCase())(ch as any));
         const idx = rawLower.indexOf(q);
         if (idx !== -1) {
           let snippet: string | undefined = undefined;
@@ -276,7 +284,8 @@ export function searchDeepVault(
 
   // 3. Search Timeline Events
   if (domain === 'all' || domain === 'timeline') {
-    timelines.forEach((ev) => {
+    for (let i = 0; i < timelines.length; i++) {
+      const ev = timelines[i];
       const titleLower = (ev as any)._lowerTitle ?? ((ev as any)._lowerTitle = ev.title.toLowerCase());
 
       if (titleLower.includes(q)) {
@@ -289,7 +298,7 @@ export function searchDeepVault(
           matchField: 'title',
           score: 80
         });
-        return;
+        continue;
       }
 
       if (ev.description) {
@@ -308,12 +317,13 @@ export function searchDeepVault(
           });
         }
       }
-    });
+    }
   }
 
   // 4. Search Maps
   if (domain === 'all' || domain === 'map') {
-    maps.forEach((m) => {
+    for (let mIdx = 0; mIdx < maps.length; mIdx++) {
+      const m = maps[mIdx];
       const nameLower = (m as any)._lowerName ?? ((m as any)._lowerName = m.name.toLowerCase());
       if (nameLower.includes(q)) {
         addResult({
@@ -325,7 +335,7 @@ export function searchDeepVault(
           matchField: 'title',
           score: 75
         });
-        return;
+        continue;
       }
 
       const pins = m.pins;
@@ -347,14 +357,15 @@ export function searchDeepVault(
           }
         }
       }
-    });
+    }
   }
 
   let conlangSnippetCount = 0;
 
   // 5. Search Conlang Lexicons & Words
   if (domain === 'all' || domain === 'conlang') {
-    conlangs.forEach((lang) => {
+    for (let lIdx = 0; lIdx < conlangs.length; lIdx++) {
+      const lang = conlangs[lIdx];
       // Language name or description match
       const langLower = (lang as any)._lowerName ?? ((lang as any)._lowerName = lang.name.toLowerCase());
       if (langLower.includes(q)) {
@@ -405,11 +416,11 @@ export function searchDeepVault(
             continue;
           }
 
-          const defLower = w.definition ? ((w as any)._lowerDef ?? ((w as any)._lowerDef = w.definition.toLowerCase())) : '';
-          const etymLower = w.etymology ? ((w as any)._lowerEtym ?? ((w as any)._lowerEtym = w.etymology.toLowerCase())) : '';
-          const phoneticLower = w.phonetic ? ((w as any)._lowerPhonetic ?? ((w as any)._lowerPhonetic = w.phonetic.toLowerCase())) : '';
+          const metaLower = (w as any)._lowerMeta ?? (
+            (w as any)._lowerMeta = `${w.definition || ''}\n${w.etymology || ''}\n${w.phonetic || ''}`.toLowerCase()
+          );
 
-          if (defLower.includes(q) || etymLower.includes(q) || phoneticLower.includes(q)) {
+          if (metaLower.includes(q)) {
             let snippet: string | undefined = undefined;
             if (conlangSnippetCount < 60) {
               snippet = `${w.phonetic ? `${w.phonetic} • ` : ''}${w.definition}${w.etymology ? ` • Root: ${w.etymology}` : ''}`;
@@ -428,13 +439,16 @@ export function searchDeepVault(
           }
         }
       }
-    });
+    }
   }
 
   // 6. Search TTRPG Battlemaps
   if (domain === 'all' || domain === 'battlemap') {
-    Object.entries(battlemaps).forEach(([campaignId, bmaps]) => {
-      (bmaps || []).forEach((bm) => {
+    for (const campaignId in battlemaps) {
+      const bmaps = battlemaps[campaignId];
+      if (!bmaps) continue;
+      for (let bIdx = 0; bIdx < bmaps.length; bIdx++) {
+        const bm = bmaps[bIdx];
         const nameLower = (bm as any)._lowerName ?? ((bm as any)._lowerName = bm.name.toLowerCase());
 
         // Exact name match
@@ -448,7 +462,7 @@ export function searchDeepVault(
             matchField: 'title',
             score: 100
           });
-          return;
+          continue;
         }
 
         // Partial name match
@@ -462,7 +476,7 @@ export function searchDeepVault(
             matchField: 'title',
             score: 80
           });
-          return;
+          continue;
         }
 
         // Description match
@@ -480,7 +494,7 @@ export function searchDeepVault(
               snippet,
               score: 50
             });
-            return;
+            continue;
           }
         }
 
@@ -489,26 +503,23 @@ export function searchDeepVault(
         if (tokens && tokens.length > 0) {
           for (let i = 0; i < tokens.length; i++) {
             const t = tokens[i];
-            if (t.name) {
-              const tokLower = (t as any)._lowerName ?? ((t as any)._lowerName = t.name.toLowerCase());
-              if (tokLower.includes(q)) {
-                addResult({
-                  id: `bmap-${bm.id}-token-${t.id}`,
-                  targetId: bm.id,
-                  domain: 'battlemap',
-                  title: bm.name,
-                  badge: `Token: ${t.name}`,
-                  matchField: 'content',
-                  snippet: `Token: ${t.name} (${t.isEnemy ? 'Enemy' : 'Ally'})`,
-                  score: 45
-                });
-                break;
-              }
+            if (t.name && t.name.toLowerCase().includes(q)) {
+              addResult({
+                id: `bmap-${bm.id}-token-${t.id}`,
+                targetId: bm.id,
+                domain: 'battlemap',
+                title: bm.name,
+                badge: `Token: ${t.name}`,
+                matchField: 'content',
+                snippet: `Token: ${t.name} (${t.isEnemy ? 'Enemy' : 'Ally'})`,
+                score: 45
+              });
+              break;
             }
           }
         }
-      });
-    });
+      }
+    }
   }
 
   // Concatenate buckets from score 100 down to 0

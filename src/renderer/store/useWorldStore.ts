@@ -200,8 +200,23 @@ function getAutoSaveIntervalMs(): number {
   return 1000
 }
 
+function optimizeMuseumUrl(url?: string): string | undefined {
+  if (!url || typeof url !== 'string') return url
+  if (url.includes('images.metmuseum.org/CRDImages/') && url.includes('/original/')) {
+    return url.replace('/original/', '/web-large/')
+  }
+  return url
+}
+
+function optimizeAttribution(attr?: any): any {
+  if (!attr || typeof attr !== 'object') return attr
+  if (attr.thumbnailUrl && typeof attr.thumbnailUrl === 'string' && attr.thumbnailUrl.includes('/original/')) {
+    return { ...attr, thumbnailUrl: optimizeMuseumUrl(attr.thumbnailUrl) }
+  }
+  return attr
+}
+
 let persistDebounceTimer: any = null;
-let isSavingActive = false;
 
 export const useWorldStore = create<WorldState>((set, get) => ({
   activeTab: 'canvas',
@@ -284,9 +299,9 @@ export const useWorldStore = create<WorldState>((set, get) => ({
         const sampleEntityMap = new Map(sampleEntities.map((e) => [e.id, e]));
 
         const healedWorlds = (parsed.worlds || [sampleWorld]).map((w: World) => {
-          let b = w.bannerUrl;
-          let t = w.thumbnailUrl;
-          let attr = w.attribution || w.artAttribution;
+          let b = optimizeMuseumUrl(w.bannerUrl);
+          let t = optimizeMuseumUrl(w.thumbnailUrl);
+          let attr = optimizeAttribution(w.attribution || w.artAttribution);
           if (b && b.toLowerCase().includes('artstation.com')) {
             b = sampleWorld.bannerUrl;
           }
@@ -317,12 +332,12 @@ export const useWorldStore = create<WorldState>((set, get) => ({
             const bannerHasArtstation = (ent.banner && ent.banner.toLowerCase().includes('artstation.com')) ||
                                        (ent.bannerUrl && ent.bannerUrl.toLowerCase().includes('artstation.com'));
 
-            let avatar = ent.avatar;
-            let avatarUrl = ent.avatarUrl || ent.avatar;
-            let banner = ent.banner;
-            let bannerUrl = ent.bannerUrl || ent.banner;
-            let attribution = ent.attribution;
-            let artAttribution = ent.artAttribution || ent.attribution;
+            let avatar = optimizeMuseumUrl(ent.avatar);
+            let avatarUrl = optimizeMuseumUrl(ent.avatarUrl || ent.avatar);
+            let banner = optimizeMuseumUrl(ent.banner);
+            let bannerUrl = optimizeMuseumUrl(ent.bannerUrl || ent.banner);
+            let attribution = optimizeAttribution(ent.attribution);
+            let artAttribution = optimizeAttribution(ent.artAttribution || ent.attribution);
 
             if (sampleMatch) {
               // Only heal if avatar is missing or broken artstation domain; DO NOT wipe user-uploaded custom images!
@@ -367,9 +382,9 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           healedMaps[wId] = (list || []).map((m: WorldMap) => {
             const hasArtstation = m.imageUrl && m.imageUrl.toLowerCase().includes('artstation.com');
             const hasBrokenWikimedia = m.imageUrl && m.imageUrl.includes('upload.wikimedia.org') && m.imageUrl.includes('Waghenaer');
-            let imageUrl = m.imageUrl;
-            let attribution = m.attribution;
-            let artAttribution = m.artAttribution || m.attribution;
+            let imageUrl = optimizeMuseumUrl(m.imageUrl) || '';
+            let attribution = optimizeAttribution(m.attribution);
+            let artAttribution = optimizeAttribution(m.artAttribution || m.attribution);
 
             if (m.id === sampleMap.id) {
               // Only fallback to sampleMap if the image is missing, has an old broken artstation link, or has the legacy broken wikimedia URL
@@ -416,10 +431,21 @@ export const useWorldStore = create<WorldState>((set, get) => ({
                       title: entMatch.title || node.data.title,
                       subtitle: entMatch.summary || node.data.subtitle,
                       entityType: entMatch.type || node.data.entityType,
-                      avatar: (entMatch.avatar !== undefined && entMatch.avatar !== '') ? entMatch.avatar : node.data.avatar,
+                      avatar: optimizeMuseumUrl((entMatch.avatar !== undefined && entMatch.avatar !== '') ? entMatch.avatar : node.data.avatar),
                       tags: (entMatch.tags && entMatch.tags.length > 0) ? entMatch.tags : node.data.tags,
-                      attribution: (entMatch as any).attribution || (sampleEntityMap.get(entMatch.id) as any)?.attribution || node.data.attribution,
-                      artAttribution: (entMatch as any).artAttribution || (sampleEntityMap.get(entMatch.id) as any)?.artAttribution || node.data.artAttribution || (entMatch as any).attribution
+                      attribution: optimizeAttribution((entMatch as any).attribution || (sampleEntityMap.get(entMatch.id) as any)?.attribution || node.data.attribution),
+                      artAttribution: optimizeAttribution((entMatch as any).artAttribution || (sampleEntityMap.get(entMatch.id) as any)?.artAttribution || node.data.artAttribution || (entMatch as any).attribution)
+                    }
+                  };
+                }
+                if (node.data.avatar) {
+                  return {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      avatar: optimizeMuseumUrl(node.data.avatar),
+                      attribution: optimizeAttribution(node.data.attribution),
+                      artAttribution: optimizeAttribution(node.data.artAttribution)
                     }
                   };
                 }
@@ -480,18 +506,18 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       conlangs: s.conlangs
     };
     try {
-      const jsonStr = JSON.stringify(payload, null, 2);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('oros_vault', jsonStr);
-      }
+      const jsonStr = JSON.stringify(payload);
       if (typeof window !== 'undefined' && window.oros) {
         await window.oros.saveVault(jsonStr);
+      } else if (typeof window !== 'undefined') {
+        localStorage.setItem('oros_vault', jsonStr);
       }
     } catch (err) {
       console.error('Failed to flush vault save:', err);
     } finally {
-      isSavingActive = false;
-      set({ isSaving: false });
+      if (get().isSaving) {
+        set({ isSaving: false });
+      }
     }
   },
 
@@ -506,16 +532,11 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       clearTimeout(persistDebounceTimer);
     }
 
-    if (!isSavingActive) {
-      isSavingActive = true;
-      set({ isSaving: true });
-    }
-
     return new Promise<void>((resolve) => {
       persistDebounceTimer = setTimeout(async () => {
         await get().flushSave();
         resolve();
-      }, Math.max(300, interval));
+      }, Math.max(500, interval));
     });
   },
 

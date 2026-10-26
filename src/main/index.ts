@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, protocol, net, nativeImage } from 'electron'
 import { join, dirname, extname, basename } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, statSync, promises as fsPromises } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { checkGitHubRelease, downloadAssetToFile, launchInstaller } from './updater.js'
 
@@ -9,6 +9,9 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
+
+// Cap decoded image cache and V8 heap overhead to keep idle and canvas memory low
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512')
 
 // Register privileged custom protocol for local world assets
 protocol.registerSchemesAsPrivileged([
@@ -57,6 +60,8 @@ function getInitialVaultPath(): string {
 }
 
 let activeVaultPath = getInitialVaultPath()
+let directoriesEnsuredForPath = ''
+let lastBackupTimeMs = 0
 
 function getAssetsPath(): string {
   return join(activeVaultPath, 'assets')
@@ -70,19 +75,21 @@ function getBackupsPath(): string {
   return join(activeVaultPath, 'backups')
 }
 
-// Ensure directory tree exists
+// Ensure directory tree exists (cached per activeVaultPath to avoid repeated sync stat calls)
 function ensureDirectories() {
+  if (directoriesEnsuredForPath === activeVaultPath) return
   if (!existsSync(activeVaultPath)) mkdirSync(activeVaultPath, { recursive: true })
   if (!existsSync(getAssetsPath())) mkdirSync(getAssetsPath(), { recursive: true })
   if (!existsSync(getBackupsPath())) mkdirSync(getBackupsPath(), { recursive: true })
+  directoriesEnsuredForPath = activeVaultPath
 }
 
-function loadVaultData(): string | null {
+async function loadVaultData(): Promise<string | null> {
   try {
     ensureDirectories()
     const dataFilePath = getDataFilePath()
     if (existsSync(dataFilePath)) {
-      return readFileSync(dataFilePath, 'utf-8')
+      return await fsPromises.readFile(dataFilePath, 'utf-8')
     }
   } catch (err) {
     console.error('Failed to load vault data:', err)
@@ -90,20 +97,20 @@ function loadVaultData(): string | null {
   return null
 }
 
-function saveVaultData(jsonContent: string): boolean {
+async function saveVaultData(jsonContent: string): Promise<boolean> {
   try {
     ensureDirectories()
     const dataFilePath = getDataFilePath()
-    // Create backup before writing
-    if (existsSync(dataFilePath)) {
-      try {
-        const backupFilePath = join(getBackupsPath(), `oros_vault_${new Date().toISOString().slice(0, 10)}.json.bak`)
-        copyFileSync(dataFilePath, backupFilePath)
-      } catch (backupErr) {
+    const now = Date.now()
+    // Throttle backup creation to once every 10 minutes instead of on every auto-save
+    if (now - lastBackupTimeMs > 10 * 60 * 1000 && existsSync(dataFilePath)) {
+      lastBackupTimeMs = now
+      const backupFilePath = join(getBackupsPath(), `oros_vault_${new Date().toISOString().slice(0, 10)}.json.bak`)
+      fsPromises.copyFile(dataFilePath, backupFilePath).catch((backupErr) => {
         console.warn('Could not write backup file:', backupErr)
-      }
+      })
     }
-    writeFileSync(dataFilePath, jsonContent, 'utf-8')
+    await fsPromises.writeFile(dataFilePath, jsonContent, 'utf-8')
     return true
   } catch (err) {
     console.error('Failed to save vault data:', err)

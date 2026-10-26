@@ -192,6 +192,7 @@ export function calculateObstacleAvoidanceRoute(
   }
 
   const openSet: GridNode[] = []
+  const openMap = new Map<string, GridNode>()
   const closedSet = new Set<string>()
   const key = (x: number, y: number) => `${Math.round(x)},${Math.round(y)}`
 
@@ -204,81 +205,82 @@ export function calculateObstacleAvoidanceRoute(
   }
   startNode.f = startNode.h
   openSet.push(startNode)
+  openMap.set(key(startNode.x, startNode.y), startNode)
 
   let finalNode: GridNode | null = null
   let iterations = 0
   const maxIterations = 800
 
+  const tryNeighbor = (current: GridNode, nx: number, ny: number, dir: 'h' | 'v', dist: number) => {
+    const nKey = key(nx, ny)
+    if (closedSet.has(nKey)) return
+
+    // Verify no collision with obstacles
+    for (let i = 0; i < paddedObstacles.length; i++) {
+      if (
+        lineIntersectsBox(
+          { x: current.x, y: current.y },
+          { x: nx, y: ny },
+          paddedObstacles[i].box,
+          padding - 2
+        )
+      ) {
+        return
+      }
+    }
+
+    // Turn penalty (+60 per bend) to favor minimal turn orthogonal paths
+    const isTurn = current.dir && current.dir !== dir
+    const turnCost = isTurn ? 60 : 0
+    const tentativeG = current.g + dist + turnCost
+
+    const existing = openMap.get(nKey)
+    if (!existing) {
+      const h = Math.abs(nx - endStub.x) + Math.abs(ny - endStub.y)
+      const nextNode: GridNode = {
+        x: nx,
+        y: ny,
+        g: tentativeG,
+        h,
+        f: tentativeG + h,
+        parent: current,
+        dir
+      }
+      openSet.push(nextNode)
+      openMap.set(nKey, nextNode)
+    } else if (tentativeG < existing.g) {
+      existing.g = tentativeG
+      existing.f = tentativeG + existing.h
+      existing.parent = current
+      existing.dir = dir
+    }
+  }
+
   while (openSet.length > 0 && iterations++ < maxIterations) {
     openSet.sort((a, b) => a.f - b.f)
     const current = openSet.shift()!
+    const cKey = key(current.x, current.y)
+    openMap.delete(cKey)
 
     if (Math.abs(current.x - endStub.x) < 1 && Math.abs(current.y - endStub.y) < 1) {
       finalNode = current
       break
     }
 
-    closedSet.add(key(current.x, current.y))
-
-    // Expand neighbors along orthogonal grid lines
-    const neighbors: { x: number; y: number; dir: 'h' | 'v'; dist: number }[] = []
+    closedSet.add(cKey)
 
     // Horizontal moves
-    for (const nx of xCoords) {
+    for (let i = 0; i < xCoords.length; i++) {
+      const nx = xCoords[i]
       if (nx !== current.x) {
-        neighbors.push({ x: nx, y: current.y, dir: 'h', dist: Math.abs(nx - current.x) })
+        tryNeighbor(current, nx, current.y, 'h', Math.abs(nx - current.x))
       }
     }
     // Vertical moves
-    for (const ny of yCoords) {
+    for (let i = 0; i < yCoords.length; i++) {
+      const ny = yCoords[i]
       if (ny !== current.y) {
-        neighbors.push({ x: current.x, y: ny, dir: 'v', dist: Math.abs(ny - current.y) })
-      }
-    }
-
-    for (const n of neighbors) {
-      if (closedSet.has(key(n.x, n.y))) continue
-
-      // Verify no collision with obstacles
-      let collides = false
-      for (const obs of paddedObstacles) {
-        if (
-          lineIntersectsBox(
-            { x: current.x, y: current.y },
-            { x: n.x, y: n.y },
-            obs.box,
-            padding - 2
-          )
-        ) {
-          collides = true
-          break
-        }
-      }
-      if (collides) continue
-
-      // Turn penalty (+60 per bend) to favor minimal turn orthogonal paths
-      const isTurn = current.dir && current.dir !== n.dir
-      const turnCost = isTurn ? 60 : 0
-      const tentativeG = current.g + n.dist + turnCost
-
-      let existing = openSet.find((node) => Math.abs(node.x - n.x) < 1 && Math.abs(node.y - n.y) < 1)
-      if (!existing) {
-        const h = Math.abs(n.x - endStub.x) + Math.abs(n.y - endStub.y)
-        existing = {
-          x: n.x,
-          y: n.y,
-          g: tentativeG,
-          h,
-          f: tentativeG + h,
-          parent: current,
-          dir: n.dir
-        }
-        openSet.push(existing)
-      } else if (tentativeG < existing.g) {
-        existing.g = tentativeG
-        existing.f = tentativeG + existing.h
-        existing.parent = current
-        existing.dir = n.dir
+        tryNeighbor(current, current.x, ny, 'v', Math.abs(ny - current.y))
       }
     }
   }

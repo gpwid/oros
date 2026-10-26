@@ -51,7 +51,7 @@ function getOptimalHandles(
 }
 
 // Rock-solid straight edge connecting cardinal handles directly
-const DirectStraightEdge: React.FC<EdgeProps> = ({
+const DirectStraightEdge: React.FC<EdgeProps> = React.memo(({
   id,
   sourceX,
   sourceY,
@@ -62,11 +62,11 @@ const DirectStraightEdge: React.FC<EdgeProps> = ({
 }) => {
   const [edgePath] = getStraightPath({ sourceX, sourceY, targetX, targetY })
   return <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={style} />
-}
+})
 
 // Compact, high-density Wiki Node for the Knowledge Network
 // UNIFIED SINGLE-COLOR PALETTE: Muted Gold & Slate (Easier to look at)
-const WikiArticleNode = ({ data }: { data: { 
+const WikiArticleNode = React.memo(({ data }: { data: { 
   entity: LoreEntity; 
   degree: number; 
   inDegree: number;
@@ -76,7 +76,7 @@ const WikiArticleNode = ({ data }: { data: {
   hoverMotion?: boolean;
   onSelect: (id: string) => void;
 } }) => {
-  const { entity, degree, inDegree, outDegree, isHub, isSelected, hoverMotion = true } = data
+  const { entity, degree, inDegree, outDegree, isHub, isSelected, hoverMotion = false } = data
   const catMeta = getCategoryMeta(entity.type)
   const Icon = getCategoryIconComponent(catMeta.icon)
   const [imgError, setImgError] = useState(false)
@@ -130,6 +130,8 @@ const WikiArticleNode = ({ data }: { data: {
             <img 
               src={entity.avatar} 
               alt={entity.title} 
+              loading="lazy"
+              decoding="async"
               onError={() => setImgError(true)}
               className="w-full h-full object-cover" 
             />
@@ -163,7 +165,7 @@ const WikiArticleNode = ({ data }: { data: {
       </div>
     </div>
   )
-}
+})
 
 const nodeTypes = {
   wikiArticle: WikiArticleNode
@@ -437,7 +439,7 @@ const WikiNetworkGraphInner: React.FC = () => {
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false)
   const [selectedWikiId, setSelectedWikiId] = useState<string | null>(null)
   const [showOnlyHubs, setShowOnlyHubs] = useState(false)
-  const [hoverMotion, setHoverMotion] = useState(true)
+  const [hoverMotion, setHoverMotion] = useState(false)
 
   const filterDropdownRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)

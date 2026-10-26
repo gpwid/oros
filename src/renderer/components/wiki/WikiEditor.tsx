@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -32,6 +32,10 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
 }) => {
   const { addToast } = useToastStore()
   const { settings } = useSettingsStore()
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastEmittedHtmlRef = useRef<string>(content)
 
   const editor = useEditor({
     extensions: [
@@ -78,7 +82,14 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
       }
     },
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML())
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = setTimeout(() => {
+        debounceTimerRef.current = null
+        const html = editor.getHTML()
+        lastEmittedHtmlRef.current = html
+        onChangeRef.current(html)
+      }, 150)
+
       if (settings.editor.typewriterMode) {
         // Typewriter scrolling: center cursor line vertically in viewport
         const sel = window.getSelection()
@@ -89,9 +100,23 @@ export const WikiEditor: React.FC<WikiEditorProps> = ({
     }
   })
 
+  // Flush any pending editor update on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current && editor) {
+        clearTimeout(debounceTimerRef.current)
+        debounceTimerRef.current = null
+        const html = editor.getHTML()
+        lastEmittedHtmlRef.current = html
+        onChangeRef.current(html)
+      }
+    }
+  }, [editor])
+
   // Synchronize when entity selection changes externally
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
+    if (editor && content !== lastEmittedHtmlRef.current && content !== editor.getHTML()) {
+      lastEmittedHtmlRef.current = content
       editor.commands.setContent(content)
     }
   }, [content, editor])

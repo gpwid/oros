@@ -38,20 +38,30 @@ export const CommandPalette: React.FC = () => {
     }
   }, [selectedIndex])
 
-  const { 
-    entities, maps, manuscripts, timelines, conlangs, activeWorldId, 
-    setActiveTab, setSelectedEntityId, setSelectedMapId, setSelectedChapterId,
-    toggleGmMode, gmMode, exportWorld, createEntity, openTab 
-  } = useWorldStore()
+  const activeWorldId = useWorldStore((s) => s.activeWorldId)
+  const entities = useWorldStore((s) => (isOpen ? s.entities : null))
+  const maps = useWorldStore((s) => (isOpen ? s.maps : null))
+  const manuscripts = useWorldStore((s) => (isOpen ? s.manuscripts : null))
+  const timelines = useWorldStore((s) => (isOpen ? s.timelines : null))
+  const conlangs = useWorldStore((s) => (isOpen ? s.conlangs : null))
+  const setActiveTab = useWorldStore((s) => s.setActiveTab)
+  const setSelectedEntityId = useWorldStore((s) => s.setSelectedEntityId)
+  const setSelectedMapId = useWorldStore((s) => s.setSelectedMapId)
+  const setSelectedChapterId = useWorldStore((s) => s.setSelectedChapterId)
+  const toggleGmMode = useWorldStore((s) => s.toggleGmMode)
+  const gmMode = useWorldStore((s) => s.gmMode)
+  const exportWorld = useWorldStore((s) => s.exportWorld)
+  const createEntity = useWorldStore((s) => s.createEntity)
+  const openTab = useWorldStore((s) => s.openTab)
 
   const { addToast } = useToastStore()
   const { openSettings } = useSettingsStore()
 
-  const worldEntities = useMemo(() => activeWorldId ? entities[activeWorldId] || [] : [], [activeWorldId, entities])
-  const worldMaps = useMemo(() => activeWorldId ? maps[activeWorldId] || [] : [], [activeWorldId, maps])
-  const worldChapters = useMemo(() => activeWorldId ? manuscripts[activeWorldId] || [] : [], [activeWorldId, manuscripts])
-  const worldTimelines = useMemo(() => activeWorldId ? timelines[activeWorldId] || [] : [], [activeWorldId, timelines])
-  const worldConlangs = useMemo(() => activeWorldId ? conlangs[activeWorldId] || [] : [], [activeWorldId, conlangs])
+  const worldEntities = useMemo(() => (isOpen && activeWorldId && entities ? entities[activeWorldId] || [] : []), [isOpen, activeWorldId, entities])
+  const worldMaps = useMemo(() => (isOpen && activeWorldId && maps ? maps[activeWorldId] || [] : []), [isOpen, activeWorldId, maps])
+  const worldChapters = useMemo(() => (isOpen && activeWorldId && manuscripts ? manuscripts[activeWorldId] || [] : []), [isOpen, activeWorldId, manuscripts])
+  const worldTimelines = useMemo(() => (isOpen && activeWorldId && timelines ? timelines[activeWorldId] || [] : []), [isOpen, activeWorldId, timelines])
+  const worldConlangs = useMemo(() => (isOpen && activeWorldId && conlangs ? conlangs[activeWorldId] || [] : []), [isOpen, activeWorldId, conlangs])
 
   // Global keydown shortcut listener (Ctrl+K or Cmd+K)
   useEffect(() => {

@@ -19,12 +19,3 @@ release/
 *.exe
 *.7z
 *.tmp
-.agents/
-showcase-assets/
-DESIGN.md
-FEATURES.md
-PROJECT.md
-ORIGINAL_REQUEST.md
-TEST_INFRA.md
-TEST_READY.md
-

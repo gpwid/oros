@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <strong>https://gpwid.github.io/oros-landing-page/</strong>
+  <strong>https://oros.lacrisunny.workers.dev/</strong>
 </p>
 
 

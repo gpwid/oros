@@ -17,6 +17,7 @@
 
 
 <p align="center">
+  <a href="https://github.com/gpwid/oros/releases/latest"><img src="https://img.shields.io/github/v/release/gpwid/oros?style=flat-square&color=blue" alt="Latest Release"></a>
   <a href="https://github.com/gpwid/oros/releases"><img src="https://img.shields.io/badge/Platform-Windows%2064--bit-212732.svg?style=flat-square" alt="Platform: Windows 64-bit"></a>
   <a href="https://github.com/gpwid/oros/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-6366f1.svg?style=flat-square" alt="License: MIT"></a>
   <a href="https://github.com/gpwid/oros"><img src="https://img.shields.io/badge/Storage-100%25%20Offline%20Local-10b981.svg?style=flat-square" alt="Storage: 100% Offline Local"></a>

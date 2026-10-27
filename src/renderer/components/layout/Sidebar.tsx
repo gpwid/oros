@@ -585,7 +585,7 @@ export const Sidebar: React.FC = () => {
                 className="bg-oros-950 border border-accent rounded-[3px] px-1.5 py-0.5 text-xs text-white outline-none w-32 focus:ring-1 focus:ring-accent/40"
               />
             ) : (
-              <span className="truncate font-medium text-slate-200">{folder.name}</span>
+              <span className="truncate font-medium text-oros-100">{folder.name}</span>
             )}
 
             {/* Item count badge */}
@@ -613,7 +613,7 @@ export const Sidebar: React.FC = () => {
                 setEditingFolderId(folder.id)
                 setEditingFolderName(folder.name)
               }}
-              className="p-1 rounded hover:bg-oros-800 text-oros-400 hover:text-slate-200"
+              className="p-1 rounded hover:bg-oros-800 text-oros-400 hover:text-oros-100"
               title="Rename folder"
             >
               <Edit2 className="w-3 h-3" />

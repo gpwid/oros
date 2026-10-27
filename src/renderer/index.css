@@ -41,38 +41,41 @@ html.light {
   color-scheme: light;
 }
 
-/* Light mode text & element adjustments */
+/* Light mode and theme-aware base adjustments */
 [data-color-mode="light"] body,
-html.light body {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
-}
-
+html.light body,
 [data-color-mode="light"] #root,
 html.light #root {
-  background-color: #f8fafc !important;
+  background-color: rgb(var(--oros-950-rgb)) !important;
+  color: rgb(var(--oros-100-rgb)) !important;
 }
 
-/* Direct Fail-Safe Semantic Background Overrides for Light Mode */
+body,
+#root {
+  background-color: rgb(var(--oros-950-rgb));
+  color: rgb(var(--oros-100-rgb));
+}
+
+/* Fail-Safe Semantic Background Overrides for Light Mode using Theme Variables */
 [data-color-mode="light"] .bg-oros-950,
 html.light .bg-oros-950 {
-  background-color: #f8fafc !important;
+  background-color: rgb(var(--oros-950-rgb)) !important;
 }
 [data-color-mode="light"] .bg-oros-900,
 html.light .bg-oros-900 {
-  background-color: #ffffff !important;
+  background-color: rgb(var(--oros-900-rgb)) !important;
 }
 [data-color-mode="light"] .bg-oros-850,
 html.light .bg-oros-850 {
-  background-color: #f1f5f9 !important;
+  background-color: rgb(var(--oros-850-rgb)) !important;
 }
 [data-color-mode="light"] .bg-oros-800,
 html.light .bg-oros-800 {
-  background-color: #e2e8f0 !important;
+  background-color: rgb(var(--oros-800-rgb)) !important;
 }
 [data-color-mode="light"] .bg-oros-750,
 html.light .bg-oros-750 {
-  background-color: #cbd5e1 !important;
+  background-color: rgb(var(--oros-750-rgb)) !important;
 }
 
 /* Modal and Overlay Backdrops in Light Mode */
@@ -89,27 +92,19 @@ html.light .bg-black\/60 {
   background-color: rgba(15, 23, 42, 0.45) !important;
 }
 
-/* Hardcoded dark backgrounds fallback in Light Mode */
-[data-color-mode="light"] [class*="bg-[#080b11]"],
-html.light [class*="bg-[#080b11]"],
-[data-color-mode="light"] [class*="bg-[#0c1017]"],
-html.light [class*="bg-[#0c1017]"],
-[data-color-mode="light"] [class*="bg-[#0e131d]"],
-html.light [class*="bg-[#0e131d]"],
-[data-color-mode="light"] [class*="bg-[#0b0f17]"],
-html.light [class*="bg-[#0b0f17]"],
-[data-color-mode="light"] [class*="bg-[#0d121c]"],
-html.light [class*="bg-[#0d121c]"],
-[data-color-mode="light"] [class*="bg-[#05070a]"],
-html.light [class*="bg-[#05070a]"] {
-  background-color: #ffffff !important;
+/* Hardcoded dark backgrounds fallback to theme card/panel surface */
+[class*="bg-[#080b11]"],
+[class*="bg-[#0c1017]"],
+[class*="bg-[#0e131d]"],
+[class*="bg-[#0b0f17]"],
+[class*="bg-[#0d121c]"],
+[class*="bg-[#05070a]"] {
+  background-color: rgb(var(--oros-900-rgb)) !important;
 }
 
-[data-color-mode="light"] [class*="hover:bg-[#121824]"]:hover,
-html.light [class*="hover:bg-[#121824]"]:hover,
-[data-color-mode="light"] [class*="hover:bg-[#0e131d]"]:hover,
-html.light [class*="hover:bg-[#0e131d]"]:hover {
-  background-color: #f1f5f9 !important;
+[class*="hover:bg-[#121824]"]:hover,
+[class*="hover:bg-[#0e131d]"]:hover {
+  background-color: rgb(var(--oros-850-rgb)) !important;
 }
 
 /* Direct Text Color Overrides for Light Mode */
@@ -132,6 +127,28 @@ html.light .text-oros-400 {
 [data-color-mode="light"] .text-oros-500,
 html.light .text-oros-500 {
   color: #94a3b8 !important;
+}
+
+/* Fallback for hardcoded light slates and hex colors in Light Mode */
+[data-color-mode="light"] .text-slate-100,
+html.light .text-slate-100,
+[data-color-mode="light"] .text-slate-200,
+html.light .text-slate-200,
+[data-color-mode="light"] .text-slate-300,
+html.light .text-slate-300,
+[data-color-mode="light"] [class*="text-[#f1f5f9]"],
+html.light [class*="text-[#f1f5f9]"],
+[data-color-mode="light"] [class*="text-[#cbd5e1]"],
+html.light [class*="text-[#cbd5e1]"],
+[data-color-mode="light"] [class*="text-[#e2e8f0]"],
+html.light [class*="text-[#e2e8f0]"] {
+  color: #0f172a !important;
+}
+
+/* Ensure reader view article header h1 is prominently dark and readable in Light Mode */
+[data-color-mode="light"] article header h1,
+html.light article header h1 {
+  color: #0f172a !important;
 }
 
 /* Border Overrides for Light Mode */
@@ -307,6 +324,30 @@ html.light .oros-wiki-prose h3 {
   --oros-accent-contrast: #090a0d;
 }
 
+[data-theme="amethyst"] {
+  /* Arcane Amethyst (Velvet Purple / Luminous Violet) */
+  --oros-accent: #c084fc;
+  --oros-accent-muted: rgba(192, 132, 252, 0.16);
+  --oros-accent-subtle: rgba(192, 132, 252, 0.06);
+  --oros-accent-border: rgba(192, 132, 252, 0.38);
+  --oros-accent-hover: #d8b4fe;
+  --oros-accent-ring: rgba(192, 132, 252, 0.30);
+  --oros-accent-glow: rgba(192, 132, 252, 0.28);
+  --oros-accent-contrast: #130f1c;
+}
+
+[data-theme="obsidian"] {
+  /* Obsidian Midnight */
+  --oros-accent: #94a3b8;
+  --oros-accent-muted: rgba(148, 163, 184, 0.14);
+  --oros-accent-subtle: rgba(148, 163, 184, 0.05);
+  --oros-accent-border: rgba(148, 163, 184, 0.35);
+  --oros-accent-hover: #cbd5e1;
+  --oros-accent-ring: rgba(148, 163, 184, 0.30);
+  --oros-accent-glow: rgba(148, 163, 184, 0.20);
+  --oros-accent-contrast: #090a0d;
+}
+
 /* Primary Accent Button Utility guaranteeing WCAG contrast text */
 .btn-accent {
   background-color: var(--oros-accent, #e2e8f0) !important;
@@ -378,6 +419,28 @@ html.light .oros-wiki-prose h3 {
   --oros-accent-ring: rgba(16, 185, 129, 0.30);
   --oros-accent-glow: rgba(16, 185, 129, 0.25);
   --oros-accent-contrast: #090a0d;
+}
+
+[data-theme="nord"] {
+  --oros-accent: #88c0d0;
+  --oros-accent-muted: rgba(136, 192, 208, 0.14);
+  --oros-accent-subtle: rgba(136, 192, 208, 0.05);
+  --oros-accent-border: rgba(136, 192, 208, 0.35);
+  --oros-accent-hover: #81a1c1;
+  --oros-accent-ring: rgba(136, 192, 208, 0.30);
+  --oros-accent-glow: rgba(136, 192, 208, 0.25);
+  --oros-accent-contrast: #242933;
+}
+
+[data-theme="parchment"] {
+  --oros-accent: #e5c07b;
+  --oros-accent-muted: rgba(229, 192, 123, 0.14);
+  --oros-accent-subtle: rgba(229, 192, 123, 0.05);
+  --oros-accent-border: rgba(229, 192, 123, 0.35);
+  --oros-accent-hover: #f3d699;
+  --oros-accent-ring: rgba(229, 192, 123, 0.30);
+  --oros-accent-glow: rgba(229, 192, 123, 0.25);
+  --oros-accent-contrast: #171412;
 }
 
 @layer base {
@@ -582,6 +645,23 @@ html.light .oros-wiki-prose h3 {
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.24);
 }
 
+[data-color-mode="light"] .oros-wiki-link,
+html.light .oros-wiki-link {
+  background-color: rgba(2, 132, 199, 0.12);
+  color: #0284c7;
+  border-color: rgba(2, 132, 199, 0.35);
+  border-bottom: 1.5px solid #0284c7;
+}
+
+[data-color-mode="light"] .oros-wiki-link:hover,
+html.light .oros-wiki-link:hover {
+  background-color: rgba(2, 132, 199, 0.20);
+  color: #0369a1;
+  border-color: #0284c7;
+}
+
+[data-color-mode="light"] .oros-conlang-term,
+html.light .oros-conlang-term,
 [data-mode="light"] .oros-conlang-term {
   background-color: rgba(217, 119, 6, 0.12);
   color: #b45309;
@@ -589,6 +669,8 @@ html.light .oros-wiki-prose h3 {
   border-bottom-color: #d97706;
 }
 
+[data-color-mode="light"] .oros-conlang-term:hover,
+html.light .oros-conlang-term:hover,
 [data-mode="light"] .oros-conlang-term:hover {
   background-color: rgba(217, 119, 6, 0.2);
   color: #92400e;

@@ -10,25 +10,20 @@ import { getThemeTokens, ThemeTokens } from './themeEngine'
  */
 export function useActiveThemeTokens(): ThemeTokens {
   const activeWorld = useWorldStore((s) => s.worlds.find((w) => w.id === s.activeWorldId) || s.worlds[0])
+  const appView = useWorldStore((s) => s.appView)
   const interfaceSettings = useSettingsStore((s) => s.settings.interface)
 
   return useMemo(() => {
     const isLight = getEffectiveColorMode(interfaceSettings.colorMode) === 'light'
 
-    // If world has a specific theme config override and global theme is not forced
-    if (!interfaceSettings.forceGlobalTheme && activeWorld?.themeConfig) {
-      return getThemeTokens(undefined, undefined, isLight, activeWorld.themeConfig)
-    }
-
-    // If global theme is forced or global custom theme config is selected
-    const activeCustomTheme = interfaceSettings.customThemes?.find(
-      (t) => t.id === interfaceSettings.themePreset
-    )
-    if (activeCustomTheme) {
-      return getThemeTokens(undefined, undefined, isLight, activeCustomTheme)
-    }
-
-    if (interfaceSettings.forceGlobalTheme) {
+    // If global theme is forced OR on home view
+    if (interfaceSettings.forceGlobalTheme || appView === 'home') {
+      const activeCustomTheme = interfaceSettings.customThemes?.find(
+        (t) => t.id === interfaceSettings.themePreset
+      )
+      if (activeCustomTheme) {
+        return getThemeTokens(undefined, undefined, isLight, activeCustomTheme)
+      }
       return getThemeTokens(
         interfaceSettings.themePreset,
         interfaceSettings.themePreset === 'custom' ? interfaceSettings.customAccentColor : undefined,
@@ -36,8 +31,31 @@ export function useActiveThemeTokens(): ThemeTokens {
       )
     }
 
-    return getThemeTokens(activeWorld?.theme, activeWorld?.customAccentColor, isLight)
+    // Vault has specific custom config override
+    if (activeWorld?.themeConfig) {
+      return getThemeTokens(undefined, undefined, isLight, activeWorld.themeConfig)
+    }
+
+    // Vault has specific theme preset override
+    if (activeWorld?.theme && activeWorld.theme !== 'inherit') {
+      return getThemeTokens(activeWorld.theme, activeWorld.customAccentColor, isLight)
+    }
+
+    // Vault inherits global theme
+    const activeCustomTheme = interfaceSettings.customThemes?.find(
+      (t) => t.id === interfaceSettings.themePreset
+    )
+    if (activeCustomTheme) {
+      return getThemeTokens(undefined, undefined, isLight, activeCustomTheme)
+    }
+
+    return getThemeTokens(
+      interfaceSettings.themePreset,
+      interfaceSettings.themePreset === 'custom' ? interfaceSettings.customAccentColor : undefined,
+      isLight
+    )
   }, [
+    appView,
     activeWorld?.theme,
     activeWorld?.customAccentColor,
     activeWorld?.themeConfig,

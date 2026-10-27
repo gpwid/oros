@@ -17,10 +17,11 @@ export interface ThemePresetOption {
 }
 
 export const THEME_PRESETS: ThemePresetOption[] = [
+  { id: 'amethyst', name: 'Arcane Amethyst', hex: '#c084fc', author: 'Oros Team', desc: 'Deep mystic velvet purple background with luminous violet' },
   { id: 'sovereign', name: 'Platinum Sovereign', hex: '#ffffff', author: 'Oros Team', desc: 'Precision silver and lunar platinum' },
   { id: 'obsidian', name: 'Obsidian Midnight', hex: '#94a3b8', author: 'Oros Team', desc: 'Tactile charcoal slate and physical hairlines' },
   { id: 'mythic', name: 'Mythic Amber', hex: '#f5c542', author: 'Oros Team', desc: 'Illuminated gold and warm archival parchment' },
-  { id: 'cyber', name: 'Cyber Cyan', hex: '#06b6d4', author: 'Oros Team', desc: 'Electric cyan against deep void slates' },
+  { id: 'cyber', name: 'Cyber Cyan', hex: '#00f0ff', author: 'Oros Team', desc: 'Electric cyan against deep void slates' },
   { id: 'crimson', name: 'Crimson Ember', hex: '#f43f5e', author: 'Oros Team', desc: 'Rich nocturne rose and rubies' },
   { id: 'hazard', name: 'Hazard Ochre', hex: '#f97316', author: 'Oros Team', desc: 'Industrial amber-orange with mechanical precision' },
   { id: 'emerald', name: 'Emerald Verdant', hex: '#10b981', author: 'Oros Team', desc: 'Deep botanical emerald and jade' },
@@ -29,6 +30,17 @@ export const THEME_PRESETS: ThemePresetOption[] = [
 ]
 
 export const PRESET_THEMES: Record<string, ThemeTokens> = {
+  amethyst: {
+    accent: '#c084fc',
+    muted: 'rgba(192, 132, 252, 0.16)',
+    subtle: 'rgba(192, 132, 252, 0.06)',
+    border: 'rgba(192, 132, 252, 0.38)',
+    hover: '#d8b4fe',
+    ring: 'rgba(192, 132, 252, 0.30)',
+    glow: 'rgba(192, 132, 252, 0.28)',
+    contrast: '#130f1c',
+    dots: 'rgba(192, 132, 252, 0.35)',
+  },
   sovereign: {
     accent: '#ffffff',
     muted: 'rgba(255, 255, 255, 0.12)',
@@ -63,15 +75,15 @@ export const PRESET_THEMES: Record<string, ThemeTokens> = {
     dots: 'rgba(245, 197, 66, 0.38)',
   },
   cyber: {
-    accent: '#06b6d4',
-    muted: 'rgba(6, 182, 212, 0.14)',
-    subtle: 'rgba(6, 182, 212, 0.05)',
-    border: 'rgba(6, 182, 212, 0.35)',
-    hover: '#22d3ee',
-    ring: 'rgba(6, 182, 212, 0.30)',
-    glow: 'rgba(6, 182, 212, 0.25)',
-    contrast: '#090a0d',
-    dots: 'rgba(6, 182, 212, 0.38)',
+    accent: '#00f0ff',
+    muted: 'rgba(0, 240, 255, 0.15)',
+    subtle: 'rgba(0, 240, 255, 0.06)',
+    border: 'rgba(0, 240, 255, 0.38)',
+    hover: '#38bdf8',
+    ring: 'rgba(0, 240, 255, 0.30)',
+    glow: 'rgba(0, 240, 255, 0.28)',
+    contrast: '#060b12',
+    dots: 'rgba(0, 240, 255, 0.38)',
   },
   crimson: {
     accent: '#f43f5e',
@@ -114,7 +126,7 @@ export const PRESET_THEMES: Record<string, ThemeTokens> = {
     hover: '#81a1c1',
     ring: 'rgba(136, 192, 208, 0.30)',
     glow: 'rgba(136, 192, 208, 0.25)',
-    contrast: '#2e3440',
+    contrast: '#242933',
     dots: 'rgba(136, 192, 208, 0.38)',
   },
   parchment: {
@@ -125,12 +137,23 @@ export const PRESET_THEMES: Record<string, ThemeTokens> = {
     hover: '#f3d699',
     ring: 'rgba(229, 192, 123, 0.30)',
     glow: 'rgba(229, 192, 123, 0.25)',
-    contrast: '#1e1e1e',
+    contrast: '#171412',
     dots: 'rgba(229, 192, 123, 0.38)',
   }
 }
 
 export const PRESET_THEMES_LIGHT: Record<string, ThemeTokens> = {
+  amethyst: {
+    accent: '#9333ea',
+    muted: 'rgba(147, 51, 234, 0.12)',
+    subtle: 'rgba(147, 51, 234, 0.04)',
+    border: 'rgba(147, 51, 234, 0.32)',
+    hover: '#7e22ce',
+    ring: 'rgba(147, 51, 234, 0.25)',
+    glow: 'rgba(147, 51, 234, 0.20)',
+    contrast: '#ffffff',
+    dots: 'rgba(147, 51, 234, 0.35)',
+  },
   sovereign: {
     accent: '#0f172a',
     muted: 'rgba(15, 23, 42, 0.08)',
@@ -231,6 +254,346 @@ export const PRESET_THEMES_LIGHT: Record<string, ThemeTokens> = {
     dots: 'rgba(181, 137, 0, 0.35)',
   }
 }
+
+export interface ThemePaletteRgb {
+  50: string;
+  100: string;
+  200: string;
+  300: string;
+  400: string;
+  500: string;
+  600: string;
+  700: string;
+  750: string;
+  800: string;
+  850: string;
+  900: string;
+  950: string;
+}
+
+export const THEME_PALETTES: Record<string, { dark: ThemePaletteRgb; light: ThemePaletteRgb }> = {
+  amethyst: {
+    dark: {
+      950: '19 15 28',   // #130f1c - velvety deep dark purple background
+      900: '28 22 42',   // #1c162a - rich purple surface, cards, sidebars
+      850: '39 31 58',   // #271f3a - elevated inputs, active card backgrounds
+      800: '56 44 82',   // #382c52 - subtle violet borders
+      750: '76 60 110',  // #4c3c6e - medium violet borders
+      700: '98 78 140',  // #624e8c - strong borders
+      600: '128 105 178',
+      500: '160 140 205',
+      400: '190 175 228',
+      300: '218 206 242',
+      200: '238 230 250',
+      100: '250 245 255',
+      50: '255 255 255'
+    },
+    light: {
+      950: '250 245 255', // #faf5ff - faint lilac vellum
+      900: '255 255 255', // #ffffff - crisp white cards
+      850: '243 232 255', // #f3e8ff - soft lilac surface
+      800: '233 213 255', // #e9d5ff - borders
+      750: '216 180 254',
+      700: '192 132 252',
+      600: '168 85 247',
+      500: '147 51 234',
+      400: '126 34 206',
+      300: '107 33 168',
+      200: '59 7 100',
+      100: '36 4 60',
+      50: '20 2 35'
+    }
+  },
+  sovereign: {
+    dark: {
+      950: '9 10 13',
+      900: '15 17 22',
+      850: '20 23 31',
+      800: '27 31 40',
+      750: '33 39 50',
+      700: '44 51 64',
+      600: '67 76 94',
+      500: '96 107 129',
+      400: '135 147 167',
+      300: '180 189 205',
+      200: '215 220 228',
+      100: '237 240 244',
+      50: '248 249 250'
+    },
+    light: {
+      950: '248 250 252',
+      900: '255 255 255',
+      850: '241 245 249',
+      800: '226 232 240',
+      750: '218 224 233',
+      700: '203 213 225',
+      600: '148 163 184',
+      500: '100 116 139',
+      400: '71 85 105',
+      300: '51 65 85',
+      200: '30 41 59',
+      100: '15 23 42',
+      50: '2 6 23'
+    }
+  },
+  obsidian: {
+    dark: {
+      950: '8 9 11',
+      900: '15 17 21',
+      850: '23 26 33',
+      800: '35 40 51',
+      750: '48 55 69',
+      700: '64 73 92',
+      600: '88 99 122',
+      500: '120 133 158',
+      400: '156 168 191',
+      300: '194 204 222',
+      200: '224 231 242',
+      100: '245 248 252',
+      50: '255 255 255'
+    },
+    light: {
+      950: '248 250 252',
+      900: '255 255 255',
+      850: '241 245 249',
+      800: '226 232 240',
+      750: '203 213 225',
+      700: '148 163 184',
+      600: '100 116 139',
+      500: '71 85 105',
+      400: '51 65 85',
+      300: '30 41 59',
+      200: '15 23 42',
+      100: '2 6 23',
+      50: '2 6 23'
+    }
+  },
+  mythic: {
+    dark: {
+      950: '20 17 13',   // #14110d - warm dark umber
+      900: '29 24 19',   // #1d1813 - warm dark bronze surface
+      850: '41 34 27',   // #29221b - roasted chestnut
+      800: '61 51 39',   // #3d3327 - antique bronze borders
+      750: '84 70 54',
+      700: '110 92 70',
+      600: '145 122 93',
+      500: '180 154 120',
+      400: '212 186 149',
+      300: '235 214 182',
+      200: '248 233 209',
+      100: '254 246 230',
+      50: '255 255 255'
+    },
+    light: {
+      950: '251 247 238', // #fbf7ee - illuminated vellum
+      900: '255 255 255',
+      850: '245 236 216',
+      800: '229 215 184',
+      750: '212 195 156',
+      700: '186 166 122',
+      600: '158 135 88',
+      500: '132 106 58',
+      400: '104 80 38',
+      300: '76 56 22',
+      200: '51 36 12',
+      100: '30 20 5',
+      50: '15 10 2'
+    }
+  },
+  cyber: {
+    dark: {
+      950: '6 11 18',    // #060b12 - abyssal cyber void
+      900: '10 18 30',   // #0a121e - cyber panel surface
+      850: '16 28 46',   // #101c2e - elevated console
+      800: '24 44 72',   // #182c48 - matrix borders
+      750: '34 60 98',
+      700: '46 80 128',
+      600: '68 110 168',
+      500: '96 144 205',
+      400: '132 178 235',
+      300: '175 212 250',
+      200: '215 235 255',
+      100: '240 249 255',
+      50: '255 255 255'
+    },
+    light: {
+      950: '240 249 255', // #f0f9ff
+      900: '255 255 255',
+      850: '224 242 254',
+      800: '186 230 253',
+      750: '125 211 252',
+      700: '56 189 248',
+      600: '14 165 233',
+      500: '2 132 199',
+      400: '3 105 161',
+      300: '7 89 133',
+      200: '12 74 110',
+      100: '8 47 73',
+      50: '4 25 40'
+    }
+  },
+  crimson: {
+    dark: {
+      950: '21 9 13',    // #15090d - dark blood-onyx
+      900: '31 14 20',   // #1f0e14 - velvet wine surface
+      850: '45 20 29',   // #2d141d - elevated crimson
+      800: '74 28 42',   // #4a1c2a - ruby borders
+      750: '102 38 58',
+      700: '135 48 76',
+      600: '172 65 98',
+      500: '205 92 125',
+      400: '232 125 155',
+      300: '248 168 190',
+      200: '254 205 218',
+      100: '255 241 245',
+      50: '255 255 255'
+    },
+    light: {
+      950: '255 245 246', // #fff5f6 - rose alabaster
+      900: '255 255 255',
+      850: '255 228 230',
+      800: '254 205 211',
+      750: '253 164 175',
+      700: '251 113 133',
+      600: '244 63 94',
+      500: '225 29 72',
+      400: '190 18 60',
+      300: '159 18 57',
+      200: '136 19 55',
+      100: '76 5 25',
+      50: '40 2 12'
+    }
+  },
+  hazard: {
+    dark: {
+      950: '18 17 16',   // #121110 - basalt black
+      900: '26 24 22',   // #1a1816 - graphite machinery surface
+      850: '38 35 32',   // #262320 - elevated iron
+      800: '59 54 48',   // #3b3630 - iron rivet borders
+      750: '82 74 65',
+      700: '110 98 86',
+      600: '145 130 115',
+      500: '180 162 145',
+      400: '212 195 178',
+      300: '235 222 208',
+      200: '248 239 230',
+      100: '255 250 245',
+      50: '255 255 255'
+    },
+    light: {
+      950: '250 250 249', // #fafaf9
+      900: '255 255 255',
+      850: '245 245 244',
+      800: '231 229 228',
+      750: '214 211 209',
+      700: '168 162 158',
+      600: '120 113 108',
+      500: '87 83 78',
+      400: '68 64 60',
+      300: '41 37 36',
+      200: '28 25 23',
+      100: '12 10 9',
+      50: '6 5 4'
+    }
+  },
+  emerald: {
+    dark: {
+      950: '8 20 15',    // #08140f - mossy pine obsidian
+      900: '13 30 22',   // #0d1e16 - evergreen surface
+      850: '20 45 33',   // #142d21 - elevated spruce
+      800: '29 67 50',   // #1d4332 - deep forest borders
+      750: '39 90 68',
+      700: '50 115 88',
+      600: '68 145 112',
+      500: '92 178 140',
+      400: '128 208 170',
+      300: '172 232 202',
+      200: '212 247 230',
+      100: '240 253 246',
+      50: '255 255 255'
+    },
+    light: {
+      950: '240 253 244', // #f0fdf4
+      900: '255 255 255',
+      850: '220 252 231',
+      800: '187 247 208',
+      750: '134 239 172',
+      700: '74 222 128',
+      600: '34 197 94',
+      500: '22 163 74',
+      400: '21 128 61',
+      300: '22 101 52',
+      200: '20 83 45',
+      100: '5 46 22',
+      50: '2 28 12'
+    }
+  },
+  nord: {
+    dark: {
+      950: '36 41 51',   // #242933 - authentic Nord Polar Night deep background
+      900: '46 52 64',   // #2e3440 - Nord surface cards/sidebar
+      850: '59 66 82',   // #3b4252 - Nord elevated surface
+      800: '67 76 94',   // #434c5e - Nord hairline borders
+      750: '76 86 106',
+      700: '94 106 130',
+      600: '120 133 158',
+      500: '150 163 186',
+      400: '180 192 212',
+      300: '216 222 233',
+      200: '229 233 240',
+      100: '236 239 244',
+      50: '255 255 255'
+    },
+    light: {
+      950: '244 246 249', // #f4f6f9 - Snow Storm
+      900: '255 255 255',
+      850: '236 239 244',
+      800: '220 224 232',
+      750: '200 206 218',
+      700: '160 170 188',
+      600: '120 132 152',
+      500: '90 102 122',
+      400: '67 76 94',
+      300: '46 52 64',
+      200: '36 41 51',
+      100: '20 24 30',
+      50: '10 12 16'
+    }
+  },
+  parchment: {
+    dark: {
+      950: '23 20 18',   // #171412 - dark calfskin vellum
+      900: '33 28 25',   // #211c19 - aged leather surface
+      850: '47 40 35',   // #2f2823 - elevated morocco binding
+      800: '68 58 50',   // #443a32 - illuminated borders
+      750: '92 78 66',
+      700: '120 102 86',
+      600: '154 132 110',
+      500: '188 163 136',
+      400: '218 196 168',
+      300: '238 221 198',
+      200: '250 239 224',
+      100: '255 250 242',
+      50: '255 255 255'
+    },
+    light: {
+      950: '253 251 247', // #fdfbf7 - genuine vellum
+      900: '255 255 255',
+      850: '246 240 226',
+      800: '234 224 200',
+      750: '218 202 168',
+      700: '196 174 130',
+      600: '168 142 94',
+      500: '138 112 64',
+      400: '110 86 42',
+      300: '82 62 26',
+      200: '58 42 16',
+      100: '34 24 8',
+      50: '18 12 4'
+    }
+  }
+}
+
 
 // Built-in default starter snippets for Obsidian-like CSS customizability
 export const DEFAULT_SNIPPETS: CssSnippet[] = [
@@ -407,6 +770,22 @@ export function applyTheme(
   const root = document.documentElement
   const isLight = root.getAttribute('data-color-mode') === 'light'
   const activeTheme = theme || 'sovereign'
+
+  // Apply full background, surface, border, and text palette custom properties
+  const palette = (THEME_PALETTES[activeTheme] || THEME_PALETTES.sovereign)[isLight ? 'light' : 'dark']
+  root.style.setProperty('--oros-50-rgb', palette[50])
+  root.style.setProperty('--oros-100-rgb', palette[100])
+  root.style.setProperty('--oros-200-rgb', palette[200])
+  root.style.setProperty('--oros-300-rgb', palette[300])
+  root.style.setProperty('--oros-400-rgb', palette[400])
+  root.style.setProperty('--oros-500-rgb', palette[500])
+  root.style.setProperty('--oros-600-rgb', palette[600])
+  root.style.setProperty('--oros-700-rgb', palette[700])
+  root.style.setProperty('--oros-750-rgb', palette[750])
+  root.style.setProperty('--oros-800-rgb', palette[800])
+  root.style.setProperty('--oros-850-rgb', palette[850])
+  root.style.setProperty('--oros-900-rgb', palette[900])
+  root.style.setProperty('--oros-950-rgb', palette[950])
 
   // If a custom imported theme configuration is active
   if (customConfig && customConfig.tokens) {

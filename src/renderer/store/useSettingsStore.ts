@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { AppSettings, SettingsTab, ColorMode, ThemeConfig, CssSnippet, ThemePresetId, ThemeScope } from '@shared/types'
+import { AppSettings, SettingsTab, ColorMode, ThemeConfig, CssSnippet, ThemePresetId, ThemeScope, CustomGenre } from '@shared/types'
 import { applyTheme, DEFAULT_SNIPPETS, applyCssSnippets } from '../utils/themeEngine'
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     forceGlobalTheme: false,
     themeScope: 'global',
     customThemes: [],
+    customGenres: [],
     snippets: DEFAULT_SNIPPETS,
     uiDensity: 'standard',
     headingFont: 'playfair',
@@ -68,7 +69,8 @@ function loadSavedSettings(): AppSettings {
           ...DEFAULT_SETTINGS.interface, 
           ...(parsed.interface || {}),
           snippets: parsed.interface?.snippets || DEFAULT_SNIPPETS,
-          customThemes: parsed.interface?.customThemes || []
+          customThemes: parsed.interface?.customThemes || [],
+          customGenres: parsed.interface?.customGenres || []
         },
         editor: { ...DEFAULT_SETTINGS.editor, ...(parsed.editor || {}) },
         files: { ...DEFAULT_SETTINGS.files, ...(parsed.files || {}) }
@@ -255,6 +257,11 @@ interface SettingsState {
   toggleSnippet: (id: string) => void
   deleteSnippet: (id: string) => void
   resetSnippets: () => void
+
+  // Custom Genre Management
+  addCustomGenre: (genre: Omit<CustomGenre, 'id' | 'isCustom'> & { id?: string }) => CustomGenre
+  updateCustomGenre: (id: string, updates: Partial<CustomGenre>) => void
+  deleteCustomGenre: (id: string) => void
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => {
@@ -386,6 +393,45 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
 
     resetSnippets: () => {
       get().updateInterface({ snippets: DEFAULT_SNIPPETS })
+    },
+
+    // Custom Genre Management
+    addCustomGenre: (genreData) => {
+      const id = genreData.id || `genre-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+      const newGenre: CustomGenre = {
+        id,
+        name: genreData.name.trim(),
+        icon: genreData.icon || 'Sparkles',
+        desc: genreData.desc || 'Custom worldbuilding genre',
+        isCustom: true
+      }
+      const existing = get().settings.interface.customGenres || []
+      const next = [...existing.filter((g) => g.id !== id && g.name.toLowerCase() !== newGenre.name.toLowerCase()), newGenre]
+      get().updateInterface({ customGenres: next })
+      return newGenre
+    },
+
+    updateCustomGenre: (id, updates) => {
+      const existing = get().settings.interface.customGenres || []
+      const next = existing.map((g) => (g.id === id ? { ...g, ...updates } : g))
+      get().updateInterface({ customGenres: next })
+    },
+
+    deleteCustomGenre: (id) => {
+      const existing = get().settings.interface.customGenres || []
+      const next = existing.filter((g) => g.id !== id)
+      get().updateInterface({ customGenres: next })
     }
   }
 })
+
+if (typeof globalThis !== 'undefined') {
+  ;(globalThis as any).__getOrosCustomGenres = () => {
+    try {
+      return useSettingsStore.getState().settings.interface.customGenres || []
+    } catch {
+      return []
+    }
+  }
+}
+

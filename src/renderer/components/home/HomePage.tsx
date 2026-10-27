@@ -43,6 +43,7 @@ export const HomePage: React.FC = () => {
 
   const addToast = useToastStore((s) => s.addToast)
   const openSettings = useSettingsStore((s) => s.openSettings)
+  const customGenres = useSettingsStore((s) => s.settings.interface.customGenres || [])
 
   const [hubTab, setHubTab] = useState<'worlds' | 'ttrpg'>('worlds')
   const [searchFilter, setSearchFilter] = useState('')
@@ -366,7 +367,7 @@ export const HomePage: React.FC = () => {
                     ? w.customAccentColor 
                     : themePreset?.hex || '#ffffff'
 
-                  const genreMeta = getGenreMeta(w.genre)
+                  const genreMeta = getGenreMeta(w.genre, w.genreIcon, customGenres)
                   const GenreIcon = genreMeta.icon
                   const thumbnail = w.thumbnailUrl || w.bannerUrl
 

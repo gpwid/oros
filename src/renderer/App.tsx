@@ -148,20 +148,30 @@ export const App: React.FC = () => {
       ? activeWorld.snippets
       : (settings.interface.snippets || [])
 
-    if (settings.interface.forceGlobalTheme) {
-      const customConfig = settings.interface.customThemes?.find((t) => t.id === settings.interface.themePreset)
+    const globalCustomConfig = settings.interface.customThemes?.find((t) => t.id === settings.interface.themePreset)
+
+    if (settings.interface.forceGlobalTheme || appView === 'home') {
+      // Force global theme across all vaults OR on the home hub view
       applyTheme(
         settings.interface.themePreset,
         settings.interface.themePreset === 'custom' ? settings.interface.customAccentColor : undefined,
-        customConfig,
+        globalCustomConfig,
         activeSnippets
       )
-    } else if (appView === 'home') {
-      applyTheme('sovereign', undefined, undefined, activeSnippets)
     } else if (activeWorld?.themeConfig) {
+      // Vault has a special custom theme configuration
       applyTheme(undefined, undefined, activeWorld.themeConfig, activeSnippets)
+    } else if (activeWorld?.theme && activeWorld.theme !== 'inherit') {
+      // Vault has a special theme preset assigned
+      applyTheme(activeWorld.theme, activeWorld.customAccentColor, undefined, activeSnippets)
     } else {
-      applyTheme(activeWorld?.theme, activeWorld?.customAccentColor, undefined, activeSnippets)
+      // Vault inherits the global application theme
+      applyTheme(
+        settings.interface.themePreset,
+        settings.interface.themePreset === 'custom' ? settings.interface.customAccentColor : undefined,
+        globalCustomConfig,
+        activeSnippets
+      )
     }
   }, [
     appView, 

@@ -4,7 +4,7 @@ import {
   FolderOpen, RotateCcw, Check, Copy, ExternalLink, HardDrive, 
   ShieldCheck, AlertCircle, FileText, Search, Sparkles,
   Sun, Moon, Monitor, Upload, Download, Trash2, 
-  Layers, Globe, Terminal, CheckSquare, Paintbrush
+  Layers, Globe, Terminal, CheckSquare, Paintbrush, Plus, Tag
 } from 'lucide-react'
 import { 
   useSettingsStore, 
@@ -21,7 +21,8 @@ import {
   parseThemeFromJson,
   getThemeTokens
 } from '../../utils/themeEngine'
-import { SettingsTab, World, ThemeConfig, ThemePresetId, ThemeScope } from '@shared/types'
+import { GENRE_ICONS, getGenreIconComponent } from '../../utils/genrePresets'
+import { SettingsTab, World, ThemeConfig, ThemePresetId, ThemeScope, CustomGenre } from '@shared/types'
 import { OrosLogoMark } from '../common/OrosLogo'
 import { UpdateModal } from '../common/UpdateModal'
 
@@ -30,7 +31,8 @@ export const SettingsModal: React.FC = () => {
     isSettingsOpen, closeSettings, activeTab, setActiveTab,
     settings, updateGeneral, updateInterface, updateEditor, updateFiles,
     resetSectionToDefaults, resetAllToDefaults,
-    installCustomTheme, removeCustomTheme
+    installCustomTheme, removeCustomTheme,
+    addCustomGenre, deleteCustomGenre
   } = useSettingsStore()
 
   const { worlds, activeWorldId, updateWorld, entities, maps, manuscripts, canvases, conlangs } = useWorldStore()
@@ -87,10 +89,22 @@ export const SettingsModal: React.FC = () => {
   // Active theme ID based on scope
   const activeThemeId: string = useMemo(() => {
     if (themeScope === 'workspace' && activeWorld) {
-      return activeWorld.themeConfig?.id || activeWorld.theme || 'sovereign'
+      return activeWorld.themeConfig?.id || activeWorld.theme || settings.interface.themePreset
     }
     return settings.interface.themePreset
   }, [themeScope, activeWorld, settings.interface.themePreset])
+
+  const isVaultUsingCustomTheme = Boolean(
+    themeScope === 'workspace' && activeWorld && (activeWorld.themeConfig || (activeWorld.theme && activeWorld.theme !== 'inherit'))
+  )
+
+  // Custom Genres Management State
+  const [isAddingGenre, setIsAddingGenre] = useState(false)
+  const [newGenreName, setNewGenreName] = useState('')
+  const [newGenreDesc, setNewGenreDesc] = useState('')
+  const [newGenreIcon, setNewGenreIcon] = useState('Sparkles')
+  const [genreIconSearch, setGenreIconSearch] = useState('')
+  const [genreIconCategory, setGenreIconCategory] = useState<string>('All')
 
   // Live Preview Custom Draft State for Editor
   const [editorDraftTitle, setEditorDraftTitle] = useState<string>('Chronicles of the Realm')
@@ -676,6 +690,32 @@ export const SettingsModal: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Vault Theme Status Bar when in Workspace Scope */}
+                  {themeScope === 'workspace' && activeWorld && (
+                    <div className="p-2.5 rounded-[3px] bg-oros-950 border border-oros-800 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="text-oros-400">Vault Theme Status:</span>
+                        <span className="font-semibold text-oros-100">
+                          {isVaultUsingCustomTheme 
+                            ? `Custom Vault Theme (${THEME_PRESETS.find(p => p.id === activeThemeId)?.name || activeThemeId})` 
+                            : `Inheriting Global Theme (${THEME_PRESETS.find(p => p.id === settings.interface.themePreset)?.name || 'Default'})`}
+                        </span>
+                      </div>
+                      {isVaultUsingCustomTheme && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateWorld(activeWorld.id, { theme: undefined, themeConfig: undefined })
+                            addToast(`Restored ${activeWorld.name} to inherit global theme`, 'info')
+                          }}
+                          className="px-2 py-0.5 rounded bg-oros-900 hover:bg-oros-850 border border-oros-750 text-oros-300 hover:text-oros-100 text-[11px] font-medium transition-colors"
+                        >
+                          Reset to Inherit Global
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {/* Grid of Theme Cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     {/* Built-in Presets */}
@@ -775,7 +815,10 @@ export const SettingsModal: React.FC = () => {
 
                   {/* Force Global Theme Toggle */}
                   <label className="flex items-center justify-between p-2.5 rounded-[3px] bg-oros-950 border border-oros-800 hover:border-oros-750 transition-colors cursor-pointer mt-2">
-                    <span className="font-medium text-oros-100 block text-xs">Force Global Theme Across All Vaults</span>
+                    <div>
+                      <span className="font-medium text-oros-100 block text-xs">Override Vault Themes with Global Theme</span>
+                      <span className="text-[10px] text-oros-500 block">Forces the global theme across all vaults, ignoring vault-specific special themes</span>
+                    </div>
                     <input
                       type="checkbox"
                       checked={settings.interface.forceGlobalTheme}
@@ -904,6 +947,231 @@ export const SettingsModal: React.FC = () => {
                       className="w-4 h-4 accent-accent rounded cursor-pointer"
                     />
                   </label>
+                </div>
+
+                {/* 7. Custom Worldbuilding Genres */}
+                <div className="space-y-3 pt-3 border-t border-oros-800/80">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase text-oros-300 font-bold tracking-wider">
+                        Custom Worldbuilding Genres
+                      </label>
+                      <p className="text-xs text-oros-400 mt-0.5">
+                        Define tailored genres with distinctive icons for your projects and vaults.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingGenre((prev) => !prev)}
+                      className="px-2.5 py-1 rounded-[3px] bg-accent/20 hover:bg-accent/30 text-accent border border-accent/40 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      {isAddingGenre ? (
+                        <>
+                          <X className="w-3.5 h-3.5" />
+                          <span>Cancel</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add Genre</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Add New Custom Genre Form */}
+                  {isAddingGenre && (
+                    <div className="p-4 rounded-[4px] bg-oros-950 border border-accent/40 shadow-md space-y-3 animate-fade-in">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-mono uppercase text-oros-300 font-semibold mb-1">
+                            Genre Name <span className="text-rose-400">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={newGenreName}
+                            onChange={(e) => setNewGenreName(e.target.value)}
+                            placeholder="e.g. Solarpunk Grimdark, Space Western..."
+                            className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2.5 py-1 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-accent"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-mono uppercase text-oros-300 font-semibold mb-1">
+                            Description / Tone (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={newGenreDesc}
+                            onChange={(e) => setNewGenreDesc(e.target.value)}
+                            placeholder="e.g. High technology with brutal frontier survival"
+                            className="w-full bg-oros-900 border border-oros-750 rounded-[3px] px-2.5 py-1 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-accent"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Icon Picker */}
+                      <div className="space-y-2 pt-2 border-t border-oros-800">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[10px] font-mono uppercase text-oros-300 font-semibold">
+                            Select Icon ({GENRE_ICONS.length} available)
+                          </label>
+                          <div className="flex items-center gap-1.5 text-xs font-mono bg-oros-900 px-2 py-0.5 rounded border border-oros-800">
+                            <span className="text-oros-400 text-[10px]">Active:</span>
+                            {React.createElement(getGenreIconComponent(newGenreIcon), { className: 'w-3.5 h-3.5 text-accent' })}
+                            <span className="text-accent text-[11px] font-semibold">{newGenreIcon}</span>
+                          </div>
+                        </div>
+
+                        {/* Category filter pills */}
+                        <div className="flex items-center gap-1 overflow-x-auto pb-1 custom-scrollbar text-[10px] font-mono">
+                          {['All', 'Arcane & Magic', 'Sci-Fi & Cyber', 'Combat & Warfare', 'Exploration & Wilds', 'Civilization & Lore', 'Nautical & Sea', 'Horror & Mystery'].map((cat) => (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={() => setGenreIconCategory(cat)}
+                              className={`px-2 py-1 rounded-[3px] whitespace-nowrap transition-colors cursor-pointer border ${
+                                genreIconCategory === cat
+                                  ? 'bg-accent/20 border-accent/60 text-accent font-semibold'
+                                  : 'bg-oros-900 border-oros-800 text-oros-400 hover:text-oros-200 hover:bg-oros-850'
+                              }`}
+                            >
+                              {cat}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Search input */}
+                        <div className="relative">
+                          <Search className="w-3.5 h-3.5 text-oros-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={genreIconSearch}
+                            onChange={(e) => setGenreIconSearch(e.target.value)}
+                            placeholder="Filter icons (e.g. sword, rocket, crown, ghost)..."
+                            className="w-full bg-oros-900 border border-oros-750 rounded-[3px] pl-8 pr-2.5 py-1 text-xs text-oros-100 placeholder-oros-500 focus:outline-none focus:border-accent"
+                          />
+                        </div>
+
+                        {/* Icon grid */}
+                        <div className="max-h-44 overflow-y-auto grid grid-cols-4 sm:grid-cols-6 gap-1.5 p-1 bg-oros-900/60 border border-oros-800 rounded-[4px] custom-scrollbar">
+                          {GENRE_ICONS.filter((item) => {
+                            const matchCat = genreIconCategory === 'All' || item.category === genreIconCategory
+                            const matchSearch = !genreIconSearch.trim() || 
+                              item.label.toLowerCase().includes(genreIconSearch.toLowerCase()) ||
+                              item.id.toLowerCase().includes(genreIconSearch.toLowerCase())
+                            return matchCat && matchSearch
+                          }).map((item) => {
+                            const IconComp = item.icon
+                            const isSelected = newGenreIcon.toLowerCase() === item.id.toLowerCase()
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => setNewGenreIcon(item.id)}
+                                title={`${item.id}: ${item.label}`}
+                                className={`p-2 rounded-[3px] border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer group ${
+                                  isSelected
+                                    ? 'bg-accent/20 border-accent text-accent shadow-sm ring-1 ring-accent'
+                                    : 'bg-oros-950 border-oros-800/80 hover:bg-oros-850 hover:border-oros-700 text-oros-400 hover:text-oros-100'
+                                }`}
+                              >
+                                <IconComp className={`w-4 h-4 transition-transform group-hover:scale-110 ${isSelected ? 'text-accent' : 'text-oros-300'}`} />
+                                <span className="text-[9px] font-mono truncate w-full text-center leading-tight">
+                                  {item.id}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-oros-800">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingGenre(false)}
+                          className="px-3 py-1.5 rounded-[3px] text-xs font-medium text-oros-400 hover:text-oros-200 transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newGenreName.trim()) {
+                              addToast('Please enter a genre name', 'warning')
+                              return
+                            }
+                            addCustomGenre({
+                              name: newGenreName.trim(),
+                              desc: newGenreDesc.trim() || undefined,
+                              icon: newGenreIcon
+                            })
+                            addToast(`Created custom genre: ${newGenreName.trim()}`, 'success')
+                            setNewGenreName('')
+                            setNewGenreDesc('')
+                            setNewGenreIcon('Sparkles')
+                            setIsAddingGenre(false)
+                          }}
+                          className="px-4 py-1.5 rounded-[3px] btn-accent text-xs font-semibold shadow-sm flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Save Custom Genre</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* List of custom genres */}
+                  {(settings.interface.customGenres || []).length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {(settings.interface.customGenres || []).map((cg) => {
+                        const IconComp = getGenreIconComponent(cg.icon)
+                        return (
+                          <div
+                            key={cg.id}
+                            className="p-3 rounded-[3px] bg-oros-950 border border-oros-800 hover:border-oros-750 flex items-start justify-between gap-2 group transition-colors"
+                          >
+                            <div className="flex items-start gap-2.5 min-w-0">
+                              <div className="p-1.5 rounded bg-accent/15 border border-accent/30 text-accent shrink-0 mt-0.5">
+                                <IconComp className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-semibold text-oros-100 truncate">{cg.name}</span>
+                                  <span className="px-1.5 py-0.2 rounded bg-accent/10 text-accent text-[9px] font-mono border border-accent/20">
+                                    {cg.icon}
+                                  </span>
+                                </div>
+                                {cg.desc && (
+                                  <p className="text-[11px] text-oros-400 line-clamp-2 mt-0.5">
+                                    {cg.desc}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                deleteCustomGenre(cg.id)
+                                addToast(`Removed custom genre: ${cg.name}`, 'info')
+                              }}
+                              className="p-1 text-oros-500 hover:text-rose-400 hover:bg-rose-950/40 rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                              title="Delete custom genre"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    !isAddingGenre && (
+                      <div className="p-4 rounded-[3px] bg-oros-950/50 border border-dashed border-oros-800 text-center text-xs text-oros-400 font-mono">
+                        No custom genres created yet. Click &ldquo;Add Genre&rdquo; to create your first custom genre.
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
             )}

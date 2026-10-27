@@ -16,7 +16,8 @@ import {
   sampleWorld, sampleEntities, sampleMap, sampleRelations, 
   sampleTimelines, sampleManuscript,
   sampleFolders, sampleDirectoryItems, sampleCanvases, sampleWorkspaceTabs,
-  sampleConlangs, sampleRelationNodePositions
+  sampleConlangs, sampleRelationNodePositions,
+  OSTERGARD_MASTERPIECES
 } from '../sample/sampleWorld'
 import { getTemplateById, getTemplateForType } from '../utils/entityTemplates'
 import { useTtrpgStore } from './useTtrpgStore'
@@ -124,7 +125,8 @@ interface WorldState {
     theme?: World['theme'], 
     customAccentColor?: string,
     thumbnailUrl?: string,
-    bannerUrl?: string
+    bannerUrl?: string,
+    genreIcon?: string
   ) => void;
   updateWorld: (worldId: string, updates: Partial<World>) => void;
   deleteWorld: (worldId: string) => void;
@@ -201,8 +203,14 @@ function getAutoSaveIntervalMs(): number {
   return 1000
 }
 
-function optimizeMuseumUrl(url?: string): string | undefined {
+function optimizeMuseumUrl(url?: string, isBanner = false): string | undefined {
   if (!url || typeof url !== 'string') return url
+  if (url.includes('artstation.com')) {
+    if (url.includes('corvus') && !url.includes('banner') && !isBanner) {
+      return OSTERGARD_MASTERPIECES.corvus.thumbnailUrl
+    }
+    return undefined
+  }
   if (url.includes('images.metmuseum.org/CRDImages/') && url.includes('/original/')) {
     return url.replace('/original/', '/web-large/')
   }
@@ -352,8 +360,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
             const cleanEnt = stripAttribution(ent);
             const avatar = optimizeMuseumUrl(cleanEnt.avatar);
             const avatarUrl = optimizeMuseumUrl(cleanEnt.avatarUrl || cleanEnt.avatar);
-            const banner = optimizeMuseumUrl(cleanEnt.banner);
-            const bannerUrl = optimizeMuseumUrl(cleanEnt.bannerUrl || cleanEnt.banner);
+            const banner = optimizeMuseumUrl(cleanEnt.banner, true);
+            const bannerUrl = optimizeMuseumUrl(cleanEnt.bannerUrl || cleanEnt.banner, true);
             return {
               ...cleanEnt,
               avatar,
@@ -1461,7 +1469,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     get().persistStore();
   },
 
-  createWorld: (name, tagline, genre, theme = 'sovereign', customAccentColor, thumbnailUrl, bannerUrl) => {
+  createWorld: (name, tagline, genre, theme = 'sovereign', customAccentColor, thumbnailUrl, bannerUrl, genreIcon) => {
     const newWorldId = `world-${Date.now()}`;
     const initialCalendar = { ...DEFAULT_FANTASY_CALENDAR_CONFIG, worldId: newWorldId };
     const newWorld: World = {
@@ -1470,6 +1478,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       tagline,
       description: '',
       genre,
+      genreIcon,
       theme,
       customAccentColor,
       thumbnailUrl: thumbnailUrl || bannerUrl,

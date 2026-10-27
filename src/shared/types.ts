@@ -284,7 +284,15 @@ export interface ManuscriptChapter {
   updatedAt: string;
 }
 
-export type ThemePresetId = 'sovereign' | 'obsidian' | 'mythic' | 'cyber' | 'crimson' | 'hazard' | 'emerald' | 'nord' | 'parchment' | 'custom' | string;
+export type ThemePresetId = 'amethyst' | 'sovereign' | 'obsidian' | 'mythic' | 'cyber' | 'crimson' | 'hazard' | 'emerald' | 'nord' | 'parchment' | 'custom' | string;
+
+export interface CustomGenre {
+  id: string;
+  name: string;
+  icon: string;
+  desc?: string;
+  isCustom?: boolean;
+}
 
 export interface World {
   id: string;
@@ -292,6 +300,7 @@ export interface World {
   tagline: string;
   description: string;
   genre: string;
+  genreIcon?: string;
   theme?: ThemePresetId;
   customAccentColor?: string;
   calendarConfig?: WorldCalendarConfig;
@@ -682,6 +691,7 @@ export interface AppSettings {
     forceGlobalTheme: boolean;
     themeScope?: ThemeScope;
     customThemes?: ThemeConfig[];
+    customGenres?: CustomGenre[];
     snippets?: CssSnippet[];
     uiDensity: 'compact' | 'standard' | 'comfortable';
     headingFont: string;

@@ -340,7 +340,7 @@ export const CodexReaderView: React.FC = () => {
                 )}
               </div>
 
-              <h1 className="font-serif text-3xl sm:text-4xl font-extrabold text-[#f1f5f9] tracking-tight leading-tight">
+              <h1 className="font-serif text-3xl sm:text-4xl font-extrabold text-oros-100 tracking-tight leading-tight">
                 {activeChapter?.title || activeEntity?.title || 'Untitled Document'}
               </h1>
 
@@ -355,7 +355,7 @@ export const CodexReaderView: React.FC = () => {
             <div 
               style={typographyStyle}
               onClick={handleReaderProseClick}
-              className="prose-reading oros-wiki-prose text-[#cbd5e1] space-y-6"
+              className="prose-reading oros-wiki-prose text-oros-200 space-y-6"
             >
               {currentSection.type === 'chapter' && activeChapter ? (
                 enrichedChapterHtml ? (
